@@ -6,9 +6,17 @@ import { fetchThermostatContextWithStatus } from "./thermostatCorrelation";
 import type { ThermostatSnapshot } from "./thermostatCorrelation";
 import { listHouseholdIdsForCron } from "./households";
 
-/** Upstream blips — log and retry next cron; do not fail collect-history / page ops. */
+/**
+ * Thermostat fetch failures that should not fail collect-history / page ops.
+ * User-owned OAuth (reconnect) and upstream blips are soft; platform misconfig stays hard.
+ */
 export function isTransientThermostatCollectError(error: string | null): boolean {
-  return error === "network";
+  return (
+    error === "network" ||
+    error === "api_auth" ||
+    error === "no_token" ||
+    error === "api_error"
+  );
 }
 
 export type ThermostatSnapshotRow = {
