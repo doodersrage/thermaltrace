@@ -1,4 +1,6 @@
 import type { AstroCookies } from "astro";
+import { getAalClaim } from "./mfa";
+import { getRuntimeEnv } from "./runtimeEnv";
 import { timingSafeEqual } from "./timingSafeEqual";
 
 /** HttpOnly cookie proving YubiKey (or other aal1) MFA step-up completed. */
@@ -14,9 +16,9 @@ type StepUpPayload = {
   exp: number;
 };
 
+/** Prefer dedicated MFA_STEPUP_SECRET; fall back to CRON_SECRET for existing deploys. */
 function getSecret(): string | null {
-  const secret = import.meta.env.CRON_SECRET?.trim();
-  return secret || null;
+  return getRuntimeEnv("MFA_STEPUP_SECRET") || getRuntimeEnv("CRON_SECRET") || null;
 }
 
 function base64UrlEncode(data: string): string {
@@ -61,7 +63,7 @@ async function verifySignature(
   return timingSafeEqual(expected, signature);
 }
 
-/** HMAC-signed proof that this user completed MFA step-up. Fails closed without CRON_SECRET. */
+/** HMAC-signed proof that this user completed MFA step-up. Fails closed without a signing secret. */
 export async function createMfaStepUpProof(userId: string): Promise<string | null> {
   const secret = getSecret();
   if (!secret || !userId) return null;
@@ -131,4 +133,15 @@ export async function hasValidMfaStepUpProof(
   const fromHeader = request?.headers.get(MFA_STEPUP_HEADER)?.trim() || null;
   const token = fromHeader || readMfaStepUpCookie(cookies);
   return verifyMfaStepUpProof(token, userId);
+}
+
+/** Supabase aal2 JWT claim or a valid MFA step-up proof cookie/header. */
+export async function hasElevatedAuth(
+  request: Request | null | undefined,
+  cookies: AstroCookies,
+  accessToken: string,
+  userId: string,
+): Promise<boolean> {
+  if (getAalClaim(accessToken) === "aal2") return true;
+  return hasValidMfaStepUpProof(request, cookies, userId);
 }

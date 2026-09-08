@@ -22,4 +22,12 @@ describe("alertAckTokens", () => {
     const exp = Date.now() + 60_000;
     expect(await verifyAckPayload("user-123", exp, "deadbeef")).toBe(false);
   });
+
+  it("fails closed without a signing secret", async () => {
+    vi.stubEnv("CRON_SECRET", "");
+    vi.stubEnv("ALERT_ACK_SECRET", "");
+    await expect(signAckPayload("user-123", Date.now() + 60_000)).rejects.toThrow(
+      /not configured/,
+    );
+  });
 });

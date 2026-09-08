@@ -31,6 +31,10 @@ interface ImportMetaEnv {
   readonly SITE_URL?: string;
   readonly ORIGIN?: string;
   readonly CRON_SECRET?: string;
+  /** Optional dedicated HMAC secrets (preferred over CRON_SECRET). */
+  readonly MFA_STEPUP_SECRET?: string;
+  readonly ALERT_ACK_SECRET?: string;
+  readonly MOBILE_EXCHANGE_SECRET?: string;
   readonly TWILIO_ACCOUNT_SID?: string;
   readonly TWILIO_AUTH_TOKEN?: string;
   readonly TWILIO_FROM_NUMBER?: string;

@@ -35,10 +35,22 @@ describe("mfaStepUpProof", () => {
     expect(await verifyMfaStepUpProof("not-a-token", "user-abc")).toBe(false);
   });
 
-  it("fails closed when CRON_SECRET is missing", async () => {
+  it("fails closed when signing secret is missing", async () => {
     vi.stubEnv("CRON_SECRET", "");
+    vi.stubEnv("MFA_STEPUP_SECRET", "");
     expect(await createMfaStepUpProof("user-abc")).toBeNull();
     expect(await verifyMfaStepUpProof("anything", "user-abc")).toBe(false);
+  });
+
+  it("prefers MFA_STEPUP_SECRET over CRON_SECRET", async () => {
+    vi.stubEnv("CRON_SECRET", "cron-fallback");
+    vi.stubEnv("MFA_STEPUP_SECRET", "dedicated-stepup");
+    const token = await createMfaStepUpProof("user-abc");
+    expect(token).toBeTruthy();
+    expect(await verifyMfaStepUpProof(token, "user-abc")).toBe(true);
+
+    vi.stubEnv("MFA_STEPUP_SECRET", "other-dedicated");
+    expect(await verifyMfaStepUpProof(token, "user-abc")).toBe(false);
   });
 
   it("exports cookie and companion header names", () => {

@@ -104,6 +104,10 @@ const planLabel =
           historyDays={entitlements.historyDays}
           tierLabel={planLabel}
           canCustomizeRetention={entitlements.historyDays >= 90}
+          hasPasswordAuth={
+            (user.identities?.some((identity) => identity.provider === "email") ??
+              Boolean(user.email))
+          }
           deleteError={deleteError}
         />
 

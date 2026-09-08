@@ -148,6 +148,26 @@ export const onRequest = defineMiddleware(async (context, next) => {
         "camera=(), microphone=(), geolocation=()",
       );
     }
+    if (!headers.has("Content-Security-Policy-Report-Only")) {
+      // Report-Only first: gather violations without breaking dashboard/analytics.
+      headers.set(
+        "Content-Security-Policy-Report-Only",
+        [
+          "default-src 'self'",
+          "base-uri 'self'",
+          "form-action 'self'",
+          "frame-ancestors 'self'",
+          "object-src 'none'",
+          "img-src 'self' data: blob: https:",
+          "font-src 'self' data:",
+          "style-src 'self' 'unsafe-inline'",
+          "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://analytics.ahrefs.com https://challenges.cloudflare.com",
+          "connect-src 'self' https: wss:",
+          "frame-src 'self' https://challenges.cloudflare.com",
+          "worker-src 'self' blob:",
+        ].join("; "),
+      );
+    }
     return new Response(response.body, {
       status: response.status,
       statusText: response.statusText,

@@ -58,12 +58,21 @@ export const GET: APIRoute = async ({ request, cookies }) => {
     getIndoorReferenceSensorId(household.householdId),
   ]);
 
+  const manager = await requireHouseholdManager(user.id);
+  const safeInvites = manager.ok
+    ? invites.invites
+    : invites.invites.map(({ token, ...rest }) => ({
+        ...rest,
+        token: null as string | null,
+        token_preview: token.slice(-4),
+      }));
+
   return new Response(
     JSON.stringify({
       householdId: household.householdId,
       members: members.members,
       households: households.households,
-      invites: invites.invites,
+      invites: safeInvites,
       indoor_reference_sensor_id: indoorReferenceSensorId,
       freeze_map: {
         opt_in: freezeMap.optIn,

@@ -1,12 +1,11 @@
 import { acknowledgeLatestUnackedAlert } from "./alertEvents";
+import { getRuntimeEnv } from "./runtimeEnv";
 import { timingSafeEqualHex } from "./timingSafeEqual";
 
 function getAckSecret(): string | null {
-  return (
-    import.meta.env.CRON_SECRET?.trim() ||
-    import.meta.env.SUPABASE_SERVICE_ROLE_KEY?.trim() ||
-    null
-  );
+  // Prefer a dedicated ack secret; fall back to CRON_SECRET. Never use the
+  // service role key as an HMAC secret (too much blast radius if links leak).
+  return getRuntimeEnv("ALERT_ACK_SECRET") || getRuntimeEnv("CRON_SECRET") || null;
 }
 
 async function hmacSha256Hex(secret: string, payload: string): Promise<string> {

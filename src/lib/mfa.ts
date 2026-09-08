@@ -74,6 +74,26 @@ export async function sessionNeedsMfaStepUp(
   return user ? userHasYubiKeyOtpEnrolled(user) : false;
 }
 
+/** True when the account already has at least one usable MFA factor. */
+export async function userHasAnyMfaEnrolled(
+  client: SupabaseClient<Database>,
+  user?: User | null,
+): Promise<boolean> {
+  if (userHasYubiKeyOtpEnrolled(user)) return true;
+
+  const { data, error } = await client.auth.mfa.listFactors();
+  if (error || !data) {
+    const levels = await getAssuranceLevels(client);
+    return levels?.nextLevel === "aal2" || levels?.currentLevel === "aal2";
+  }
+
+  const verifiedTotp = (data.totp ?? []).some((f) => f.status === "verified");
+  const verifiedWebauthn = (data.webauthn ?? []).some(
+    (f) => f.status === "verified",
+  );
+  return verifiedTotp || verifiedWebauthn;
+}
+
 export function setMfaRequiredCookie(
   cookies: AstroCookies,
   required: boolean | "clear",

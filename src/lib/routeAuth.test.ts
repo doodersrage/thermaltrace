@@ -34,6 +34,7 @@ describe("pathRequiresAuth", () => {
     expect(pathRequiresAuth("/api/pucks/register")).toBe(true);
     expect(pathRequiresAuth("/api/pucks/claim/start")).toBe(true);
     expect(pathRequiresAuth("/api/bays/garage/mood")).toBe(true);
+    expect(pathRequiresAuth("/api/monitoring/certificate")).toBe(true);
     expect(pathRequiresAuth("/_actions/updateAlertSettings")).toBe(true);
   });
 

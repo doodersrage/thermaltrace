@@ -27,6 +27,7 @@ const protectedApiPrefixes = [
   "/api/integrations",
   "/api/pucks",
   "/api/bays",
+  "/api/monitoring",
 ];
 
 /** Public endpoints that would otherwise match a protected prefix. */

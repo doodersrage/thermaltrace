@@ -8,6 +8,7 @@ interface Props {
   historyDays: number;
   tierLabel: string;
   canCustomizeRetention: boolean;
+  hasPasswordAuth?: boolean;
   deleteError?: string | null;
 }
 const {
@@ -16,6 +17,7 @@ const {
   historyDays,
   tierLabel,
   canCustomizeRetention,
+  hasPasswordAuth = true,
   deleteError,
 } = Astro.props;
 const maxCustomDays = historyDays >= 365 ? 730 : historyDays;
@@ -48,19 +50,64 @@ const maxCustomDays = historyDays >= 365 ? 730 : historyDays;
   ) : (
     <p class="mb-4 text-sm text-[var(--color-text-muted)]">
       Upgrade to Member for 90-day history, or Pro for 1 year+, to keep a longer window.
-      <a class="text-link" href="/pricing#data-retention">Compare retention</a>
+      <a class="text-link" href="/pricing#data-retention">Compare retention</a>.
     </p>
   )}
 
   <h3 class="text-base font-semibold mb-2 text-[var(--color-danger)]">Delete account</h3>
   <p class="card-subtitle mb-3">
-    Permanently deletes {userEmail}, alert settings, and sole-owned households. Type DELETE to confirm.
+    Permanently deletes {userEmail}, alert settings, and sole-owned households.
+    {hasPasswordAuth
+      ? " Re-enter your password and type DELETE to confirm."
+      : " Confirm your email and type DELETE to confirm."}
   </p>
-  {deleteError && (
-    <p class="alert-warning mb-3" role="alert">Could not delete account. Confirm with DELETE.</p>
+  {deleteError === "confirm" && (
+    <p class="alert-warning mb-3" role="alert">Type DELETE exactly to confirm.</p>
   )}
+  {deleteError === "password" && (
+    <p class="alert-warning mb-3" role="alert">Password required (or incorrect).</p>
+  )}
+  {deleteError === "email" && (
+    <p class="alert-warning mb-3" role="alert">Re-type your account email to confirm.</p>
+  )}
+  {deleteError === "mfa" && (
+    <p class="alert-warning mb-3" role="alert">Verify MFA, then try deleting again.</p>
+  )}
+  {deleteError &&
+    deleteError !== "confirm" &&
+    deleteError !== "password" &&
+    deleteError !== "email" &&
+    deleteError !== "mfa" && (
+      <p class="alert-warning mb-3" role="alert">Could not delete account.</p>
+    )}
   <form action="/api/user/account/delete" method="post">
     <input type="hidden" name="redirect" value="/" />
+    {hasPasswordAuth ? (
+      <div class="form-field mb-3">
+        <label class="form-label" for="delete_password">Password</label>
+        <input
+          class="form-input"
+          type="password"
+          id="delete_password"
+          name="password"
+          autocomplete="current-password"
+          required
+        />
+      </div>
+    ) : (
+      <div class="form-field mb-3">
+        <label class="form-label" for="confirm_email">Account email</label>
+        <input
+          class="form-input"
+          type="email"
+          id="confirm_email"
+          name="confirm_email"
+          autocomplete="email"
+          placeholder={userEmail}
+          required
+        />
+      </div>
+    )}
     <div class="form-field mb-3">
       <label class="form-label" for="confirm_delete">Confirmation</label>
       <input class="form-input" type="text" id="confirm_delete" name="confirm" placeholder="DELETE" required />

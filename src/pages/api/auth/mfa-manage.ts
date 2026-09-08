@@ -1,10 +1,15 @@
 import type { APIRoute } from "astro";
+import type { AstroCookies } from "astro";
+import type { Session, SupabaseClient, User } from "@supabase/supabase-js";
+import type { Database } from "../../../types/supabase";
 import { getAuthFromCookies, setAuthCookies } from "../../../lib/auth";
 import {
   createAuthClientFromSession,
   getAalClaim,
   syncMfaRequiredCookieFromClient,
+  userHasAnyMfaEnrolled,
 } from "../../../lib/mfa";
+import { hasElevatedAuth } from "../../../lib/mfaStepUpProof";
 import {
   challengeWebAuthnFactor,
   enrollWebAuthnFactor,
@@ -31,6 +36,31 @@ async function requireSession(cookies: Parameters<typeof getAuthFromCookies>[0])
   const { session, user } = await getAuthFromCookies(cookies);
   if (!session || !user) return null;
   return { session, user };
+}
+
+/**
+ * First-factor enroll stays available at aal1. Adding another factor after MFA
+ * exists requires aal2 or a valid step-up proof (closes password-theft enroll bypass).
+ */
+async function requireElevatedForAdditionalEnroll(
+  request: Request,
+  cookies: AstroCookies,
+  session: Session,
+  user: User,
+  client: SupabaseClient<Database>,
+): Promise<Response | null> {
+  const { data: userData } = await client.auth.getUser();
+  const hasMfa = await userHasAnyMfaEnrolled(client, userData.user ?? user);
+  if (!hasMfa) return null;
+
+  if (await hasElevatedAuth(request, cookies, session.access_token, user.id)) {
+    return null;
+  }
+
+  return json(
+    { error: "Verify MFA before adding another authenticator" },
+    401,
+  );
 }
 
 /** List TOTP factors for the signed-in user (cookie session; no browser Supabase keys). */
@@ -112,6 +142,15 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   if (error) return json({ error }, 401);
 
   if (action === "enroll") {
+    const blocked = await requireElevatedForAdditionalEnroll(
+      request,
+      cookies,
+      auth.session,
+      auth.user,
+      client,
+    );
+    if (blocked) return blocked;
+
     const { data, error: enrollError } = await client.auth.mfa.enroll({
       factorType: "totp",
       friendlyName:
@@ -160,6 +199,15 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   }
 
   if (action === "webauthn_enroll") {
+    const blocked = await requireElevatedForAdditionalEnroll(
+      request,
+      cookies,
+      auth.session,
+      auth.user,
+      client,
+    );
+    if (blocked) return blocked;
+
     const friendlyName =
       body.friendlyName?.trim() ||
       `Security key ${new Date().toLocaleDateString()}`;
@@ -243,6 +291,15 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     if (!isYubiKeyOtpConfigured()) {
       return json({ error: "YubiKey OTP is not configured on this site" }, 503);
     }
+
+    const blocked = await requireElevatedForAdditionalEnroll(
+      request,
+      cookies,
+      auth.session,
+      auth.user,
+      client,
+    );
+    if (blocked) return blocked;
 
     const otp = body.otp?.trim() ?? "";
     if (!otp) return json({ error: "Tap your YubiKey in the OTP field" }, 400);

@@ -1,14 +1,19 @@
 import type { APIRoute } from "astro";
 import { getAuthFromCookies } from "../../../lib/auth";
 import { decryptStoredIngestKey, ingestKeyVaultConfigured } from "../../../lib/ingestKeyVault";
+import {
+  createAuthClientFromSession,
+  userHasAnyMfaEnrolled,
+} from "../../../lib/mfa";
+import { hasElevatedAuth } from "../../../lib/mfaStepUpProof";
 import { checkRevealIngestKeyRateLimit } from "../../../lib/revealIngestKeyLimits";
 import { listHouseholdDevices } from "../../../lib/devices";
 import { recordHouseholdActivity } from "../../../lib/householdActivity";
 import { requireHouseholdEditor, householdEditorCtx } from "../../../lib/householdAuth";
 
 export const POST: APIRoute = async ({ request, cookies }) => {
-  const { user } = await getAuthFromCookies(cookies);
-  if (!user) {
+  const { session, user } = await getAuthFromCookies(cookies);
+  if (!session || !user) {
     return new Response(JSON.stringify({ ok: false, error: "Unauthorized" }), {
       status: 401,
       headers: { "Content-Type": "application/json" },
@@ -36,6 +41,31 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     return new Response(
       JSON.stringify({ ok: false, error: "Key recovery is not configured on this server." }),
       { status: 503, headers: { "Content-Type": "application/json" } },
+    );
+  }
+
+  const { client, error: sessionError } = await createAuthClientFromSession(
+    session.access_token,
+    session.refresh_token,
+  );
+  if (sessionError) {
+    return new Response(JSON.stringify({ ok: false, error: "Session expired." }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  const hasMfa = await userHasAnyMfaEnrolled(client, user);
+  if (
+    hasMfa &&
+    !(await hasElevatedAuth(request, cookies, session.access_token, user.id))
+  ) {
+    return new Response(
+      JSON.stringify({
+        ok: false,
+        error: "Verify MFA again before revealing ingest keys.",
+      }),
+      { status: 401, headers: { "Content-Type": "application/json" } },
     );
   }
 
