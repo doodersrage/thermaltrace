@@ -1,6 +1,5 @@
 import type { AstroCookies } from "astro";
 import { getAalClaim } from "./mfa";
-import { getRuntimeEnv } from "./runtimeEnv";
 import { timingSafeEqual } from "./timingSafeEqual";
 
 /** HttpOnly cookie proving YubiKey (or other aal1) MFA step-up completed. */
@@ -16,9 +15,15 @@ type StepUpPayload = {
   exp: number;
 };
 
-/** Prefer dedicated MFA_STEPUP_SECRET; fall back to CRON_SECRET for existing deploys. */
+/**
+ * Prefer dedicated MFA_STEPUP_SECRET; fall back to CRON_SECRET.
+ * Uses import.meta.env (not cloudflare:workers) so middleware stays prerender-safe.
+ */
 function getSecret(): string | null {
-  return getRuntimeEnv("MFA_STEPUP_SECRET") || getRuntimeEnv("CRON_SECRET") || null;
+  const dedicated = import.meta.env.MFA_STEPUP_SECRET?.trim();
+  if (dedicated) return dedicated;
+  const fallback = import.meta.env.CRON_SECRET?.trim();
+  return fallback || null;
 }
 
 function base64UrlEncode(data: string): string {
