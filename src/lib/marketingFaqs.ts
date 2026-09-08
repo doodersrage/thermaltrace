@@ -443,6 +443,33 @@ export const marketingFaqs = {
         "Configure a Pro outbound webhook in ThermalTrace pointing at your HA webhook URL, or import the thermaltrace_webhook.yaml blueprint from thermaltrace.dev/ha/thermaltrace_webhook.yaml. When you set a webhook signing secret, verify the X-Signature HMAC header before acting on the payload.",
     },
   ],
+  matter: [
+    {
+      question: "Is this an official Apple Home / Matter product?",
+      answer:
+        "No. thermaltrace-matter is a DIY Matterbridge plugin and is not CSA-certified. It is fine for household use; say so when pairing. Guide: thermaltrace.dev/integrations/matter.",
+    },
+    {
+      question: "Do I need an iPhone app?",
+      answer:
+        "No. Pair Matterbridge once, then Apple Home (and Google Home / Alexa) show the sensors. The bridge runs on a Pi, NAS, or always-on PC on your LAN — not on Cloudflare Workers.",
+    },
+    {
+      question: "Do I need Pro?",
+      answer:
+        "A Free family live share link is enough for temperature, humidity, leak, door, power, and motion. Pro adds the optional Matter snooze switch (inbound webhook) plus history/metrics share scopes.",
+    },
+    {
+      question: "Will Matter polling delay freeze SMS?",
+      answer:
+        "No. Freeze and leak SMS/email/push still fire from ThermalTrace push ingest. The Matter bridge polls the share link every 1–5 minutes for Home glance and automations, same idea as the HACS integration.",
+    },
+    {
+      question: "Can I run Matter and Home Assistant together?",
+      answer:
+        "Yes. Both can poll the same share link. Use HACS for HA entities and the Matterbridge plugin for Apple Home: thermaltrace.dev/integrations/home-assistant and thermaltrace.dev/integrations/matter.",
+    },
+  ],
   android: [
     {
       question: "Does the Android app measure probe temperature?",

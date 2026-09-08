@@ -88,7 +88,7 @@ Step-by-step: [Adding devices](https://thermaltrace.dev/about/adding-devices) ·
 
 Pull feeds (HTTPS JSON we fetch): **Devices → Pull feeds** tab — add URL, **Save pull setup**, probes auto-import from the live feed.
 
-**Integrations:** [Home Assistant (HACS)](https://thermaltrace.dev/integrations/home-assistant) · [HACS repo](https://github.com/doodersrage/thermaltrace-home-assistant) · [Developer docs](https://doodersrage.github.io/thermaltrace/)
+**Integrations:** [Home Assistant (HACS)](https://thermaltrace.dev/integrations/home-assistant) · [Matter / Apple Home](https://thermaltrace.dev/integrations/matter) · [HACS repo](https://github.com/doodersrage/thermaltrace-home-assistant) · [Matterbridge plugin](https://github.com/doodersrage/thermaltrace-matter) · [Developer docs](https://doodersrage.github.io/thermaltrace/)
 
 **Operator launch checklist:** [docs/community/operator-checklist.md](./docs/community/operator-checklist.md) (forum post, thermostat OAuth, HACS default PR status)
 
@@ -100,7 +100,7 @@ curl -X POST "https://your-domain/api/ingest/YOUR_KEY" \
 
 Guides: [Adding devices](https://thermaltrace.dev/about/adding-devices) · [Push ingest](https://doodersrage.github.io/thermaltrace/ingest/) · [Sketches](./sketches) · [Ingest & webhooks](https://thermaltrace.dev/about/ingest-and-webhooks)
 
-Related repos: [arduino JSON probe](https://github.com/doodersrage/arduino-network-json-temperature-sever) · [Python relay](https://github.com/doodersrage/fast-api-relay) · [Home Assistant integration](https://github.com/doodersrage/thermaltrace-home-assistant) · [ThermalTrace Desktop](https://github.com/doodersrage/thermaltrace-desktop) · [Bay Buddy (mood glance)](https://github.com/doodersrage/thermaltrace-bay-buddy) · [Claim puck (RP2040-Zero)](https://github.com/doodersrage/thermaltrace-claim-puck) · [Android app](https://github.com/doodersrage/thermaltrace-android)
+Related repos: [arduino JSON probe](https://github.com/doodersrage/arduino-network-json-temperature-sever) · [Python relay](https://github.com/doodersrage/fast-api-relay) · [Home Assistant integration](https://github.com/doodersrage/thermaltrace-home-assistant) · [Matter / Apple Home](https://github.com/doodersrage/thermaltrace-matter) · [ThermalTrace Desktop](https://github.com/doodersrage/thermaltrace-desktop) · [Bay Buddy (mood glance)](https://github.com/doodersrage/thermaltrace-bay-buddy) · [Claim puck (RP2040-Zero)](https://github.com/doodersrage/thermaltrace-claim-puck) · [Android app](https://github.com/doodersrage/thermaltrace-android)
 
 ## Contributing
 

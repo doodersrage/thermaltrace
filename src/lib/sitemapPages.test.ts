@@ -12,6 +12,7 @@ describe("sitemapPages", () => {
     expect(paths).toContain("/android");
     expect(paths).toContain("/bay-buddy");
     expect(paths).toContain("/desktop");
+    expect(paths).toContain("/integrations/matter");
     expect(paths).toContain("/claim-puck");
     expect(paths).toContain("/accessories");
     expect(paths).toContain("/alert-beacon");

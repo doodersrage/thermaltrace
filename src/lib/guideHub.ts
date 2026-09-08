@@ -121,12 +121,12 @@ const GUIDE_HUB_DEFS: GuideHubCategoryDef[] = [
     id: "integrations",
     title: "Integrations",
     description:
-      "Home Assistant HACS, MQTT→HTTPS bridge, ESPHome/Shelly, and comparison guides. Payload schemas live under API.",
+      "Home Assistant HACS, Matter / Apple Home, MQTT→HTTPS bridge, ESPHome/Shelly, and comparison guides. Payload schemas live under API.",
     links: [
       {
         href: "/integrations",
         label: "Integrations hub",
-        summary: "Home Assistant HACS, MQTT bridge, Grafana, webhooks, Nest/Ecobee, and Zapier.",
+        summary: "Home Assistant HACS, Matter bridge, MQTT, Grafana, webhooks, Nest/Ecobee, and Zapier.",
       },
       {
         href: "/integrations/home-assistant",
@@ -134,6 +134,12 @@ const GUIDE_HUB_DEFS: GuideHubCategoryDef[] = [
         summary:
           "Official custom integration: share-link sensors, snooze/vacation services, optional push ingest.",
         alsoIn: ["api"],
+      },
+      {
+        href: "/integrations/matter",
+        label: "Matter / Apple Home",
+        summary:
+          "Matterbridge plugin: share-link sensors in Apple Home, Google Home, and Alexa (not CSA-certified).",
       },
       {
         href: "/about/mqtt-bridge",

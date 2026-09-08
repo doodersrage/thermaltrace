@@ -30,5 +30,8 @@ describe("integrationsHub", () => {
     expect(mqtt?.href).toBe("/about/mqtt-bridge");
 
     expect(INTEGRATION_CARDS.some((c) => c.id === "freeze-map-embed")).toBe(true);
+    expect(INTEGRATION_CARDS.some((c) => c.id === "matter")).toBe(true);
+    const matter = INTEGRATION_CARDS.find((c) => c.id === "matter");
+    expect(matter?.href).toBe("/integrations/matter");
   });
 });

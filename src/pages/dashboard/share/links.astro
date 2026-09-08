@@ -66,17 +66,19 @@ const analyticsEvents = Astro.url.searchParams.get("created")
 
       {newHref && entitlements.canCreateShareLinks && (
         <section class="card" id="ha-hacs-nudge">
-          <h2 class="card-title">Use this link in Home Assistant</h2>
+          <h2 class="card-title">Use this link in Home Assistant or Apple Home</h2>
           <p class="card-subtitle mb-4">
             Install the official
-            <a class="text-link" href="/integrations/home-assistant">HACS integration</a>,
-            then paste the token from your share URL (<code>/share/YOUR_TOKEN</code>) in
-            <strong>Settings → Devices &amp; services → ThermalTrace</strong>.
+            <a class="text-link" href="/integrations/home-assistant">HACS integration</a>
+            or the
+            <a class="text-link" href="/integrations/matter">Matter / Apple Home bridge</a>,
+            then paste the token from your share URL (<code>/share/YOUR_TOKEN</code>).
           </p>
           <div class="flex flex-wrap gap-3">
             <a class="btn-primary" href="/integrations/home-assistant">HACS install guide</a>
-            <a class="btn-secondary" href="https://github.com/doodersrage/thermaltrace-home-assistant" target="_blank" rel="noreferrer">
-              GitHub repo
+            <a class="btn-secondary" href="/integrations/matter">Matter bridge guide</a>
+            <a class="btn-ghost" href="https://github.com/doodersrage/thermaltrace-home-assistant" target="_blank" rel="noreferrer">
+              HACS repo
             </a>
           </div>
         </section>

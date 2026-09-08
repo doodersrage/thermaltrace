@@ -31,6 +31,8 @@ ${BRAND_NAME} (${BRAND_TAGLINE}) is open-source software. It does not sell hardw
 - ThermalTrace Desktop: ${siteUrl}/desktop
 - Bay Buddy: ${siteUrl}/bay-buddy
 - Claim puck: ${siteUrl}/claim-puck
+- Home Assistant (HACS): ${siteUrl}/integrations/home-assistant
+- Matter / Apple Home: ${siteUrl}/integrations/matter
 - Probe simulator: ${siteUrl}/about/probe-demo
 - HTTP API: ${siteUrl}/docs/api
 - OpenAPI: ${siteUrl}/openapi.yaml

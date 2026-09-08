@@ -1,0 +1,138 @@
+---
+export const prerender = false;
+
+import Layout from "../../layouts/Layout.astro";
+import PageHeader from "../../components/PageHeader.astro";
+import FaqSection from "../../components/FaqSection.astro";
+import {
+  getBreadcrumbSchema,
+  getFaqPageSchema,
+  resolvePageUrl,
+  resolveSiteUrl,
+} from "../../lib/schemaMarkup";
+import { getMarketingFaqs } from "../../lib/marketingFaqs";
+import {
+  MATTER_NAME,
+  MATTER_REPO_URL,
+  MATTER_INTEGRATION_PAGE,
+  MATTER_TAGLINE,
+} from "../../lib/matterIntegration";
+import { INTEGRATIONS_HUB_PAGE } from "../../lib/homeAssistantIntegration";
+import { getAuthFromCookies } from "../../lib/auth";
+
+const { user } = await getAuthFromCookies(Astro.cookies);
+const siteUrl = resolveSiteUrl(Astro.site);
+const pageUrl = resolvePageUrl(siteUrl, MATTER_INTEGRATION_PAGE);
+const matterFaqs = getMarketingFaqs("matter");
+const schema = [
+  getBreadcrumbSchema(siteUrl, [
+    { name: "Home", path: "/" },
+    { name: "Integrations", path: INTEGRATIONS_HUB_PAGE },
+    { name: "Matter", path: MATTER_INTEGRATION_PAGE },
+  ]),
+  getFaqPageSchema(pageUrl, matterFaqs),
+].filter(Boolean) as Record<string, unknown>[];
+---
+<Layout
+  title="Matter / Apple Home bridge"
+  description={`${MATTER_NAME}: Matterbridge plugin that mirrors a ThermalTrace share link into Apple Home, Google Home, and Alexa. ${MATTER_TAGLINE}`}
+  schema={schema}
+  speakableSelectors={[".page-header-title", ".page-header-lede", ".faq-answer"]}
+>
+  <div class="page-shell page-stack">
+    <PageHeader
+      kicker="Matter bridge"
+      title="ThermalTrace in Apple Home"
+      lede="Install the Matterbridge plugin on a Pi, NAS, or always-on PC, paste a family live share-link token (Free includes one), and get temperature, humidity, leak, door, power, and motion accessories in Apple Home, Google Home, or Alexa. Not CSA-certified. Probes stay on ESP/Arduino; this bridge only polls your share link."
+    >
+      <a slot="actions" class="btn-primary" href={MATTER_REPO_URL} target="_blank" rel="noreferrer">
+        Plugin on GitHub
+      </a>
+      <a slot="actions" class="btn-secondary" href={user ? "/dashboard/share/links" : "/register?next=/dashboard/share/links"}>
+        {user ? "Create a share link" : "Start free → share link"}
+      </a>
+      <a slot="actions" class="btn-ghost" href={INTEGRATIONS_HUB_PAGE}>All integrations</a>
+      <a slot="actions" class="btn-ghost" href="/integrations/home-assistant">vs Home Assistant</a>
+    </PageHeader>
+
+    <section class="card">
+      <h2 class="card-title">Why Matter instead of an iOS app?</h2>
+      <p class="text-sm mb-0">
+        Household members who already live in the Home app get garage freeze and flood glance without a ThermalTrace login.
+        Same share-link contract as the
+        <a class="text-link" href="/integrations/home-assistant">HACS integration</a>,
+        aimed at people who will never install Home Assistant. Critical freeze SMS still comes from ThermalTrace push ingest — this poll is for Home automations and glance.
+      </p>
+    </section>
+
+    <section class="card">
+      <h2 class="card-title">Install</h2>
+      <ol class="text-sm space-y-2 pl-5 list-decimal mb-4">
+        <li>
+          Install
+          <a class="text-link" href="https://matterbridge.io/" target="_blank" rel="noreferrer">Matterbridge</a>
+          on a LAN host (Raspberry Pi, NAS, or always-on PC). Matter pairing needs local mDNS — it does not run on Cloudflare Workers.
+        </li>
+        <li>
+          Clone
+          <code class="text-xs break-all">{MATTER_REPO_URL}</code>,
+          run <code>npm install && npm run build</code>, then
+          <code>matterbridge --add .</code>
+        </li>
+        <li>
+          Create a <strong>family live</strong> share link under
+          <a class="text-link" href="/dashboard/share/links">Dashboard → Share</a>
+          and paste the token from <code>/share/YOUR_TOKEN</code> into the plugin config.
+        </li>
+        <li>Restart Matterbridge and pair the QR code in Apple Home / Google Home / Alexa.</li>
+      </ol>
+      <p class="mb-0 text-sm text-[var(--color-text-muted)]">
+        Full README and config schema:
+        <a class="text-link" href={MATTER_REPO_URL} target="_blank" rel="noreferrer">thermaltrace-matter ↗</a>
+      </p>
+    </section>
+
+    <section class="card">
+      <h2 class="card-title">Sensor map</h2>
+      <div class="overflow-x-auto">
+        <table class="plan-comparison-table">
+          <caption class="sr-only">ThermalTrace kinds mapped to Matter device types</caption>
+          <thead>
+            <tr>
+              <th scope="col">ThermalTrace kind</th>
+              <th scope="col">Matter accessory</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">temperature</th><td>Temperature Sensor (°F → °C)</td></tr>
+            <tr><th scope="row">humidity</th><td>Humidity Sensor</td></tr>
+            <tr><th scope="row">flood</th><td>Water Leak Detector</td></tr>
+            <tr><th scope="row">door</th><td>Contact Sensor</td></tr>
+            <tr><th scope="row">power</th><td>Contact Sensor (powered = closed)</td></tr>
+            <tr><th scope="row">motion</th><td>Occupancy Sensor</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="mt-4 mb-0 text-sm text-[var(--color-text-muted)]">
+        Skipped in v1: energy, level, air-quality clusters, and time-to-freeze (no honest native Matter type).
+        Optional Pro <strong>Snooze</strong> switch POSTs the same inbound webhook as Home Assistant.
+      </p>
+    </section>
+
+    <section class="card">
+      <h2 class="card-title">Home Assistant dual-run</h2>
+      <p class="mb-0 text-sm">
+        Homelabbers can keep
+        <a class="text-link" href="/integrations/home-assistant">HACS</a>
+        for local entities and add this Matter bridge for Apple Home on the same share link.
+        Poll every 60–300 seconds; share readings allow about 60 requests per minute.
+      </p>
+    </section>
+
+    <FaqSection
+      title="Matter FAQ"
+      faqs={matterFaqs}
+      lede="Certification, install host, and how this relates to probes and Home Assistant."
+    />
+  </div>
+</Layout>

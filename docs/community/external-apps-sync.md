@@ -63,6 +63,18 @@ ThermalTrace ships in multiple repos. When onboarding UX changes in **this** rep
 - Play Store listing copy after `PUBLIC_PLAY_STORE_URL` is set
 - Web Overview Insights grow into dedicated mobile screens
 
+## thermaltrace-matter
+
+**Repo:** [github.com/doodersrage/thermaltrace-matter](https://github.com/doodersrage/thermaltrace-matter)
+
+**Status (2026-09):** Matterbridge DynamicPlatform plugin. Polls `/api/share/{token}/readings`, maps temperature / humidity / flood / door / power / motion to Matter accessories. Optional Pro snooze via `/api/inbound/{token}` + HMAC. Product page: [thermaltrace.dev/integrations/matter](https://thermaltrace.dev/integrations/matter). Not CSA-certified; runs on LAN host only.
+
+**Re-sync when:**
+
+- Share readings JSON shape or rate limits change
+- New sensor kinds that should map to Matter device types
+- Inbound snooze / vacation / status action contracts change
+
 ## This repo (source of truth)
 
 User-facing onboarding: [Adding devices](https://thermaltrace.dev/about/adding-devices) (source: `src/pages/about/adding-devices.astro`) · [Accounts & dashboard](https://thermaltrace.dev/about/accounts-and-dashboard)

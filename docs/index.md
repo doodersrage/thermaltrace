@@ -35,8 +35,12 @@ features:
     details: Official custom integration — share-link sensors, snooze/vacation services, MQTT bridge recipes.
     link: https://thermaltrace.dev/integrations/home-assistant
     linkText: HACS integration
+  - title: Matter / Apple Home
+    details: Matterbridge plugin — share-link sensors in Apple Home, Google Home, and Alexa (not CSA-certified; LAN host).
+    link: https://thermaltrace.dev/integrations/matter
+    linkText: Matter bridge
   - title: Integrations hub
-    details: Home Assistant, MQTT bridge, Grafana, webhooks, Nest/Ecobee, and Zapier — all entry points on the product site.
+    details: Home Assistant, Matter, MQTT bridge, Grafana, webhooks, Nest/Ecobee, and Zapier — all entry points on the product site.
     link: https://thermaltrace.dev/integrations
     linkText: All integrations
   - title: Alert webhooks

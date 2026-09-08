@@ -3,6 +3,7 @@ import {
   HA_INTEGRATION_PAGE,
   HACS_REPO_URL,
 } from "./homeAssistantIntegration";
+import { MATTER_INTEGRATION_PAGE, MATTER_REPO_URL } from "./matterIntegration";
 
 export type IntegrationCard = {
   id: string;
@@ -37,6 +38,18 @@ export const INTEGRATION_CARDS: IntegrationCard[] = [
     cta: "Install guide",
     secondaryHref: "/about/home-assistant-notify-recipes",
     secondaryLabel: "Notify / TTS recipes",
+  },
+  {
+    id: "matter",
+    title: "Matter / Apple Home",
+    summary:
+      "Matterbridge plugin that polls a share link and exposes temperature, humidity, leak, door, power, and motion to Apple Home, Google Home, and Alexa. Runs on a LAN host — not CSA-certified.",
+    href: MATTER_INTEGRATION_PAGE,
+    tier: "Family live link (Free) · Pro for snooze switch",
+    cta: "Matter bridge guide",
+    secondaryHref: MATTER_REPO_URL,
+    secondaryLabel: "GitHub plugin",
+    secondaryExternal: true,
   },
   {
     id: "mqtt-bridge",
@@ -134,3 +147,4 @@ export const HACS_BADGE_URL = HACS_BADGE_CUSTOM;
 export const HACS_DOCS_URL = HA_DEV_DOCS_INTEGRATIONS;
 
 export { HACS_REPO_URL } from "./homeAssistantIntegration";
+export { MATTER_REPO_URL } from "./matterIntegration";

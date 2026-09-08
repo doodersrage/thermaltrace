@@ -58,6 +58,7 @@ const STATIC_PUBLIC_PATHS = [
   "/gift",
   "/integrations",
   "/integrations/home-assistant",
+  "/integrations/matter",
   "/stories",
 ] as const;
 

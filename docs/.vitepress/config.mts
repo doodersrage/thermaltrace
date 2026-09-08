@@ -67,6 +67,7 @@ export default defineConfig({
             { text: "HTTP API", link: "/api/" },
             { text: "Alert webhooks", link: "/integrations/webhooks" },
             { text: "Home Assistant", link: "/integrations/home-assistant" },
+            { text: "Matter / Apple Home", link: "/integrations/matter" },
             { text: "MQTT bridge", link: "/integrations/mqtt-bridge" },
             { text: "ESPHome & Shelly", link: "/integrations/esphome-shelly" },
             { text: "Personal weather stations", link: "/integrations/personal-weather-stations" },
