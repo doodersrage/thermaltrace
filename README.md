@@ -88,7 +88,7 @@ Step-by-step: [Adding devices](https://thermaltrace.dev/about/adding-devices) ·
 
 Pull feeds (HTTPS JSON we fetch): **Devices → Pull feeds** tab — add URL, **Save pull setup**, probes auto-import from the live feed.
 
-**Integrations:** [Home Assistant (HACS)](https://thermaltrace.dev/integrations/home-assistant) · [Matter / Apple Home](https://thermaltrace.dev/integrations/matter) · [HACS repo](https://github.com/doodersrage/thermaltrace-home-assistant) · [Matterbridge plugin](https://github.com/doodersrage/thermaltrace-matter) · [Developer docs](https://doodersrage.github.io/thermaltrace/)
+**Integrations:** [Home Assistant (HACS)](https://thermaltrace.dev/integrations/home-assistant) · [Matter / Apple Home](https://thermaltrace.dev/integrations/matter) · [Node-RED](https://thermaltrace.dev/integrations/node-red) · [Influx / Telegraf](https://thermaltrace.dev/integrations/influx) · [IFTTT / n8n](https://thermaltrace.dev/integrations/automation) · [HACS repo](https://github.com/doodersrage/thermaltrace-home-assistant) · [Matterbridge plugin](https://github.com/doodersrage/thermaltrace-matter) · [Developer docs](https://doodersrage.github.io/thermaltrace/)
 
 **Operator launch checklist:** [docs/community/operator-checklist.md](./docs/community/operator-checklist.md) (forum post, thermostat OAuth, HACS default PR status)
 

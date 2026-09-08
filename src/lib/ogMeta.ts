@@ -97,7 +97,7 @@ export function resolveOgImageAlt(pathname: string): string {
     return `${BRAND_NAME} hardware accessories: claim puck, mood lights, door/leak contacts, and freeze-kit mounts`;
   }
   if (path.startsWith("/integrations")) {
-    return `${BRAND_NAME} integrations: Home Assistant, Matter / Apple Home, MQTT bridge, and thermostat context`;
+    return `${BRAND_NAME} integrations: Home Assistant, Matter, Node-RED, Influx, MQTT, and automation webhooks`;
   }
   if (path.startsWith("/claims-pack")) {
     return `${BRAND_NAME} claims evidence pack for freeze and flood insurance documentation`;

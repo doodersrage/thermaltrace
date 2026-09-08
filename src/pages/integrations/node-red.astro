@@ -1,0 +1,103 @@
+---
+export const prerender = false;
+
+import Layout from "../../layouts/Layout.astro";
+import PageHeader from "../../components/PageHeader.astro";
+import FaqSection from "../../components/FaqSection.astro";
+import {
+  getBreadcrumbSchema,
+  getFaqPageSchema,
+  resolvePageUrl,
+  resolveSiteUrl,
+} from "../../lib/schemaMarkup";
+import { getMarketingFaqs } from "../../lib/marketingFaqs";
+import {
+  NODERED_FLOW_URL,
+  NODERED_INTEGRATION_PAGE,
+  NODERED_NAME,
+  NODERED_TAGLINE,
+} from "../../lib/nodeRedIntegration";
+import { INTEGRATIONS_HUB_PAGE } from "../../lib/homeAssistantIntegration";
+import { getAuthFromCookies } from "../../lib/auth";
+
+const { user } = await getAuthFromCookies(Astro.cookies);
+const siteUrl = resolveSiteUrl(Astro.site);
+const pageUrl = resolvePageUrl(siteUrl, NODERED_INTEGRATION_PAGE);
+const faqs = getMarketingFaqs("nodeRed");
+const schema = [
+  getBreadcrumbSchema(siteUrl, [
+    { name: "Home", path: "/" },
+    { name: "Integrations", path: INTEGRATIONS_HUB_PAGE },
+    { name: "Node-RED", path: NODERED_INTEGRATION_PAGE },
+  ]),
+  getFaqPageSchema(pageUrl, faqs),
+].filter(Boolean) as Record<string, unknown>[];
+---
+<Layout
+  title="Node-RED MQTT bridge"
+  description={`${NODERED_NAME}: ${NODERED_TAGLINE}`}
+  schema={schema}
+  speakableSelectors={[".page-header-title", ".page-header-lede", ".faq-answer"]}
+>
+  <div class="page-shell page-stack">
+    <PageHeader
+      kicker="Node-RED"
+      title="Mirror Mosquitto to ThermalTrace"
+      lede={NODERED_TAGLINE}
+    >
+      <a slot="actions" class="btn-primary" href={NODERED_FLOW_URL} download>
+        Download flow JSON
+      </a>
+      <a slot="actions" class="btn-secondary" href={user ? "/dashboard/temperature" : "/register?next=/dashboard/temperature"}>
+        {user ? "Create a push device" : "Start free → Devices"}
+      </a>
+      <a slot="actions" class="btn-ghost" href={INTEGRATIONS_HUB_PAGE}>All integrations</a>
+      <a slot="actions" class="btn-ghost" href="/about/mqtt-bridge">MQTT bridge recipe</a>
+    </PageHeader>
+
+    <section class="card">
+      <h2 class="card-title">Install</h2>
+      <ol class="text-sm space-y-2 pl-5 list-decimal mb-4">
+        <li>
+          Create a <strong>push device</strong> under
+          <a class="text-link" href="/dashboard/temperature">Dashboard → Devices</a>
+          and copy the ingest key.
+        </li>
+        <li>
+          In Node-RED: <strong>Menu → Import</strong> → upload
+          <a class="text-link" href={NODERED_FLOW_URL} download>mqtt-to-thermaltrace.json</a>
+          (or paste the URL).
+        </li>
+        <li>
+          Set env <code>THERMALTRACE_INGEST_KEY</code> (or edit the function node). Point MQTT nodes at your broker.
+        </li>
+        <li>Deploy and confirm HTTP 200 on the debug node. Readings appear under Devices / Overview.</li>
+      </ol>
+      <p class="mb-0 text-sm text-[var(--color-text-muted)]">
+        The flow rate-limits to about 1 POST per minute and includes an optional garage-door tab. ThermalTrace is not an MQTT broker — keep Mosquitto on the LAN.
+      </p>
+    </section>
+
+    <section class="card">
+      <h2 class="card-title">What it POSTs</h2>
+      <p class="text-sm mb-2">
+        Envelope for <code>POST /api/ingest/mqtt</code> with header <code>X-Ingest-Key</code>:
+      </p>
+      <pre class="text-xs overflow-x-auto mb-0"><code>{`{
+  "topic": "home/garage/temp",
+  "message": { "temp1": 42.5, "humidity": 55 }
+}`}</code></pre>
+    </section>
+
+    <section class="card">
+      <h2 class="card-title">Related</h2>
+      <ul class="text-sm space-y-2 mb-0 pl-5 list-disc">
+        <li><a class="text-link" href="/integrations/home-assistant">Home Assistant (HACS)</a> — share-link entities without Node-RED</li>
+        <li><a class="text-link" href="/integrations/matter">Matter / Apple Home</a> — Home app sensors from the same household</li>
+        <li><a class="text-link" href="/about/garage-door-cold-playbook">Door + cold playbook</a> — pair with the door tab</li>
+      </ul>
+    </section>
+
+    <FaqSection title="Node-RED FAQ" faqs={faqs} lede="Import, keys, and how this relates to Home Assistant." />
+  </div>
+</Layout>

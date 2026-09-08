@@ -1,0 +1,105 @@
+---
+export const prerender = false;
+
+import Layout from "../../layouts/Layout.astro";
+import PageHeader from "../../components/PageHeader.astro";
+import FaqSection from "../../components/FaqSection.astro";
+import {
+  getBreadcrumbSchema,
+  getFaqPageSchema,
+  resolvePageUrl,
+  resolveSiteUrl,
+} from "../../lib/schemaMarkup";
+import { getMarketingFaqs } from "../../lib/marketingFaqs";
+import {
+  INFLUX_INTEGRATION_PAGE,
+  INFLUX_NAME,
+  INFLUX_TAGLINE,
+  TELEGRAF_CONFIG_URL,
+} from "../../lib/influxIntegration";
+import { INTEGRATIONS_HUB_PAGE } from "../../lib/homeAssistantIntegration";
+import { getAuthFromCookies } from "../../lib/auth";
+
+const { user } = await getAuthFromCookies(Astro.cookies);
+const siteUrl = resolveSiteUrl(Astro.site);
+const pageUrl = resolvePageUrl(siteUrl, INFLUX_INTEGRATION_PAGE);
+const faqs = getMarketingFaqs("influx");
+const schema = [
+  getBreadcrumbSchema(siteUrl, [
+    { name: "Home", path: "/" },
+    { name: "Integrations", path: INTEGRATIONS_HUB_PAGE },
+    { name: "InfluxDB", path: INFLUX_INTEGRATION_PAGE },
+  ]),
+  getFaqPageSchema(pageUrl, faqs),
+].filter(Boolean) as Record<string, unknown>[];
+---
+<Layout
+  title="InfluxDB, Telegraf & VictoriaMetrics"
+  description={`${INFLUX_NAME}: ${INFLUX_TAGLINE}`}
+  schema={schema}
+  speakableSelectors={[".page-header-title", ".page-header-lede", ".faq-answer"]}
+>
+  <div class="page-shell page-stack">
+    <PageHeader
+      kicker="Time series"
+      title="Scrape ThermalTrace into Influx"
+      lede={INFLUX_TAGLINE}
+    >
+      <a slot="actions" class="btn-primary" href={TELEGRAF_CONFIG_URL} download>
+        Download Telegraf config
+      </a>
+      <a slot="actions" class="btn-secondary" href={user ? "/dashboard/share" : "/register?next=/dashboard/share"}>
+        {user ? "Create API key" : "Start free / Pro"}
+      </a>
+      <a slot="actions" class="btn-ghost" href="/docs/api">HTTP API</a>
+      <a slot="actions" class="btn-ghost" href={INTEGRATIONS_HUB_PAGE}>All integrations</a>
+    </PageHeader>
+
+    <section class="card">
+      <h2 class="card-title">How it works</h2>
+      <p class="text-sm mb-0">
+        Pro API keys expose Prometheus text at <code>GET /api/v1/metrics</code>.
+        Telegraf’s <code>inputs.prometheus</code> scrapes that endpoint and writes to InfluxDB 2.x, VictoriaMetrics, or any Telegraf output.
+        No new ThermalTrace API — same contract as
+        <a class="text-link" href="https://doodersrage.github.io/thermaltrace/integrations/grafana" target="_blank" rel="noreferrer">Grafana</a>.
+      </p>
+    </section>
+
+    <section class="card">
+      <h2 class="card-title">Quick start</h2>
+      <ol class="text-sm space-y-2 pl-5 list-decimal mb-4">
+        <li>Create a Pro API key under <a class="text-link" href="/dashboard/share">Dashboard → Share</a>.</li>
+        <li>
+          Download
+          <a class="text-link" href={TELEGRAF_CONFIG_URL} download>telegraf/thermaltrace.conf</a>
+          and set <code>THERMALTRACE_API_KEY</code>, <code>INFLUX_TOKEN</code>, <code>INFLUX_ORG</code>, <code>INFLUX_BUCKET</code>.
+        </li>
+        <li><code>telegraf --config thermaltrace.conf</code> — confirm <code>thermaltrace_sensor_value</code> points land in the bucket.</li>
+      </ol>
+      <pre class="text-xs overflow-x-auto mb-0"><code>{`curl -sH "Authorization: Bearer $THERMALTRACE_API_KEY" \\
+  https://thermaltrace.dev/api/v1/metrics | head`}</code></pre>
+    </section>
+
+    <section class="card">
+      <h2 class="card-title">Metric shape</h2>
+      <p class="text-sm mb-2">
+        Single gauge <code>thermaltrace_sensor_value</code> with labels <code>device</code>, <code>key</code>, <code>kind</code>
+        (<code>temperature</code>, <code>humidity</code>, <code>flood</code>, …). Numeric readings only — booleans stay on share JSON / HACS / Matter.
+      </p>
+      <p class="mb-0 text-sm text-[var(--color-text-muted)]">
+        Self-hosted: replace the host in the Telegraf URL. VictoriaMetrics users can swap the output for Prometheus remote write (commented example in the config).
+      </p>
+    </section>
+
+    <section class="card">
+      <h2 class="card-title">Grafana still works</h2>
+      <p class="mb-0 text-sm">
+        Prefer dashboards over long-term TSDB? Import
+        <a class="text-link" href="/grafana/thermaltrace-dashboard.json" download>thermaltrace-dashboard.json</a>
+        against a Prometheus data source pointing at the same metrics URL.
+      </p>
+    </section>
+
+    <FaqSection title="Influx FAQ" faqs={faqs} lede="Telegraf scrape, Pro keys, and VictoriaMetrics." />
+  </div>
+</Layout>

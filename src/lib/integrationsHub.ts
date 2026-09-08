@@ -4,6 +4,10 @@ import {
   HACS_REPO_URL,
 } from "./homeAssistantIntegration";
 import { MATTER_INTEGRATION_PAGE, MATTER_REPO_URL } from "./matterIntegration";
+import { NODERED_FLOW_URL, NODERED_INTEGRATION_PAGE } from "./nodeRedIntegration";
+import { AUTOMATION_INTEGRATION_PAGE, N8N_ALERT_SHEETS_FLOW_URL } from "./automationIntegration";
+import { INFLUX_INTEGRATION_PAGE, TELEGRAF_CONFIG_URL } from "./influxIntegration";
+import { SMARTTHINGS_INTEGRATION_PAGE } from "./smartThingsIntegration";
 
 export type IntegrationCard = {
   id: string;
@@ -52,6 +56,27 @@ export const INTEGRATION_CARDS: IntegrationCard[] = [
     secondaryExternal: true,
   },
   {
+    id: "smartthings",
+    title: "SmartThings (via Matter)",
+    summary:
+      "No Cloud-to-Cloud app: add the ThermalTrace Matterbridge on your LAN so SmartThings sees the same garage sensors as Apple Home.",
+    href: SMARTTHINGS_INTEGRATION_PAGE,
+    tier: "Family live link (Free)",
+    cta: "SmartThings path",
+    secondaryHref: MATTER_INTEGRATION_PAGE,
+    secondaryLabel: "Matter bridge",
+  },
+  {
+    id: "node-red",
+    title: "Node-RED",
+    summary:
+      "Import a ready-made flow to mirror Mosquitto topics to ThermalTrace over HTTPS. Keep the broker local; optional door-sensor tab.",
+    href: NODERED_INTEGRATION_PAGE,
+    cta: "Node-RED guide",
+    secondaryHref: NODERED_FLOW_URL,
+    secondaryLabel: "Download flow JSON",
+  },
+  {
     id: "mqtt-bridge",
     title: "MQTT bridge",
     summary:
@@ -71,7 +96,7 @@ export const INTEGRATION_CARDS: IntegrationCard[] = [
     cta: "In-app guide",
     bullets: [
       "Outbound: alert POSTs (optional HMAC) and high-volume reading webhooks on ingest",
-      "Inbound: snooze / vacation / status endpoints for HA, Zapier, or Make",
+      "Inbound: snooze / vacation / status endpoints for HA, Zapier, n8n, or Make",
     ],
     secondaryHref: `${DEV_DOCS_BASE}/integrations/webhooks`,
     secondaryLabel: "Payload reference",
@@ -88,6 +113,17 @@ export const INTEGRATION_CARDS: IntegrationCard[] = [
     secondaryHref: `${DEV_DOCS_BASE}/integrations/grafana`,
     secondaryLabel: "Grafana dashboard docs",
     secondaryExternal: true,
+  },
+  {
+    id: "influx",
+    title: "InfluxDB & Telegraf",
+    summary:
+      "Scrape the same Pro Prometheus metrics into InfluxDB 2.x, VictoriaMetrics, or any Telegraf output.",
+    href: INFLUX_INTEGRATION_PAGE,
+    tier: "Pro API key",
+    cta: "Influx / Telegraf guide",
+    secondaryHref: TELEGRAF_CONFIG_URL,
+    secondaryLabel: "Download Telegraf config",
   },
   {
     id: "thermostat",
@@ -123,6 +159,17 @@ export const INTEGRATION_CARDS: IntegrationCard[] = [
       "Catch outbound alert hooks or POST inbound snooze actions from no-code automations.",
     href: "/about/zapier-make-recipes",
     cta: "Recipes",
+  },
+  {
+    id: "automation",
+    title: "IFTTT, n8n & Sheets",
+    summary:
+      "IFTTT Maker webhooks, self-hosted n8n, Google Sheets alert logs, and Notion databases from the same Pro outbound payload.",
+    href: AUTOMATION_INTEGRATION_PAGE,
+    tier: "Pro outbound webhook",
+    cta: "IFTTT / n8n guide",
+    secondaryHref: N8N_ALERT_SHEETS_FLOW_URL,
+    secondaryLabel: "n8n → Sheets workflow",
   },
   {
     id: "freeze-map-embed",

@@ -59,6 +59,10 @@ const STATIC_PUBLIC_PATHS = [
   "/integrations",
   "/integrations/home-assistant",
   "/integrations/matter",
+  "/integrations/smartthings",
+  "/integrations/node-red",
+  "/integrations/automation",
+  "/integrations/influx",
   "/stories",
 ] as const;
 

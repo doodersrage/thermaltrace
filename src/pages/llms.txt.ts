@@ -33,6 +33,10 @@ ${BRAND_NAME} (${BRAND_TAGLINE}) is open-source software. It does not sell hardw
 - Claim puck: ${siteUrl}/claim-puck
 - Home Assistant (HACS): ${siteUrl}/integrations/home-assistant
 - Matter / Apple Home: ${siteUrl}/integrations/matter
+- SmartThings (via Matter): ${siteUrl}/integrations/smartthings
+- Node-RED: ${siteUrl}/integrations/node-red
+- InfluxDB & Telegraf: ${siteUrl}/integrations/influx
+- IFTTT / n8n / Sheets: ${siteUrl}/integrations/automation
 - Probe simulator: ${siteUrl}/about/probe-demo
 - HTTP API: ${siteUrl}/docs/api
 - OpenAPI: ${siteUrl}/openapi.yaml

@@ -29,7 +29,7 @@ const schema = [
 ---
 <Layout
   title="Integrations"
-  description="Connect ThermalTrace to Home Assistant (HACS), Matter / Apple Home, MQTT, Grafana, Nest/Ecobee, webhooks, freeze-map embeds, and Zapier for freeze and flood/leak alerts, without giving up LAN-local MQTT."
+  description="Connect ThermalTrace to Home Assistant, Matter / Apple Home, SmartThings (via Matter), Node-RED, Influx/Telegraf, MQTT, Grafana, Nest/Ecobee, webhooks, IFTTT/n8n, freeze-map embeds, and Zapier for freeze and flood/leak alerts."
   schema={schema}
   speakableSelectors={[".page-header-title", ".page-header-lede"]}
 >
@@ -37,14 +37,14 @@ const schema = [
     <PageHeader
       kicker="Integrations"
       title="Wire ThermalTrace into your stack"
-      lede="Hosted freeze and flood/leak alerts plus history for ESP/Arduino probes, with optional Home Assistant sensors, Matter / Apple Home accessories, Prometheus metrics, thermostat context, and webhook automations. Guides below stay on thermaltrace.dev; deep payload/Grafana write-ups live on the developer docs site and are labeled when they leave."
+      lede="Hosted freeze and flood/leak alerts plus history for ESP/Arduino probes, with optional Home Assistant, Matter / SmartThings, Node-RED, Influx, Prometheus metrics, thermostat context, and webhook automations. Guides below stay on thermaltrace.dev; deep payload/Grafana write-ups live on the developer docs site and are labeled when they leave."
     >
       <a slot="actions" class="btn-primary" href="/integrations/home-assistant">Home Assistant (HACS)</a>
       <a slot="actions" class="btn-secondary" href="/integrations/matter">Matter / Apple Home</a>
+      <a slot="actions" class="btn-ghost" href="/integrations/node-red">Node-RED</a>
       <a slot="actions" class="btn-ghost" href={user ? "/dashboard/share" : "/register?next=/dashboard/share"}>
         {user ? "Dashboard → Share" : "Start free"}
       </a>
-      <a slot="actions" class="btn-ghost" href="/docs/api">HTTP API</a>
     </PageHeader>
 
     <section class="card">
@@ -61,7 +61,13 @@ const schema = [
         {" "}
         <a class="text-link" href={DEV_DOCS_BASE} target="_blank" rel="noreferrer">Developer docs (GitHub Pages)</a>
         {" "}
-        open in a new tab.
+        open in a new tab. Also:
+        {" "}
+        <a class="text-link" href="/integrations/influx">Influx / Telegraf</a>,
+        {" "}
+        <a class="text-link" href="/integrations/node-red">Node-RED</a>,
+        {" "}
+        <a class="text-link" href="/integrations/automation">IFTTT / n8n</a>.
       </p>
     </section>
 

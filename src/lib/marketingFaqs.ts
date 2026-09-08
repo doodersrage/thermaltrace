@@ -470,6 +470,74 @@ export const marketingFaqs = {
         "Yes. Both can poll the same share link. Use HACS for HA entities and the Matterbridge plugin for Apple Home: thermaltrace.dev/integrations/home-assistant and thermaltrace.dev/integrations/matter.",
     },
   ],
+  nodeRed: [
+    {
+      question: "Do I need Node-RED if I already have Home Assistant?",
+      answer:
+        "No. HACS can poll a share link for entities. Use Node-RED when you already mirror Mosquitto topics with flows and want HTTPS POSTs into ThermalTrace without exposing the broker. Guide: thermaltrace.dev/integrations/node-red.",
+    },
+    {
+      question: "Where is the flow file?",
+      answer:
+        "Download thermaltrace.dev/nodered/mqtt-to-thermaltrace.json — temperature tab plus optional garage-door tab, rate-limited to about one POST per minute.",
+    },
+    {
+      question: "Is ThermalTrace an MQTT broker?",
+      answer:
+        "No. Keep Mosquitto local. Node-RED (or HA rest_command) POSTs to /api/ingest/mqtt with your push device key.",
+    },
+  ],
+  automation: [
+    {
+      question: "IFTTT vs Zapier vs n8n?",
+      answer:
+        "Same Pro outbound webhook JSON. IFTTT is simplest for phone notifies and Sheets. Zapier/Make add richer multi-step Zaps. n8n is self-hosted. Recipes: thermaltrace.dev/integrations/automation and thermaltrace.dev/about/zapier-make-recipes.",
+    },
+    {
+      question: "Can I log freeze alerts to Google Sheets?",
+      answer:
+        "Yes. Import thermaltrace.dev/n8n/thermaltrace-alert-to-sheets.json, or use IFTTT/Zapier Sheets actions with the outbound webhook URL.",
+    },
+    {
+      question: "Can Notion get the same alerts?",
+      answer:
+        "Yes via n8n’s Notion node or Make — map title, kind, body, and sent_at from the webhook payload.",
+    },
+  ],
+  influx: [
+    {
+      question: "Do I need a new ThermalTrace API for Influx?",
+      answer:
+        "No. Telegraf scrapes the existing Pro Prometheus endpoint GET /api/v1/metrics. Sample config: thermaltrace.dev/telegraf/thermaltrace.conf. Guide: thermaltrace.dev/integrations/influx.",
+    },
+    {
+      question: "Does this replace Grafana?",
+      answer:
+        "No. Use Grafana for dashboards against Prometheus; use Influx/VictoriaMetrics when you want a long-term TSDB or existing Influx stack. Same metric name: thermaltrace_sensor_value.",
+    },
+    {
+      question: "What about boolean leak/door sensors?",
+      answer:
+        "Prometheus metrics are numeric only. For booleans use share JSON, HACS, or the Matter bridge.",
+    },
+  ],
+  smartThings: [
+    {
+      question: "Is there an official SmartThings Cloud-to-Cloud app?",
+      answer:
+        "No. Use the Matterbridge plugin (thermaltrace.dev/integrations/matter) so SmartThings can add garage sensors over Matter on your LAN — same path as Apple Home.",
+    },
+    {
+      question: "Will freeze SMS still work?",
+      answer:
+        "Yes. Critical alerts stay on ThermalTrace push ingest and Pro SMS/email. Matter polling is for glance and ST automations.",
+    },
+    {
+      question: "Should I replace Govee pods with this?",
+      answer:
+        "Only if you want ESP-class garage coverage and exportable history. For bedrooms, Govee/ST pods can still win on price — see thermaltrace.dev/compare/govee.",
+    },
+  ],
   android: [
     {
       question: "Does the Android app measure probe temperature?",

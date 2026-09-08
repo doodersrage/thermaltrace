@@ -1,0 +1,100 @@
+{
+  "name": "ThermalTrace alert → Google Sheets",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "thermaltrace-alert",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "tt_webhook",
+      "name": "ThermalTrace outbound webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "thermaltrace-alert"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "sent_at",
+              "name": "sent_at",
+              "value": "={{ $json.body.sent_at || $json.sent_at || $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "kind",
+              "name": "kind",
+              "value": "={{ $json.body.kind || $json.kind || \"alert\" }}",
+              "type": "string"
+            },
+            {
+              "id": "title",
+              "name": "title",
+              "value": "={{ $json.body.title || $json.title || \"ThermalTrace alert\" }}",
+              "type": "string"
+            },
+            {
+              "id": "body",
+              "name": "body",
+              "value": "={{ $json.body.body || $json.body || \"\" }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "tt_set",
+      "name": "Normalize fields",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [260, 0]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "YOUR_GOOGLE_SHEET_ID"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Alerts"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "sent_at": "={{ $json.sent_at }}",
+            "kind": "={{ $json.kind }}",
+            "title": "={{ $json.title }}",
+            "body": "={{ $json.body }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "tt_sheets",
+      "name": "Append to Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [520, 0],
+      "notes": "Create a sheet with headers: sent_at, kind, title, body. Replace YOUR_GOOGLE_SHEET_ID. Paste this workflow's webhook URL into ThermalTrace Pro → Alerts → Outbound webhook."
+    }
+  ],
+  "connections": {
+    "ThermalTrace outbound webhook": {
+      "main": [[{ "node": "Normalize fields", "type": "main", "index": 0 }]]
+    },
+    "Normalize fields": {
+      "main": [[{ "node": "Append to Sheets", "type": "main", "index": 0 }]]
+    }
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "thermaltrace-n8n-alert-sheets"
+  }
+}

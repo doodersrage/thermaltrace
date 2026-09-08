@@ -31,6 +31,10 @@ describe("integrationsHub", () => {
 
     expect(INTEGRATION_CARDS.some((c) => c.id === "freeze-map-embed")).toBe(true);
     expect(INTEGRATION_CARDS.some((c) => c.id === "matter")).toBe(true);
+    expect(INTEGRATION_CARDS.some((c) => c.id === "node-red")).toBe(true);
+    expect(INTEGRATION_CARDS.some((c) => c.id === "automation")).toBe(true);
+    expect(INTEGRATION_CARDS.some((c) => c.id === "influx")).toBe(true);
+    expect(INTEGRATION_CARDS.some((c) => c.id === "smartthings")).toBe(true);
     const matter = INTEGRATION_CARDS.find((c) => c.id === "matter");
     expect(matter?.href).toBe("/integrations/matter");
   });

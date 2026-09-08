@@ -121,12 +121,12 @@ const GUIDE_HUB_DEFS: GuideHubCategoryDef[] = [
     id: "integrations",
     title: "Integrations",
     description:
-      "Home Assistant HACS, Matter / Apple Home, MQTT→HTTPS bridge, ESPHome/Shelly, and comparison guides. Payload schemas live under API.",
+      "Home Assistant HACS, Matter / Apple Home, Node-RED, Influx, MQTT→HTTPS bridge, ESPHome/Shelly, and comparison guides. Payload schemas live under API.",
     links: [
       {
         href: "/integrations",
         label: "Integrations hub",
-        summary: "Home Assistant HACS, Matter bridge, MQTT, Grafana, webhooks, Nest/Ecobee, and Zapier.",
+        summary: "Home Assistant HACS, Matter, Node-RED, Influx, MQTT, Grafana, webhooks, Nest/Ecobee, Zapier, IFTTT/n8n.",
       },
       {
         href: "/integrations/home-assistant",
@@ -140,6 +140,21 @@ const GUIDE_HUB_DEFS: GuideHubCategoryDef[] = [
         label: "Matter / Apple Home",
         summary:
           "Matterbridge plugin: share-link sensors in Apple Home, Google Home, and Alexa (not CSA-certified).",
+      },
+      {
+        href: "/integrations/node-red",
+        label: "Node-RED",
+        summary: "Import MQTT→HTTPS flow; keep Mosquitto local.",
+      },
+      {
+        href: "/integrations/influx",
+        label: "InfluxDB & Telegraf",
+        summary: "Scrape Pro Prometheus metrics into Influx or VictoriaMetrics.",
+      },
+      {
+        href: "/integrations/automation",
+        label: "IFTTT, n8n & Sheets",
+        summary: "Outbound webhooks to IFTTT/n8n; log alerts to Sheets or Notion.",
       },
       {
         href: "/about/mqtt-bridge",

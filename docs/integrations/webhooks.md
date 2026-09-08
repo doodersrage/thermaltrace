@@ -34,9 +34,13 @@ When a signing secret is set, requests include `X-ThermalTrace-Signature` (and t
 
 For **alerts into HA** (ThermalTrace → Home Assistant), use a Pro **outbound webhook** URL in Dashboard → Alerts, or import the [ThermalTrace webhook blueprint](https://thermaltrace.dev/ha/thermaltrace_webhook.yaml). Verify HMAC with the same secret pattern as inbound calls when configured.
 
-## Zapier / Make
+## Zapier / Make / IFTTT / n8n
 
-Use **Webhooks by Zapier → Catch Hook** as the outbound URL, or call ThermalTrace **inbound** webhooks from a Zap. Product recipes: [Zapier & Make](https://thermaltrace.dev/about/zapier-make-recipes).
+Use **Webhooks by Zapier → Catch Hook**, IFTTT Maker, or an n8n Webhook node as the outbound URL.
+Product recipes:
+
+- [IFTTT, n8n & Sheets](https://thermaltrace.dev/integrations/automation)
+- [Zapier & Make](https://thermaltrace.dev/about/zapier-make-recipes)
 
 ## Channels beyond webhooks
 

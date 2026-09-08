@@ -32,4 +32,6 @@ scrape_configs:
 
 Metrics are a single gauge, `thermaltrace_sensor_value`, with `device`, `key`, and `kind` labels (`temperature`, `humidity`, `flood`, …). The bundled dashboard graphs those kinds.
 
+Want InfluxDB or VictoriaMetrics instead of (or in addition to) Grafana? See [InfluxDB & Telegraf](/integrations/influx) and the sample [Telegraf config](https://thermaltrace.dev/telegraf/thermaltrace.conf).
+
 The in-app Share page also shows a Grafana setup wizard with a filled-in snippet for your key.

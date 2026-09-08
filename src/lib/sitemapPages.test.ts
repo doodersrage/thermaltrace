@@ -13,6 +13,10 @@ describe("sitemapPages", () => {
     expect(paths).toContain("/bay-buddy");
     expect(paths).toContain("/desktop");
     expect(paths).toContain("/integrations/matter");
+    expect(paths).toContain("/integrations/node-red");
+    expect(paths).toContain("/integrations/automation");
+    expect(paths).toContain("/integrations/influx");
+    expect(paths).toContain("/integrations/smartthings");
     expect(paths).toContain("/claim-puck");
     expect(paths).toContain("/accessories");
     expect(paths).toContain("/alert-beacon");

@@ -39,8 +39,12 @@ features:
     details: Matterbridge plugin — share-link sensors in Apple Home, Google Home, and Alexa (not CSA-certified; LAN host).
     link: https://thermaltrace.dev/integrations/matter
     linkText: Matter bridge
+  - title: Node-RED & Influx
+    details: MQTT→HTTPS flow JSON and Telegraf scrape into InfluxDB / VictoriaMetrics from Pro Prometheus metrics.
+    link: https://thermaltrace.dev/integrations/node-red
+    linkText: Node-RED
   - title: Integrations hub
-    details: Home Assistant, Matter, MQTT bridge, Grafana, webhooks, Nest/Ecobee, and Zapier — all entry points on the product site.
+    details: Home Assistant, Matter, SmartThings path, Node-RED, Influx, MQTT, Grafana, webhooks, Nest/Ecobee, Zapier, IFTTT/n8n — entry points on the product site.
     link: https://thermaltrace.dev/integrations
     linkText: All integrations
   - title: Alert webhooks
