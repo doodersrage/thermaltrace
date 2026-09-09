@@ -97,7 +97,13 @@ describe("GET /api/user/export", () => {
     const { GET } = await import("./export");
 
     const response = await GET(makeContext());
-    const body = await response.json();
+    const body = (await response.json()) as {
+      user: unknown;
+      history: unknown;
+      devices: unknown;
+      entitlements: { tier: string };
+      exported_at: unknown;
+    };
 
     expect(response.status).toBe(200);
     expect(response.headers.get("Content-Disposition")).toContain(

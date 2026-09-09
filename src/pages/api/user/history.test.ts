@@ -88,7 +88,12 @@ describe("GET /api/user/history", () => {
     const { GET } = await import("./history");
 
     const response = await GET(makeContext());
-    const body = await response.json();
+    const body = (await response.json()) as {
+      days: number;
+      chart: { points: unknown[] };
+      filters: { feeds: string[] };
+      house_overlay?: unknown;
+    };
 
     expect(mockFetchGarageTempChartData).toHaveBeenCalledWith("user-1", 7, {
       feedName: undefined,
@@ -110,7 +115,11 @@ describe("GET /api/user/history", () => {
     const response = await GET(
       makeContext("?days=999&include=house_overlay&feed=Garage"),
     );
-    const body = await response.json();
+    const body = (await response.json()) as {
+      days: number;
+      house_overlay: unknown;
+      chart?: unknown;
+    };
 
     expect(mockFetchHouseChartOverlay).toHaveBeenCalled();
     expect(body.days).toBe(90);

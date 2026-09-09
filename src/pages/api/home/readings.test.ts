@@ -105,7 +105,12 @@ describe("GET /api/home/readings", () => {
     const { GET } = await import("./readings");
 
     const response = await GET(makeContext());
-    const body = await response.json();
+    const body = (await response.json()) as {
+      groups: unknown;
+      sensors: unknown;
+      spaces: unknown;
+      updatedAt: unknown;
+    };
 
     expect(response.status).toBe(200);
     expect(response.headers.get("Cache-Control")).toBe("no-store");
@@ -143,7 +148,7 @@ describe("GET /api/home/readings", () => {
     const { GET } = await import("./readings");
 
     const response = await GET(makeContext("?save=0&space=basement"));
-    const body = await response.json();
+    const body = (await response.json()) as { sensors: unknown };
 
     expect(mockFetchTemps).toHaveBeenCalledWith(
       expect.objectContaining({ saveToDatabase: false }),

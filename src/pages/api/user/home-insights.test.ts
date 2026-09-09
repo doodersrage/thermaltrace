@@ -152,7 +152,13 @@ describe("GET /api/user/home-insights", () => {
     const { GET } = await import("./home-insights");
 
     const response = await GET(makeContext());
-    const body = await response.json();
+    const body = (await response.json()) as {
+      freeze_threshold_f: number;
+      nights_at_risk: unknown;
+      nws_alerts: unknown;
+      outdoor_temp_f: number;
+      time_to_freeze: unknown;
+    };
 
     expect(response.status).toBe(200);
     expect(response.headers.get("Cache-Control")).toBe("private, max-age=120");

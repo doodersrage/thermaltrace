@@ -194,31 +194,37 @@ export async function verifyYubiKeyOtpWithYubiCloud(
       const fields = parseYubiCloudBody(body);
 
       if (!(await verifyResponseSignature(fields, config.apiKeyBase64))) {
+        // Signature mismatch can be a bad replica — try another endpoint.
         lastError = "Invalid YubiCloud response signature";
         continue;
       }
 
       const status = fields.get("status") ?? "";
-      if (status !== "OK") {
-        lastError =
-          status === "REPLAYED_OTP"
-            ? "That YubiKey OTP was already used"
-            : status === "BAD_OTP"
-              ? "Invalid YubiKey OTP"
-              : `YubiCloud rejected OTP (${status || "unknown"})`;
-        continue;
+      if (status === "OK") {
+        if (fields.get("otp")?.toLowerCase() !== otp) {
+          lastError = "YubiCloud OTP mismatch";
+          continue;
+        }
+        if (fields.get("nonce") !== nonce) {
+          lastError = "YubiCloud nonce mismatch";
+          continue;
+        }
+        return { ok: true, publicId: getYubiKeyPublicId(otp) };
       }
 
-      if (fields.get("otp")?.toLowerCase() !== otp) {
-        lastError = "YubiCloud OTP mismatch";
-        continue;
-      }
-      if (fields.get("nonce") !== nonce) {
-        lastError = "YubiCloud nonce mismatch";
-        continue;
-      }
-
-      return { ok: true, publicId: getYubiKeyPublicId(otp) };
+      // Definitive YubiCloud answers — do not retry the same OTP on other hosts
+      // (that turns BAD_OTP into REPLAYED_OTP and confuses the user).
+      lastError =
+        status === "REPLAYED_OTP"
+          ? "That YubiKey OTP was already used"
+          : status === "BAD_OTP"
+            ? "Invalid YubiKey OTP"
+            : status === "NO_SUCH_CLIENT"
+              ? "YubiCloud client id is not recognized"
+              : status === "BAD_SIGNATURE"
+                ? "YubiCloud rejected the request signature"
+                : `YubiCloud rejected OTP (${status || "unknown"})`;
+      break;
     } catch {
       lastError = "Could not reach YubiCloud";
     }

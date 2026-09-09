@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   buildYubiKeyMetadataRemove,
   buildYubiKeyMetadataUpdate,
@@ -9,6 +9,7 @@ import {
   signYubiCloudRequest,
   userHasYubiKeyOtpEnrolled,
   verifyYubiCloudResponseSignature,
+  verifyYubiKeyOtpWithYubiCloud,
 } from "./yubikeyOtp";
 import { yubicoDocTestVectors } from "./yubikeyOtpTestVectors";
 
@@ -90,5 +91,38 @@ describe("yubikeyOtp helpers", () => {
       `status=${params.status}`,
     ].join("\r\n");
     expect(await verifyYubiCloudResponseSignature(body, apiKey)).toBe(true);
+  });
+
+  it("stops after a definitive BAD_OTP instead of retrying other hosts", async () => {
+    const vectors = yubicoDocTestVectors;
+    const otp = "c".repeat(44);
+    const params = {
+      t: "2020-01-01T00:00:00Z0000",
+      otp,
+      nonce: "n".repeat(32),
+      status: "BAD_OTP",
+    };
+    const signature = await signYubiCloudRequest(params, vectors.apiKeyBase64());
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        [
+          `h=${signature}`,
+          `t=${params.t}`,
+          `otp=${params.otp}`,
+          `nonce=${params.nonce}`,
+          `status=${params.status}`,
+        ].join("\n"),
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await verifyYubiKeyOtpWithYubiCloud(otp, {
+      clientId: vectors.clientId,
+      apiKeyBase64: vectors.apiKeyBase64(),
+    });
+
+    expect(result).toEqual({ ok: false, error: "Invalid YubiKey OTP" });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    vi.unstubAllGlobals();
   });
 });

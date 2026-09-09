@@ -37,7 +37,7 @@ function fakeRedirect(path: string): Response {
 }
 
 function makeContext(options: {
-  body?: Record<string, string> | string;
+  body?: Record<string, string | number> | string;
   json?: boolean;
 } = {}): APIContext {
   const { body, json = false } = options;
@@ -55,7 +55,7 @@ function makeContext(options: {
   } else {
     const formData = new FormData();
     if (body && typeof body === "object") {
-      for (const [key, value] of Object.entries(body)) formData.set(key, value);
+      for (const [key, value] of Object.entries(body)) formData.set(key, String(value));
     }
     request = { formData: async () => formData, headers: new Headers(headers) } as unknown as Request;
   }
