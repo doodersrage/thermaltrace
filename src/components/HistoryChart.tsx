@@ -128,7 +128,13 @@ export default function HistoryChart({
   const [houseVisible, setHouseVisible] = useState(true);
   const [viewWindow, setViewWindow] = useState<TimeWindow | null>(null);
   const [isPanning, setIsPanning] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const [lightboxSlotHeight, setLightboxSlotHeight] = useState(0);
   const prevProbeLabelsRef = useRef<string[]>([]);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const expandBtnRef = useRef<HTMLButtonElement>(null);
+  const closeBtnRef = useRef<HTMLButtonElement>(null);
+  const wasExpandedRef = useRef(false);
   const dragRef = useRef<{
     pointerId: number;
     startX: number;
@@ -145,6 +151,43 @@ export default function HistoryChart({
   useEffect(() => {
     viewWindowRef.current = viewWindow;
   }, [viewWindow]);
+
+  useEffect(() => {
+    if (!expanded) {
+      if (wasExpandedRef.current) {
+        expandBtnRef.current?.focus();
+      }
+      wasExpandedRef.current = false;
+      return;
+    }
+    wasExpandedRef.current = true;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    closeBtnRef.current?.focus();
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setExpanded(false);
+    };
+    window.addEventListener("keydown", onKey);
+    // Remeasure after paint so the taller canvas redraws cleanly.
+    requestAnimationFrame(() => {
+      window.dispatchEvent(new Event("resize"));
+    });
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [expanded]);
+
+  function openLightbox() {
+    if (wrapRef.current) {
+      setLightboxSlotHeight(wrapRef.current.offsetHeight);
+    }
+    setExpanded(true);
+  }
+
+  function closeLightbox() {
+    setExpanded(false);
+  }
 
   useEffect(() => {
     domainRef.current = domain;
@@ -750,10 +793,32 @@ export default function HistoryChart({
   }
 
   return (
-    <div class="history-chart-wrap">
+    <>
+      {expanded && (
+        <div
+          class="history-chart-lightbox-spacer"
+          style={{ height: lightboxSlotHeight || undefined }}
+          aria-hidden="true"
+        />
+      )}
+      {expanded && (
+        <button
+          type="button"
+          class="history-chart-lightbox-scrim"
+          aria-label="Close expanded chart"
+          onClick={closeLightbox}
+        />
+      )}
+      <div
+        ref={wrapRef}
+        class={`history-chart-wrap${expanded ? " is-lightbox" : ""}`}
+        role={expanded ? "dialog" : undefined}
+        aria-modal={expanded ? "true" : undefined}
+        aria-label={expanded ? title : undefined}
+      >
       <div class="history-chart-header">
         <p class="history-chart-title">{title}</p>
-        <div class="history-chart-zoom" role="group" aria-label="Chart zoom">
+        <div class="history-chart-zoom" role="group" aria-label="Chart controls">
           <button
             type="button"
             class="history-chart-zoom-btn"
@@ -780,6 +845,28 @@ export default function HistoryChart({
           >
             Reset
           </button>
+          {expanded ? (
+            <button
+              ref={closeBtnRef}
+              type="button"
+              class="history-chart-zoom-btn history-chart-expand-btn"
+              aria-label="Close expanded chart"
+              onClick={closeLightbox}
+            >
+              Close
+            </button>
+          ) : (
+            <button
+              ref={expandBtnRef}
+              type="button"
+              class="history-chart-zoom-btn history-chart-expand-btn"
+              aria-label="Expand chart"
+              aria-haspopup="dialog"
+              onClick={openLightbox}
+            >
+              Expand
+            </button>
+          )}
         </div>
       </div>
       {(probeLabels.length > 0 || housePoints.length >= 2) && (
@@ -825,7 +912,9 @@ export default function HistoryChart({
         </p>
       )}
       <p class="m-0 mb-2 text-xs text-[var(--color-text-muted)]">
-        Scroll to zoom, drag to pan when zoomed, hover for readings.
+        {expanded
+          ? "Expanded view — scroll to zoom, drag to pan, Esc or Close to exit."
+          : "Scroll to zoom, drag to pan when zoomed, Expand for a larger view."}{" "}
         Trace turns <span style={{ color: COLOR_BELOW }}>cool</span> at/below freeze
         and <span style={{ color: COLOR_ABOVE }}>warm</span> at/above the high line.
       </p>
@@ -937,6 +1026,7 @@ export default function HistoryChart({
           </p>
         )}
       </form>
-    </div>
+      </div>
+    </>
   );
 }
