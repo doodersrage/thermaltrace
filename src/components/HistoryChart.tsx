@@ -1,4 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
+import {
+  collectHoverHits,
+  formatAxisTime,
+  formatHoverTime,
+  isFullyZoomedOut,
+  panTimeWindow,
+  tempToY,
+  timeDomainFromPoints,
+  timestampToX,
+  xToTimestamp,
+  zoomTimeWindow,
+  type HoverSeriesHit,
+  type PlotBounds,
+  type TimeWindow,
+} from "../lib/historyChartInteraction";
 
 type Point = {
   timestamp: string;
@@ -90,6 +105,7 @@ export default function HistoryChart({
   showHumidity = false,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const plotBoundsRef = useRef<PlotBounds | null>(null);
   const probeLabels = useMemo(
     () => [...new Set(points.map((p) => p.probeLabel || "Probe"))],
     [points],
@@ -101,6 +117,69 @@ export default function HistoryChart({
   );
   const [humidityOn, setHumidityOn] = useState(showHumidity);
   const [hydrated, setHydrated] = useState(false);
+  const [visibleProbes, setVisibleProbes] = useState<Set<string>>(
+    () => new Set(probeLabels),
+  );
+  const [hoverTs, setHoverTs] = useState<number | null>(null);
+  const [hoverHits, setHoverHits] = useState<HoverSeriesHit[]>([]);
+  const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(
+    null,
+  );
+  const [houseVisible, setHouseVisible] = useState(true);
+  const [viewWindow, setViewWindow] = useState<TimeWindow | null>(null);
+  const [isPanning, setIsPanning] = useState(false);
+  const prevProbeLabelsRef = useRef<string[]>([]);
+  const dragRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startView: TimeWindow;
+  } | null>(null);
+  const viewWindowRef = useRef<TimeWindow | null>(null);
+  const domainRef = useRef<TimeWindow | null>(null);
+
+  const domain = useMemo(() => timeDomainFromPoints(points), [points]);
+  const activeView = viewWindow && domain ? viewWindow : domain;
+  const zoomed =
+    !!domain && !!activeView && !isFullyZoomedOut(activeView, domain);
+
+  useEffect(() => {
+    viewWindowRef.current = viewWindow;
+  }, [viewWindow]);
+
+  useEffect(() => {
+    domainRef.current = domain;
+    if (!domain) {
+      setViewWindow(null);
+      return;
+    }
+    setViewWindow((prev) => {
+      if (!prev) return null;
+      const next = {
+        minTs: Math.max(prev.minTs, domain.minTs),
+        maxTs: Math.min(prev.maxTs, domain.maxTs),
+      };
+      if (next.maxTs <= next.minTs || isFullyZoomedOut(next, domain)) return null;
+      return next;
+    });
+  }, [domain]);
+
+  useEffect(() => {
+    const prevLabels = prevProbeLabelsRef.current;
+    setVisibleProbes((prev) => {
+      const next = new Set(prev);
+      for (const label of [...next]) {
+        if (!probeLabels.includes(label)) next.delete(label);
+      }
+      for (const label of probeLabels) {
+        if (!prevLabels.includes(label)) next.add(label);
+      }
+      if (next.size === 0) {
+        for (const label of probeLabels) next.add(label);
+      }
+      return next;
+    });
+    prevProbeLabelsRef.current = probeLabels;
+  }, [probeLabels]);
 
   const humidityPoints = useMemo(() => {
     if (!showHumidity) return [] as Point[];
@@ -117,6 +196,17 @@ export default function HistoryChart({
       : points;
     return source.filter((p) => Number.isFinite(p.humidity) && p.humidity > 0);
   }, [points, probeLabels, showHumidity]);
+
+  const byProbe = useMemo(() => {
+    const map = new Map<string, Point[]>();
+    for (const point of points) {
+      const label = point.probeLabel || "Probe";
+      const list = map.get(label) ?? [];
+      list.push(point);
+      map.set(label, list);
+    }
+    return map;
+  }, [points]);
 
   useEffect(() => {
     const storedHigh = readStoredNumber(STORAGE_HIGH);
@@ -163,6 +253,15 @@ export default function HistoryChart({
     return parts.join(" ");
   }, [points, freezeThresholdF]);
 
+  const hoverLive = useMemo(() => {
+    if (!hoverHits.length) return "";
+    const when = formatHoverTime(hoverHits[0]!.timestamp);
+    const parts = hoverHits.map(
+      (h) => `${h.probeLabel} ${h.tempf.toFixed(1)}°F`,
+    );
+    return `${when}: ${parts.join(", ")}`;
+  }, [hoverHits]);
+
   useEffect(() => {
     const canvasEl = canvasRef.current;
     if (!canvasEl || points.length < 2) return;
@@ -173,235 +272,294 @@ export default function HistoryChart({
     const canvas = canvasEl;
 
     function draw() {
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const width = Math.max(1, canvas.clientWidth);
-    const height = Math.max(1, canvas.clientHeight);
-    canvas.width = width * dpr;
-    canvas.height = height * dpr;
-    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const width = Math.max(1, canvas.clientWidth);
+      const height = Math.max(1, canvas.clientHeight);
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    const plotHumidity = humidityOn && humidityPoints.length >= 2;
-    const dewTemps = plotHumidity
-      ? humidityPoints
-          .map((p) => dewPointF(p.tempf, p.humidity))
-          .filter((v): v is number => v != null)
-      : [];
+      const plotHumidity = humidityOn && humidityPoints.length >= 2;
 
-    const pad = {
-      top: 16,
-      right: plotHumidity ? 40 : 16,
-      bottom: 28,
-      left: 44,
-    };
-    const innerW = width - pad.left - pad.right;
-    const innerH = height - pad.top - pad.bottom;
+      const pad = {
+        top: 16,
+        right: plotHumidity ? 40 : 16,
+        bottom: 28,
+        left: 44,
+      };
+      const innerW = width - pad.left - pad.right;
+      const innerH = height - pad.top - pad.bottom;
 
-    const sortedPoints = [...points].sort(
-      (a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp),
-    );
-    const minTs = Date.parse(sortedPoints[0]!.timestamp);
-    const maxTs = Date.parse(sortedPoints[sortedPoints.length - 1]!.timestamp);
-    const tsRange = maxTs - minTs || 1;
-
-    const guideTemps = [
-      freezeThresholdF,
-      highTempF,
-      targetAmbientF,
-    ].filter((v): v is number => v != null && Number.isFinite(v));
-
-    const allTemps = [
-      ...points.map((p) => p.tempf),
-      ...priorYearPoints.map((p) => p.tempf),
-      ...housePoints.map((p) => p.tempf),
-      ...dewTemps,
-      ...guideTemps,
-    ];
-    const min = Math.min(...allTemps) - 2;
-    const max = Math.max(...allTemps) + 2;
-    const range = max - min || 1;
-
-    const yFor = (tempf: number) =>
-      pad.top + innerH - ((tempf - min) / range) * innerH;
-    const yForRh = (rh: number) =>
-      pad.top + innerH - (Math.min(100, Math.max(0, rh)) / 100) * innerH;
-    const xFor = (ts: number) =>
-      pad.left + ((ts - minTs) / tsRange) * innerW;
-
-    g.clearRect(0, 0, width, height);
-    g.fillStyle = "#151b24";
-    g.fillRect(0, 0, width, height);
-
-    g.strokeStyle = "rgba(255,255,255,0.06)";
-    g.lineWidth = 1;
-    for (let i = 0; i <= 4; i++) {
-      const y = pad.top + (innerH / 4) * i;
-      g.beginPath();
-      g.moveTo(pad.left, y);
-      g.lineTo(width - pad.right, y);
-      g.stroke();
-      const val = max - (range / 4) * i;
-      g.fillStyle = "#94a3b8";
-      g.font = "10px system-ui, sans-serif";
-      g.textAlign = "right";
-      g.fillText(`${val.toFixed(0)}°F`, pad.left - 6, y + 3);
-      if (plotHumidity) {
-        const rh = 100 - (100 / 4) * i;
-        g.textAlign = "left";
-        g.fillStyle = HUMIDITY_COLOR;
-        g.fillText(`${rh.toFixed(0)}%`, width - pad.right + 6, y + 3);
-      }
-    }
-
-    function drawGuide(
-      tempf: number | null,
-      color: string,
-      label: string,
-      dash: number[],
-    ) {
-      if (tempf == null || !Number.isFinite(tempf)) return;
-      const y = yFor(tempf);
-      g.save();
-      g.strokeStyle = color;
-      g.lineWidth = 1.5;
-      g.setLineDash(dash);
-      g.beginPath();
-      g.moveTo(pad.left, y);
-      g.lineTo(width - pad.right, y);
-      g.stroke();
-      g.setLineDash([]);
-      g.fillStyle = color;
-      g.font = "10px system-ui, sans-serif";
-      g.textAlign = "left";
-      g.fillText(`${label} ${tempf.toFixed(0)}°F`, pad.left + 4, y - 4);
-      g.restore();
-    }
-
-    drawGuide(freezeThresholdF, "rgba(56, 189, 248, 0.9)", "Freeze", [6, 4]);
-    drawGuide(targetAmbientF, "rgba(167, 139, 250, 0.85)", "Target", [2, 4]);
-    drawGuide(highTempF, "rgba(251, 146, 60, 0.9)", "High", [6, 4]);
-
-    function drawSeriesColored(series: Point[], baseColor: string) {
-      if (series.length < 2) return;
-      const ordered = [...series].sort(
+      const sortedPoints = [...points].sort(
         (a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp),
       );
-      for (let i = 1; i < ordered.length; i++) {
-        const a = ordered[i - 1]!;
-        const b = ordered[i]!;
-        const mid = (a.tempf + b.tempf) / 2;
-        g.strokeStyle = segmentColor(mid, freezeThresholdF, highTempF, baseColor);
-        g.lineWidth = 2;
+      const fullMinTs = Date.parse(sortedPoints[0]!.timestamp);
+      const fullMaxTs = Date.parse(sortedPoints[sortedPoints.length - 1]!.timestamp);
+      const minTs = activeView?.minTs ?? fullMinTs;
+      const maxTs = activeView?.maxTs ?? fullMaxTs;
+      const tsRange = maxTs - minTs || 1;
+      const inView = (ts: number) => ts >= minTs && ts <= maxTs;
+
+      const guideTemps = [
+        freezeThresholdF,
+        highTempF,
+        targetAmbientF,
+      ].filter((v): v is number => v != null && Number.isFinite(v));
+
+      const visiblePoints = points.filter((p) =>
+        visibleProbes.has(p.probeLabel || "Probe"),
+      );
+      const houseForScale =
+        houseVisible && housePoints.length >= 2 ? housePoints : [];
+
+      const scaleSource = (
+        visiblePoints.length > 0 ? visiblePoints : points
+      ).filter((p) => inView(Date.parse(p.timestamp)));
+      const houseInView = houseForScale.filter((p) =>
+        inView(Date.parse(p.timestamp)),
+      );
+      const priorInView = priorYearPoints.filter((p) =>
+        inView(Date.parse(p.timestamp)),
+      );
+      const dewInView = plotHumidity
+        ? humidityPoints
+            .filter((p) => inView(Date.parse(p.timestamp)))
+            .map((p) => dewPointF(p.tempf, p.humidity))
+            .filter((v): v is number => v != null)
+        : [];
+
+      const allTemps = [
+        ...(scaleSource.length > 0
+          ? scaleSource
+          : visiblePoints.length > 0
+            ? visiblePoints
+            : points
+        ).map((p) => p.tempf),
+        ...priorInView.map((p) => p.tempf),
+        ...houseInView.map((p) => p.tempf),
+        ...dewInView,
+        ...guideTemps,
+      ];
+      const min = Math.min(...allTemps) - 2;
+      const max = Math.max(...allTemps) + 2;
+      const range = max - min || 1;
+
+      plotBoundsRef.current = {
+        padLeft: pad.left,
+        padRight: pad.right,
+        padTop: pad.top,
+        padBottom: pad.bottom,
+        width,
+        height,
+        minTs,
+        maxTs,
+        minTemp: min,
+        maxTemp: max,
+      };
+
+      const yFor = (tempf: number) =>
+        pad.top + innerH - ((tempf - min) / range) * innerH;
+      const yForRh = (rh: number) =>
+        pad.top + innerH - (Math.min(100, Math.max(0, rh)) / 100) * innerH;
+      const xFor = (ts: number) =>
+        pad.left + ((ts - minTs) / tsRange) * innerW;
+
+      g.clearRect(0, 0, width, height);
+      g.fillStyle = "#151b24";
+      g.fillRect(0, 0, width, height);
+
+      g.strokeStyle = "rgba(255,255,255,0.06)";
+      g.lineWidth = 1;
+      for (let i = 0; i <= 4; i++) {
+        const y = pad.top + (innerH / 4) * i;
         g.beginPath();
-        g.moveTo(xFor(Date.parse(a.timestamp)), yFor(a.tempf));
-        g.lineTo(xFor(Date.parse(b.timestamp)), yFor(b.tempf));
+        g.moveTo(pad.left, y);
+        g.lineTo(width - pad.right, y);
         g.stroke();
-      }
-    }
-
-    function drawSeriesFlat(series: Point[], color: string) {
-      if (series.length < 2) return;
-      const ordered = [...series].sort(
-        (a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp),
-      );
-      g.strokeStyle = color;
-      g.lineWidth = 2;
-      g.beginPath();
-      ordered.forEach((point, i) => {
-        const x = xFor(Date.parse(point.timestamp));
-        const y = yFor(point.tempf);
-        if (i === 0) g.moveTo(x, y);
-        else g.lineTo(x, y);
-      });
-      g.stroke();
-    }
-
-    function drawSeriesDashed(series: Point[], color: string) {
-      if (series.length < 2) return;
-      const ordered = [...series].sort(
-        (a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp),
-      );
-      g.save();
-      g.strokeStyle = color;
-      g.lineWidth = 2;
-      g.setLineDash([6, 4]);
-      g.beginPath();
-      ordered.forEach((point, i) => {
-        const x = xFor(Date.parse(point.timestamp));
-        const y = yFor(point.tempf);
-        if (i === 0) g.moveTo(x, y);
-        else g.lineTo(x, y);
-      });
-      g.stroke();
-      g.restore();
-    }
-
-    if (priorYearPoints.length >= 2) {
-      drawSeriesFlat(priorYearPoints, "rgba(148, 163, 184, 0.55)");
-    }
-
-    const byProbe = new Map<string, Point[]>();
-    for (const point of points) {
-      const label = point.probeLabel || "Probe";
-      const list = byProbe.get(label) ?? [];
-      list.push(point);
-      byProbe.set(label, list);
-    }
-
-    [...byProbe.entries()].forEach(([, series], index) => {
-      drawSeriesColored(series, PROBE_COLORS[index % PROBE_COLORS.length]!);
-    });
-
-    if (housePoints.length >= 2) {
-      drawSeriesDashed(housePoints, HOUSE_COLOR);
-    }
-
-    if (plotHumidity) {
-      const orderedHum = [...humidityPoints].sort(
-        (a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp),
-      );
-      g.save();
-      g.strokeStyle = HUMIDITY_COLOR;
-      g.lineWidth = 1.5;
-      g.globalAlpha = 0.9;
-      g.beginPath();
-      orderedHum.forEach((point, i) => {
-        const x = xFor(Date.parse(point.timestamp));
-        const y = yForRh(point.humidity);
-        if (i === 0) g.moveTo(x, y);
-        else g.lineTo(x, y);
-      });
-      g.stroke();
-
-      g.strokeStyle = DEW_COLOR;
-      g.setLineDash([4, 3]);
-      g.beginPath();
-      let dewStarted = false;
-      for (const point of orderedHum) {
-        const dew = dewPointF(point.tempf, point.humidity);
-        if (dew == null) continue;
-        const x = xFor(Date.parse(point.timestamp));
-        const y = yFor(dew);
-        if (!dewStarted) {
-          g.moveTo(x, y);
-          dewStarted = true;
-        } else {
-          g.lineTo(x, y);
+        const val = max - (range / 4) * i;
+        g.fillStyle = "#94a3b8";
+        g.font = "10px system-ui, sans-serif";
+        g.textAlign = "right";
+        g.fillText(`${val.toFixed(0)}°F`, pad.left - 6, y + 3);
+        if (plotHumidity) {
+          const rh = 100 - (100 / 4) * i;
+          g.textAlign = "left";
+          g.fillStyle = HUMIDITY_COLOR;
+          g.fillText(`${rh.toFixed(0)}%`, width - pad.right + 6, y + 3);
         }
       }
-      g.stroke();
-      g.restore();
-    }
 
-    g.fillStyle = "#94a3b8";
-    g.font = "10px system-ui, sans-serif";
-    g.textAlign = "left";
-    g.fillText(new Date(minTs).toLocaleDateString(), pad.left, height - 8);
-    g.textAlign = "right";
-    g.fillText(
-      new Date(maxTs).toLocaleDateString(),
-      width - pad.right,
-      height - 8,
-    );
+      function drawGuide(
+        tempf: number | null,
+        color: string,
+        label: string,
+        dash: number[],
+      ) {
+        if (tempf == null || !Number.isFinite(tempf)) return;
+        const y = yFor(tempf);
+        g.save();
+        g.strokeStyle = color;
+        g.lineWidth = 1.5;
+        g.setLineDash(dash);
+        g.beginPath();
+        g.moveTo(pad.left, y);
+        g.lineTo(width - pad.right, y);
+        g.stroke();
+        g.setLineDash([]);
+        g.fillStyle = color;
+        g.font = "10px system-ui, sans-serif";
+        g.textAlign = "left";
+        g.fillText(`${label} ${tempf.toFixed(0)}°F`, pad.left + 4, y - 4);
+        g.restore();
+      }
+
+      drawGuide(freezeThresholdF, "rgba(56, 189, 248, 0.9)", "Freeze", [6, 4]);
+      drawGuide(targetAmbientF, "rgba(167, 139, 250, 0.85)", "Target", [2, 4]);
+      drawGuide(highTempF, "rgba(251, 146, 60, 0.9)", "High", [6, 4]);
+
+      g.save();
+      g.beginPath();
+      g.rect(pad.left, pad.top, innerW, innerH);
+      g.clip();
+
+      function drawSeriesColored(series: Point[], baseColor: string) {
+        if (series.length < 2) return;
+        const ordered = [...series].sort(
+          (a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp),
+        );
+        for (let i = 1; i < ordered.length; i++) {
+          const a = ordered[i - 1]!;
+          const b = ordered[i]!;
+          const mid = (a.tempf + b.tempf) / 2;
+          g.strokeStyle = segmentColor(mid, freezeThresholdF, highTempF, baseColor);
+          g.lineWidth = 2;
+          g.beginPath();
+          g.moveTo(xFor(Date.parse(a.timestamp)), yFor(a.tempf));
+          g.lineTo(xFor(Date.parse(b.timestamp)), yFor(b.tempf));
+          g.stroke();
+        }
+      }
+
+      function drawSeriesFlat(series: Point[], color: string) {
+        if (series.length < 2) return;
+        const ordered = [...series].sort(
+          (a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp),
+        );
+        g.strokeStyle = color;
+        g.lineWidth = 2;
+        g.beginPath();
+        ordered.forEach((point, i) => {
+          const x = xFor(Date.parse(point.timestamp));
+          const y = yFor(point.tempf);
+          if (i === 0) g.moveTo(x, y);
+          else g.lineTo(x, y);
+        });
+        g.stroke();
+      }
+
+      function drawSeriesDashed(series: Point[], color: string) {
+        if (series.length < 2) return;
+        const ordered = [...series].sort(
+          (a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp),
+        );
+        g.save();
+        g.strokeStyle = color;
+        g.lineWidth = 2;
+        g.setLineDash([6, 4]);
+        g.beginPath();
+        ordered.forEach((point, i) => {
+          const x = xFor(Date.parse(point.timestamp));
+          const y = yFor(point.tempf);
+          if (i === 0) g.moveTo(x, y);
+          else g.lineTo(x, y);
+        });
+        g.stroke();
+        g.restore();
+      }
+
+      if (priorYearPoints.length >= 2) {
+        drawSeriesFlat(priorYearPoints, "rgba(148, 163, 184, 0.55)");
+      }
+
+      [...byProbe.entries()].forEach(([label, series], index) => {
+        if (!visibleProbes.has(label)) return;
+        drawSeriesColored(series, PROBE_COLORS[index % PROBE_COLORS.length]!);
+      });
+
+      if (houseVisible && housePoints.length >= 2) {
+        drawSeriesDashed(housePoints, HOUSE_COLOR);
+      }
+
+      if (plotHumidity) {
+        const orderedHum = [...humidityPoints].sort(
+          (a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp),
+        );
+        g.save();
+        g.strokeStyle = HUMIDITY_COLOR;
+        g.lineWidth = 1.5;
+        g.globalAlpha = 0.9;
+        g.beginPath();
+        orderedHum.forEach((point, i) => {
+          const x = xFor(Date.parse(point.timestamp));
+          const y = yForRh(point.humidity);
+          if (i === 0) g.moveTo(x, y);
+          else g.lineTo(x, y);
+        });
+        g.stroke();
+
+        g.strokeStyle = DEW_COLOR;
+        g.setLineDash([4, 3]);
+        g.beginPath();
+        let dewStarted = false;
+        for (const point of orderedHum) {
+          const dew = dewPointF(point.tempf, point.humidity);
+          if (dew == null) continue;
+          const x = xFor(Date.parse(point.timestamp));
+          const y = yFor(dew);
+          if (!dewStarted) {
+            g.moveTo(x, y);
+            dewStarted = true;
+          } else {
+            g.lineTo(x, y);
+          }
+        }
+        g.stroke();
+        g.restore();
+      }
+
+      if (hoverTs != null && hoverHits.length > 0) {
+        const lineBounds = plotBoundsRef.current!;
+        const lineX = timestampToX(hoverTs, lineBounds);
+        g.strokeStyle = "rgba(248, 250, 252, 0.45)";
+        g.lineWidth = 1;
+        g.setLineDash([3, 3]);
+        g.beginPath();
+        g.moveTo(lineX, pad.top);
+        g.lineTo(lineX, height - pad.bottom);
+        g.stroke();
+        g.setLineDash([]);
+
+        for (const hit of hoverHits) {
+          const hx = timestampToX(Date.parse(hit.timestamp), lineBounds);
+          const y = tempToY(hit.tempf, lineBounds);
+          g.fillStyle = hit.color;
+          g.beginPath();
+          g.arc(hx, y, 4.5, 0, Math.PI * 2);
+          g.fill();
+          g.strokeStyle = "#0f172a";
+          g.lineWidth = 1.5;
+          g.stroke();
+        }
+      }
+
+      g.restore();
+
+      g.fillStyle = "#94a3b8";
+      g.font = "10px system-ui, sans-serif";
+      g.textAlign = "left";
+      g.fillText(formatAxisTime(minTs, tsRange), pad.left, height - 8);
+      g.textAlign = "right";
+      g.fillText(formatAxisTime(maxTs, tsRange), width - pad.right, height - 8);
     }
 
     draw();
@@ -409,7 +567,27 @@ export default function HistoryChart({
       draw();
     });
     ro.observe(canvas);
-    return () => ro.disconnect();
+
+    const onWheel = (event: WheelEvent) => {
+      const currentDomain = domainRef.current;
+      if (!currentDomain || !plotBoundsRef.current) return;
+      event.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const anchor =
+        xToTimestamp(x, plotBoundsRef.current) ??
+        (currentDomain.minTs + currentDomain.maxTs) / 2;
+      const currentView = viewWindowRef.current ?? currentDomain;
+      const factor = event.deltaY > 0 ? 1.18 : 1 / 1.18;
+      const next = zoomTimeWindow(currentView, currentDomain, anchor, factor);
+      setViewWindow(isFullyZoomedOut(next, currentDomain) ? null : next);
+    };
+    canvas.addEventListener("wheel", onWheel, { passive: false });
+
+    return () => {
+      ro.disconnect();
+      canvas.removeEventListener("wheel", onWheel);
+    };
   }, [
     points,
     priorYearPoints,
@@ -419,7 +597,138 @@ export default function HistoryChart({
     targetAmbientF,
     humidityOn,
     humidityPoints,
+    visibleProbes,
+    houseVisible,
+    byProbe,
+    hoverTs,
+    hoverHits,
+    activeView,
   ]);
+
+  function applyZoom(factor: number) {
+    if (!domain) return;
+    const currentView = viewWindow ?? domain;
+    const anchor = (currentView.minTs + currentView.maxTs) / 2;
+    const next = zoomTimeWindow(currentView, domain, anchor, factor);
+    setViewWindow(isFullyZoomedOut(next, domain) ? null : next);
+  }
+
+  function resetZoom() {
+    setViewWindow(null);
+    dragRef.current = null;
+    setIsPanning(false);
+  }
+
+  function updateHoverFromClientX(clientX: number, clientY: number) {
+    const canvas = canvasRef.current;
+    const bounds = plotBoundsRef.current;
+    if (!canvas || !bounds) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const ts = xToTimestamp(x, bounds);
+    if (ts == null) {
+      clearHover();
+      return;
+    }
+
+    const hits = collectHoverHits({
+      targetTs: ts,
+      byProbe,
+      probeColors: PROBE_COLORS,
+      visibleProbes,
+      housePoints: houseVisible && housePoints.length >= 2 ? housePoints : [],
+      houseLegend,
+      houseColor: HOUSE_COLOR,
+      dewPointF: humidityOn ? dewPointF : undefined,
+    });
+
+    const snapTs = hits[0] ? Date.parse(hits[0].timestamp) : ts;
+    setHoverTs(snapTs);
+    setHoverHits(hits);
+
+    const localX = clientX - rect.left;
+    const localY = clientY - rect.top;
+    setTooltipPos({
+      x: Math.min(Math.max(localX + 12, 8), Math.max(8, rect.width - 188)),
+      y: Math.min(Math.max(localY - 8, 8), Math.max(8, rect.height - 8)),
+    });
+  }
+
+  function clearHover() {
+    setHoverTs(null);
+    setHoverHits([]);
+    setTooltipPos(null);
+  }
+
+  function onCanvasPointerDown(e: {
+    clientX: number;
+    clientY: number;
+    pointerId: number;
+    currentTarget: EventTarget;
+  }) {
+    updateHoverFromClientX(e.clientX, e.clientY);
+    if (!domain || !zoomed || !activeView) return;
+    const canvas = e.currentTarget as HTMLCanvasElement;
+    canvas.setPointerCapture?.(e.pointerId);
+    dragRef.current = {
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      startView: activeView,
+    };
+  }
+
+  function onCanvasPointerMove(e: {
+    clientX: number;
+    clientY: number;
+    pointerId: number;
+  }) {
+    const drag = dragRef.current;
+    if (drag && drag.pointerId === e.pointerId && domain && plotBoundsRef.current) {
+      const dx = e.clientX - drag.startX;
+      if (!isPanning && Math.abs(dx) < 5) {
+        updateHoverFromClientX(e.clientX, e.clientY);
+        return;
+      }
+      if (!isPanning) setIsPanning(true);
+      const bounds = plotBoundsRef.current;
+      const innerW = bounds.width - bounds.padLeft - bounds.padRight;
+      const span = drag.startView.maxTs - drag.startView.minTs || 1;
+      const deltaTs = -(dx / Math.max(innerW, 1)) * span;
+      setViewWindow(panTimeWindow(drag.startView, domain, deltaTs));
+      clearHover();
+      return;
+    }
+    updateHoverFromClientX(e.clientX, e.clientY);
+  }
+
+  function onCanvasPointerUp(e: {
+    pointerId: number;
+    currentTarget: EventTarget;
+  }) {
+    if (dragRef.current?.pointerId === e.pointerId) {
+      dragRef.current = null;
+      setIsPanning(false);
+      try {
+        (e.currentTarget as HTMLCanvasElement).releasePointerCapture?.(e.pointerId);
+      } catch {
+        /* already released */
+      }
+    }
+  }
+
+  function toggleProbe(label: string) {
+    setVisibleProbes((prev) => {
+      const next = new Set(prev);
+      if (next.has(label)) {
+        if (next.size <= 1) return prev;
+        next.delete(label);
+      } else {
+        next.add(label);
+      }
+      return next;
+    });
+  }
 
   if (points.length < 2) {
     return (
@@ -442,28 +751,70 @@ export default function HistoryChart({
 
   return (
     <div class="history-chart-wrap">
-      <p class="history-chart-title">{title}</p>
-      {probeLabels.length > 1 && (
-        <p class="m-0 mb-2 text-xs text-[var(--color-text-muted)]">
-          {probeLabels.map((label, i) => (
-            <span key={label}>
-              {i > 0 ? " · " : ""}
-              <span style={{ color: PROBE_COLORS[i % PROBE_COLORS.length] }}>
+      <div class="history-chart-header">
+        <p class="history-chart-title">{title}</p>
+        <div class="history-chart-zoom" role="group" aria-label="Chart zoom">
+          <button
+            type="button"
+            class="history-chart-zoom-btn"
+            aria-label="Zoom in"
+            onClick={() => applyZoom(1 / 1.35)}
+          >
+            +
+          </button>
+          <button
+            type="button"
+            class="history-chart-zoom-btn"
+            aria-label="Zoom out"
+            onClick={() => applyZoom(1.35)}
+            disabled={!zoomed}
+          >
+            −
+          </button>
+          <button
+            type="button"
+            class="history-chart-zoom-btn"
+            aria-label="Reset zoom"
+            onClick={resetZoom}
+            disabled={!zoomed}
+          >
+            Reset
+          </button>
+        </div>
+      </div>
+      {(probeLabels.length > 0 || housePoints.length >= 2) && (
+        <div class="history-chart-legend" role="group" aria-label="Series visibility">
+          {probeLabels.map((label, i) => {
+            const on = visibleProbes.has(label);
+            return (
+              <button
+                key={label}
+                type="button"
+                class={`history-chart-legend-btn${on ? " is-on" : ""}`}
+                style={{ "--legend-color": PROBE_COLORS[i % PROBE_COLORS.length] } as never}
+                aria-pressed={on}
+                onClick={() => toggleProbe(label)}
+              >
                 {label}
-              </span>
-            </span>
-          ))}
-        </p>
+              </button>
+            );
+          })}
+          {housePoints.length >= 2 && (
+            <button
+              type="button"
+              class={`history-chart-legend-btn${houseVisible ? " is-on" : ""}`}
+              style={{ "--legend-color": HOUSE_COLOR } as never}
+              aria-pressed={houseVisible}
+              onClick={() => setHouseVisible((v) => !v)}
+            >
+              {houseLegend ?? "House"}
+            </button>
+          )}
+        </div>
       )}
       {priorYearPoints.length >= 2 && (
         <p class="m-0 mb-2 text-xs text-[var(--color-text-muted)]">
           {priorYearLegend ?? "Gray = comparison overlay"}
-        </p>
-      )}
-      {housePoints.length >= 2 && (
-        <p class="m-0 mb-2 text-xs text-[var(--color-text-muted)]">
-          <span style={{ color: HOUSE_COLOR }}>{houseLegend ?? "House"}</span>
-          {" "}= dashed indoor reference
         </p>
       )}
       {humidityOn && humidityPoints.length >= 2 && (
@@ -474,17 +825,68 @@ export default function HistoryChart({
         </p>
       )}
       <p class="m-0 mb-2 text-xs text-[var(--color-text-muted)]">
+        Scroll to zoom, drag to pan when zoomed, hover for readings.
         Trace turns <span style={{ color: COLOR_BELOW }}>cool</span> at/below freeze
         and <span style={{ color: COLOR_ABOVE }}>warm</span> at/above the high line.
       </p>
-      <canvas
-        ref={canvasRef}
-        class="w-full history-chart-canvas"
-        role="img"
-        aria-label={`Line chart of ${title}`}
-        aria-describedby="history-chart-summary"
-      />
+      <div
+        class="history-chart-canvas-wrap"
+        onPointerLeave={() => {
+          if (!dragRef.current) clearHover();
+        }}
+        onPointerCancel={() => {
+          dragRef.current = null;
+          setIsPanning(false);
+          clearHover();
+        }}
+      >
+        <canvas
+          ref={canvasRef}
+          class={`w-full history-chart-canvas${zoomed ? " is-zoomed" : ""}${isPanning ? " is-panning" : ""}`}
+          role="img"
+          aria-label={`Interactive line chart of ${title}. Scroll to zoom, drag to pan, hover for readings.`}
+          aria-describedby="history-chart-summary"
+          onPointerDown={onCanvasPointerDown}
+          onPointerMove={onCanvasPointerMove}
+          onPointerUp={onCanvasPointerUp}
+          onDblClick={resetZoom}
+        />
+        {tooltipPos && hoverHits.length > 0 && !isPanning && (
+          <div
+            class="history-chart-tooltip"
+            style={{ left: `${tooltipPos.x}px`, top: `${tooltipPos.y}px` }}
+            role="status"
+          >
+            <p class="history-chart-tooltip-time">
+              {formatHoverTime(hoverHits[0]!.timestamp)}
+            </p>
+            <ul class="history-chart-tooltip-list">
+              {hoverHits.map((hit) => (
+                <li key={hit.probeLabel}>
+                  <span
+                    class="history-chart-tooltip-swatch"
+                    style={{ background: hit.color }}
+                  />
+                  <span class="history-chart-tooltip-label">{hit.probeLabel}</span>
+                  <span class="history-chart-tooltip-value">
+                    {hit.tempf.toFixed(1)}°F
+                    {humidityOn &&
+                      Number.isFinite(hit.humidity) &&
+                      hit.humidity > 0 &&
+                      ` · ${hit.humidity.toFixed(0)}%`}
+                    {hit.dewPointF != null &&
+                      ` · dew ${hit.dewPointF.toFixed(1)}°F`}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
       <p id="history-chart-summary" class="sr-only">{chartSummary}</p>
+      <p class="sr-only" aria-live="polite">
+        {hoverLive}
+      </p>
       <form
         class="chart-threshold-controls"
         onSubmit={(e) => e.preventDefault()}
