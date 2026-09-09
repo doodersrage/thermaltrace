@@ -1,0 +1,134 @@
+---
+import type { Entitlements } from "../../lib/entitlements";
+import type { ThermostatProvider } from "../../lib/thermostatConnections";
+import type { ThermostatSnapshot, ThermostatFetchError } from "../../lib/thermostatCorrelation";
+import type { IndoorReferenceOption } from "../../lib/indoorReference";
+import type { UserPreferences } from "../../lib/userPreferences";
+import IndoorReferenceCard from "../IndoorReferenceCard.astro";
+import ThermostatConnectCard from "../ThermostatConnectCard.astro";
+import ExampleFeedCard from "../ExampleFeedCard.astro";
+import PullFetchButton from "../PullFetchButton";
+import TempFeedsSettings from "../TempFeedsSettings.astro";
+import PullFeedSaveBar from "../PullFeedSaveBar";
+import PullProbeMapper from "../PullProbeMapper";
+
+/**
+ * "Pull feeds & thermostats" tab: indoor-reference + thermostat-connect
+ * cards (behind the power-features gate), the pull-JSON-feeds card, and
+ * the collapsed "other ways to connect" fallback shown on the push tab.
+ * Extracted from dashboard/temperature.astro -- same markup and behavior,
+ * just relocated.
+ */
+interface Props {
+  activeTab: "pull" | "push";
+  showPowerFeatures: boolean;
+  canEdit: boolean;
+  canManageThermostat: boolean;
+  entitlements: Entitlements;
+  availableThermostatProviders: ThermostatProvider[];
+  thermostatConnectionsWithSnapshots: Array<{
+    provider: ThermostatProvider;
+    snapshot: ThermostatSnapshot | null;
+    fetchError?: ThermostatFetchError;
+    fetchHint?: string;
+  }>;
+  indoorReferenceOptions: IndoorReferenceOption[];
+  indoorReferenceSensorId: string | null;
+  indoorRefSaved: boolean;
+  indoorRefError: string | null;
+  preferences: UserPreferences;
+  pullFeedIds: string[];
+  redirectTo: string;
+  demoPullStarted: boolean;
+  pullSaved: boolean;
+}
+
+const {
+  activeTab,
+  showPowerFeatures,
+  canEdit,
+  canManageThermostat,
+  entitlements,
+  availableThermostatProviders,
+  thermostatConnectionsWithSnapshots,
+  indoorReferenceOptions,
+  indoorReferenceSensorId,
+  indoorRefSaved,
+  indoorRefError,
+  preferences,
+  pullFeedIds,
+  redirectTo,
+  demoPullStarted,
+  pullSaved,
+} = Astro.props;
+---
+    {activeTab === "pull" ? (
+      <>
+    {showPowerFeatures && (
+      <>
+    <IndoorReferenceCard
+      canManage={canEdit}
+      options={indoorReferenceOptions}
+      selectedSensorId={indoorReferenceSensorId}
+      saved={indoorRefSaved}
+      error={indoorRefError}
+    />
+
+    <div id="thermostat-connect">
+    <ThermostatConnectCard
+      entitled={entitlements.canUseThermostatIntegration}
+      tier={entitlements.tier}
+      canManage={canManageThermostat}
+      availableProviders={availableThermostatProviders}
+      connections={thermostatConnectionsWithSnapshots}
+    />
+    </div>
+      </>
+    )}
+
+    {canEdit ? (
+      <section class="card space-y-6" id="pull-feeds">
+        <div>
+          <h2 class="card-title">Pull JSON feeds</h2>
+          <p class="card-subtitle mb-0">
+            HTTPS JSON we fetch on a schedule. Probe keys auto-import when you save: rename below if needed.
+          </p>
+        </div>
+
+        <ExampleFeedCard />
+
+        <PullFetchButton client:visible feedIds={pullFeedIds} autoFetch={demoPullStarted && pullSaved} />
+
+        <TempFeedsSettings feeds={preferences.tempFeeds} />
+        <PullFeedSaveBar client:visible hasFeeds={pullFeedIds.length > 0} />
+        <PullProbeMapper
+          client:visible
+          feeds={preferences.tempFeeds}
+          probes={preferences.tempProbes}
+          redirectTo={`${redirectTo}?tab=pull`}
+        />
+      </section>
+    ) : (
+      <section class="card">
+        <p class="mb-0 text-sm text-[var(--color-text-muted)]">
+          View-only access: feed and probe settings are hidden.
+        </p>
+      </section>
+    )}
+      </>
+    ) : (
+      <details class="card">
+        <summary class="card-title cursor-pointer">Other ways to connect</summary>
+        <p class="card-subtitle mb-4">
+          Pull JSON feeds, Nest/Ecobee, MQTT bridge, and Home Assistant, open when you need them.
+        </p>
+        <div class="flex flex-wrap gap-3">
+          <a class="btn-secondary" href="/dashboard/temperature?tab=pull">Pull feeds & thermostats</a>
+          <a class="btn-secondary" href="/dashboard/temperature?tab=pull#thermostat-connect">Nest / Ecobee</a>
+          <a class="btn-ghost" href="/about/mqtt-bridge">MQTT bridge</a>
+          <a class="btn-ghost" href="/dashboard/share/links">HA share link</a>
+          <a class="btn-ghost" href="/about/kit-qr-onboarding">Hardware kit QR guide</a>
+          <a class="btn-ghost" href="/about/adding-devices">Adding devices</a>
+        </div>
+      </details>
+    )}

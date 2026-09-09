@@ -1,14 +1,11 @@
 ---
 import DashboardLayout from "../../layouts/DashboardLayout.astro";
-import TempFeedsSettings from "../../components/TempFeedsSettings.astro";
-import PullProbeMapper from "../../components/PullProbeMapper";
-import PullFetchButton from "../../components/PullFetchButton";
-import PullFeedSaveBar from "../../components/PullFeedSaveBar";
 import DeviceSetupWizard from "../../components/DeviceSetupWizard.astro";
 import IngestFirmwarePanel from "../../components/dashboard/IngestFirmwarePanel.astro";
 import DevicesFirstRunCard from "../../components/dashboard/DevicesFirstRunCard.astro";
 import DeviceHealthPanel from "../../components/dashboard/DeviceHealthPanel.astro";
 import PushDevicesPanel from "../../components/dashboard/PushDevicesPanel.astro";
+import PullFeedsPanel from "../../components/dashboard/PullFeedsPanel.astro";
 import DeviceIntegrationsStrip from "../../components/DeviceIntegrationsStrip.astro";
 import FirstAlertSetupCard from "../../components/FirstAlertSetupCard.astro";
 import DemoPullNudge from "../../components/DemoPullNudge.astro";
@@ -17,9 +14,6 @@ import { getUserPreferences } from "../../lib/userPreferences";
 import { checkFeedHealth } from "../../lib/collectHistory";
 import { getUserDevicesAsTempConfig, listHouseholdDevices, SENSOR_KIND_LABELS } from "../../lib/devices";
 import { getOrCreateHouseholdForUser, listUserHouseholds, getUserHouseholdRole, canEditHousehold, canManageHousehold } from "../../lib/households";
-import ThermostatConnectCard from "../../components/ThermostatConnectCard.astro";
-import IndoorReferenceCard from "../../components/IndoorReferenceCard.astro";
-import ExampleFeedCard from "../../components/ExampleFeedCard.astro";
 import { listConnectionsForHousehold } from "../../lib/thermostatConnections";
 import { getIndoorReferenceSensorId, listIndoorReferenceOptions } from "../../lib/indoorReference";
 import { fetchThermostatContextWithStatus } from "../../lib/thermostatCorrelation";
@@ -536,76 +530,24 @@ const firmwareSensors =
 
     {!showDeviceWizard && (
       <>
-    {activeTab === "pull" ? (
-      <>
-    {showPowerFeatures && (
-      <>
-    <IndoorReferenceCard
-      canManage={canEdit}
-      options={indoorReferenceOptions}
-      selectedSensorId={indoorReferenceSensorId}
-      saved={indoorRefSaved}
-      error={indoorRefError}
+    <PullFeedsPanel
+      activeTab={activeTab}
+      showPowerFeatures={showPowerFeatures}
+      canEdit={canEdit}
+      canManageThermostat={canManageThermostat}
+      entitlements={entitlements}
+      availableThermostatProviders={availableThermostatProviders}
+      thermostatConnectionsWithSnapshots={thermostatConnectionsWithSnapshots}
+      indoorReferenceOptions={indoorReferenceOptions}
+      indoorReferenceSensorId={indoorReferenceSensorId}
+      indoorRefSaved={indoorRefSaved}
+      indoorRefError={indoorRefError}
+      preferences={preferences}
+      pullFeedIds={pullFeedIds}
+      redirectTo={redirectTo}
+      demoPullStarted={demoPullStarted}
+      pullSaved={pullSaved}
     />
-
-    <div id="thermostat-connect">
-    <ThermostatConnectCard
-      entitled={entitlements.canUseThermostatIntegration}
-      tier={entitlements.tier}
-      canManage={canManageThermostat}
-      availableProviders={availableThermostatProviders}
-      connections={thermostatConnectionsWithSnapshots}
-    />
-    </div>
-      </>
-    )}
-
-    {canEdit ? (
-      <section class="card space-y-6" id="pull-feeds">
-        <div>
-          <h2 class="card-title">Pull JSON feeds</h2>
-          <p class="card-subtitle mb-0">
-            HTTPS JSON we fetch on a schedule. Probe keys auto-import when you save: rename below if needed.
-          </p>
-        </div>
-
-        <ExampleFeedCard />
-
-        <PullFetchButton client:visible feedIds={pullFeedIds} autoFetch={demoPullStarted && pullSaved} />
-
-        <TempFeedsSettings feeds={preferences.tempFeeds} />
-        <PullFeedSaveBar client:visible hasFeeds={pullFeedIds.length > 0} />
-        <PullProbeMapper
-          client:visible
-          feeds={preferences.tempFeeds}
-          probes={preferences.tempProbes}
-          redirectTo={`${redirectTo}?tab=pull`}
-        />
-      </section>
-    ) : (
-      <section class="card">
-        <p class="mb-0 text-sm text-[var(--color-text-muted)]">
-          View-only access: feed and probe settings are hidden.
-        </p>
-      </section>
-    )}
-      </>
-    ) : (
-      <details class="card">
-        <summary class="card-title cursor-pointer">Other ways to connect</summary>
-        <p class="card-subtitle mb-4">
-          Pull JSON feeds, Nest/Ecobee, MQTT bridge, and Home Assistant, open when you need them.
-        </p>
-        <div class="flex flex-wrap gap-3">
-          <a class="btn-secondary" href="/dashboard/temperature?tab=pull">Pull feeds & thermostats</a>
-          <a class="btn-secondary" href="/dashboard/temperature?tab=pull#thermostat-connect">Nest / Ecobee</a>
-          <a class="btn-ghost" href="/about/mqtt-bridge">MQTT bridge</a>
-          <a class="btn-ghost" href="/dashboard/share/links">HA share link</a>
-          <a class="btn-ghost" href="/about/kit-qr-onboarding">Hardware kit QR guide</a>
-          <a class="btn-ghost" href="/about/adding-devices">Adding devices</a>
-        </div>
-      </details>
-    )}
       </>
     )}
   </div>
