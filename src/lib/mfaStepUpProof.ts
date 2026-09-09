@@ -17,13 +17,27 @@ type StepUpPayload = {
 
 /**
  * Prefer dedicated MFA_STEPUP_SECRET; fall back to CRON_SECRET.
- * Uses import.meta.env (not cloudflare:workers) so middleware stays prerender-safe.
+ * Read import.meta.env first (prerender-safe). Fall back to Worker runtime
+ * secrets via dynamic import so this module never statically pulls in
+ * `cloudflare:workers` (that breaks static badge prerender / middleware bundling).
  */
-function getSecret(): string | null {
-  const dedicated = import.meta.env.MFA_STEPUP_SECRET?.trim();
-  if (dedicated) return dedicated;
-  const fallback = import.meta.env.CRON_SECRET?.trim();
-  return fallback || null;
+async function getStepUpSecret(): Promise<string | null> {
+  const fromBuild =
+    import.meta.env.MFA_STEPUP_SECRET?.trim() ||
+    import.meta.env.CRON_SECRET?.trim() ||
+    "";
+  if (fromBuild) return fromBuild;
+
+  try {
+    const { getRuntimeEnv } = await import("./runtimeEnv");
+    return (
+      getRuntimeEnv("MFA_STEPUP_SECRET")?.trim() ||
+      getRuntimeEnv("CRON_SECRET")?.trim() ||
+      null
+    );
+  } catch {
+    return null;
+  }
 }
 
 function base64UrlEncode(data: string): string {
@@ -70,7 +84,7 @@ async function verifySignature(
 
 /** HMAC-signed proof that this user completed MFA step-up. Fails closed without a signing secret. */
 export async function createMfaStepUpProof(userId: string): Promise<string | null> {
-  const secret = getSecret();
+  const secret = await getStepUpSecret();
   if (!secret || !userId) return null;
 
   const payload: StepUpPayload = {
@@ -86,7 +100,7 @@ export async function verifyMfaStepUpProof(
   token: string | null | undefined,
   userId: string,
 ): Promise<boolean> {
-  const secret = getSecret();
+  const secret = await getStepUpSecret();
   if (!secret || !token || !userId) return false;
 
   const dot = token.lastIndexOf(".");

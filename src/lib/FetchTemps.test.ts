@@ -251,7 +251,13 @@ describe("fetchTemps", () => {
     );
     expect(mockInsertSensorReadings).toHaveBeenCalled();
     expect(mockTouchDeviceLastSeen).toHaveBeenCalledWith("a");
-    expect(mockUpdateDeviceMeta).toHaveBeenCalledWith("a", { battery_pct: 90 });
+    expect(mockUpdateDeviceMeta).toHaveBeenCalledWith(
+      "a",
+      expect.objectContaining({
+        battery_pct: 90,
+        battery_history: [expect.objectContaining({ pct: 90, at: expect.any(String) })],
+      }),
+    );
     expect(mockMaybeSendThresholdAlerts).toHaveBeenCalledWith(
       "user-3",
       undefined,

@@ -366,6 +366,23 @@ describe("POST /api/auth/mfa-verify — yubikey OTP", () => {
     expect(mockClearMfaVerifyFailures).toHaveBeenCalledWith("user-1");
     expect(json).toMatchObject({ ok: true, mfa_stepup: "stepup-token" });
   });
+
+  it("returns generic error when step-up proof cannot be minted after yubikey success", async () => {
+    mockGetYubiKeyPublicIdsFromUser.mockReturnValue(["ccccccexisting"]);
+    mockVerifyYubiKeyOtpWithYubiCloud.mockResolvedValue({ ok: true, publicId: "ccccccexisting" });
+    mockGetAalClaim.mockReturnValue("aal1");
+    mockCreateMfaStepUpProof.mockResolvedValue(null);
+    const { POST } = await import("./mfa-verify");
+
+    const response = await POST(
+      makeContext({ json: true, body: { yubikey_otp: "cccc" } }),
+    );
+    const json = (await response.json()) as Record<string, unknown>;
+
+    expect(response.status).toBe(503);
+    expect(json).toEqual({ error: "generic" });
+    expect(mockSetMfaStepUpCookie).not.toHaveBeenCalled();
+  });
 });
 
 describe("POST /api/auth/mfa-verify — totp code", () => {

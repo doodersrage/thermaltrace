@@ -266,15 +266,24 @@ export const POST: APIRoute = async ({ request, cookies, redirect, url }) => {
     }
 
     clearMfaVerifyFailures(user.id);
-    setMfaRequiredCookie(cookies, false);
+    // YubiKey leaves the Supabase JWT at aal1; step-up cookie is required
+    // for middleware to treat the session as MFA-complete.
     const mfaStepup = await issueMfaStepUpProof(cookies, user.id);
+    if (!mfaStepup) {
+      console.error(
+        "MFA step-up secret not configured (set MFA_STEPUP_SECRET or CRON_SECRET)",
+      );
+      if (asJson) return jsonResponse({ error: "generic" }, 503);
+      return redirect(buildMfaErrorRedirect("generic", safeNext));
+    }
+    setMfaRequiredCookie(cookies, false);
     if (asJson) {
       return jsonResponse({
         ok: true,
         access_token: session.access_token,
         refresh_token: session.refresh_token,
         aal: getAalClaim(session.access_token) ?? "aal1",
-        ...(mfaStepup ? { mfa_stepup: mfaStepup } : {}),
+        mfa_stepup: mfaStepup,
       });
     }
     const mobileRedirect = await maybeRedirectMobileOAuth(

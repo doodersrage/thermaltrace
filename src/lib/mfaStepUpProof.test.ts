@@ -1,4 +1,13 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+
+const { runtimeEnvStore } = vi.hoisted(() => ({
+  runtimeEnvStore: new Map<string, string>(),
+}));
+
+vi.mock("./runtimeEnv", () => ({
+  getRuntimeEnv: (key: string) => runtimeEnvStore.get(key),
+}));
+
 import {
   createMfaStepUpProof,
   MFA_STEPUP_COOKIE,
@@ -8,7 +17,9 @@ import {
 
 describe("mfaStepUpProof", () => {
   beforeEach(() => {
+    runtimeEnvStore.clear();
     vi.stubEnv("CRON_SECRET", "test-mfa-stepup-secret");
+    vi.stubEnv("MFA_STEPUP_SECRET", "");
   });
 
   afterEach(() => {
@@ -40,6 +51,15 @@ describe("mfaStepUpProof", () => {
     vi.stubEnv("MFA_STEPUP_SECRET", "");
     expect(await createMfaStepUpProof("user-abc")).toBeNull();
     expect(await verifyMfaStepUpProof("anything", "user-abc")).toBe(false);
+  });
+
+  it("falls back to runtime Worker secrets when build env is empty", async () => {
+    vi.stubEnv("CRON_SECRET", "");
+    vi.stubEnv("MFA_STEPUP_SECRET", "");
+    runtimeEnvStore.set("MFA_STEPUP_SECRET", "runtime-stepup-secret");
+    const token = await createMfaStepUpProof("user-abc");
+    expect(token).toBeTruthy();
+    expect(await verifyMfaStepUpProof(token, "user-abc")).toBe(true);
   });
 
   it("prefers MFA_STEPUP_SECRET over CRON_SECRET", async () => {
