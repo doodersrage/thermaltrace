@@ -1,9 +1,10 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { signAckPayload, verifyAckPayload } from "./alertAckTokens";
+import { buildUserAckUrl, signAckPayload, verifyAckPayload } from "./alertAckTokens";
 
 describe("alertAckTokens", () => {
   beforeEach(() => {
     vi.stubEnv("CRON_SECRET", "test-ack-secret");
+    vi.stubEnv("ALERT_ACK_SECRET", "");
   });
 
   it("signs and verifies a payload", async () => {
@@ -29,5 +30,17 @@ describe("alertAckTokens", () => {
     await expect(signAckPayload("user-123", Date.now() + 60_000)).rejects.toThrow(
       /not configured/,
     );
+  });
+
+  it("returns null ack URLs when signing secrets are missing", async () => {
+    vi.stubEnv("CRON_SECRET", "");
+    vi.stubEnv("ALERT_ACK_SECRET", "");
+    await expect(buildUserAckUrl("https://example.com", "user-123")).resolves.toBeNull();
+  });
+
+  it("builds an ack URL when a secret is available", async () => {
+    const url = await buildUserAckUrl("https://example.com/", "user-123");
+    expect(url).toMatch(/^https:\/\/example\.com\/api\/alerts\/ack\?/);
+    expect(url).toContain("uid=user-123");
   });
 });

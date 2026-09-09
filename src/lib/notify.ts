@@ -573,7 +573,7 @@ export async function notifyUser(
   const ackUrl = await buildUserAckUrl(baseUrl, userId);
   const footerLines: string[] = [];
   if (options?.snoozeUrl) footerLines.push(`Snooze 24h: ${options.snoozeUrl}`);
-  footerLines.push(`Mark as handled: ${ackUrl}`);
+  if (ackUrl) footerLines.push(`Mark as handled: ${ackUrl}`);
   const bodyWithSnooze =
     footerLines.length > 0
       ? `${payloadResolved.body}\n\n${footerLines.join("\n")}`
