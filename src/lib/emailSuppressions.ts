@@ -80,25 +80,56 @@ export async function suppressEmail(
   reason = "bounce",
   lastError?: string | null,
 ): Promise<void> {
+  await upsertEmailSuppression(email, reason, lastError);
+}
+
+/** Admin/manual add — returns a result so the UI can show success or failure. */
+export async function addEmailSuppression(
+  email: string,
+  reason = "manual",
+  note?: string | null,
+): Promise<{ ok: boolean; error: string | null }> {
+  const normalized = normalizeEmailAddress(email);
+  if (!normalized || normalized.length > 254 || !normalized.includes("@")) {
+    return { ok: false, error: "Enter a valid email address" };
+  }
+  const result = await upsertEmailSuppression(normalized, reason || "manual", note);
+  if (!result.ok) {
+    return { ok: false, error: result.error ?? "Could not add suppression" };
+  }
+  return { ok: true, error: null };
+}
+
+async function upsertEmailSuppression(
+  email: string,
+  reason: string,
+  lastError?: string | null,
+): Promise<{ ok: boolean; error: string | null }> {
   const normalized = normalizeEmailAddress(email);
   // Allow storing noreply/invalid addresses so we never retry them.
-  if (!normalized || normalized.length > 254 || !normalized.includes("@")) return;
+  if (!normalized || normalized.length > 254 || !normalized.includes("@")) {
+    return { ok: false, error: "Enter a valid email address" };
+  }
   try {
     const supabase = createServerClient();
     const { error } = await supabase.from("email_suppressions").upsert(
       {
         email: normalized,
-        reason,
-        last_error: lastError?.slice(0, 500) ?? null,
+        reason: reason.trim().slice(0, 80) || "manual",
+        last_error: lastError?.trim().slice(0, 500) || null,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "email" },
     );
     if (error) {
       console.error("email suppression upsert failed:", error.message);
+      return { ok: false, error: error.message };
     }
+    return { ok: true, error: null };
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
     console.error("email suppression upsert failed:", error);
+    return { ok: false, error: message };
   }
 }
 

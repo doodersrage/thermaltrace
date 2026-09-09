@@ -6,6 +6,7 @@ vi.mock("./supabase", () => ({
 }));
 
 import {
+  addEmailSuppression,
   isMailDeliveryBounceError,
   isPlausibleEmailAddress,
   isEmailSuppressed,
@@ -73,6 +74,30 @@ describe("emailSuppressions", () => {
       }),
       { onConflict: "email" },
     );
+  });
+
+  it("adds a manual suppression with a result", async () => {
+    const api = chain({ data: null, error: null });
+    mockFrom.mockReturnValue(api);
+    expect(
+      await addEmailSuppression("Bad@Example.com", "manual", "ops note"),
+    ).toEqual({ ok: true, error: null });
+    expect(api.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        email: "bad@example.com",
+        reason: "manual",
+        last_error: "ops note",
+      }),
+      { onConflict: "email" },
+    );
+  });
+
+  it("rejects blank emails on manual add", async () => {
+    expect(await addEmailSuppression("not-an-email")).toEqual({
+      ok: false,
+      error: "Enter a valid email address",
+    });
+    expect(mockFrom).not.toHaveBeenCalled();
   });
 
   it("lists suppressions newest first", async () => {
