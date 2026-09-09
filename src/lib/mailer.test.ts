@@ -26,8 +26,9 @@ describe("mailer recipient errors", () => {
     const { hardErrors, restrictedErrors } = partitionMailErrors([
       "a: not allowed",
       "b: boom",
+      "c: temporary bounces (cannot retry)",
     ]);
-    expect(restrictedErrors).toHaveLength(1);
+    expect(restrictedErrors).toHaveLength(2);
     expect(hardErrors).toEqual(["b: boom"]);
   });
 });

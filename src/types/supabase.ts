@@ -1193,6 +1193,30 @@ export type Database = {
         }
         Relationships: []
       }
+      email_suppressions: {
+        Row: {
+          email: string
+          reason: string
+          last_error: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          email: string
+          reason?: string
+          last_error?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          email?: string
+          reason?: string
+          last_error?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       fcm_device_tokens: {
         Row: {
           app_id: string | null

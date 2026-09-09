@@ -2,7 +2,7 @@ import { createAdminClient } from "./supabase";
 import { getAlertSettingsForUser, notifyUser } from "./notify";
 import { brandedEmailParts } from "./emailLayout";
 import { resolveSiteUrl } from "./schemaMarkup";
-import { sendEmail } from "./mailer";
+import { sendEmail, isMailDeliveryBounceError } from "./mailer";
 import { computeFreezeReadiness } from "./freezeReadiness";
 import { listAllHouseholdOwnerUserIds } from "./households";
 import { listHouseholdDevices } from "./devices";
@@ -10,6 +10,11 @@ import { fetchLatestSensorValues } from "./sensorReadings";
 import { getUserEntitlements } from "./entitlements";
 import { getUserPreferences, personalWeatherConfigFromPreferences } from "./userPreferences";
 import { isWeatherLocationConfigured } from "./personalWeatherStations";
+import {
+  isEmailSuppressed,
+  isPlausibleEmailAddress,
+  suppressEmail,
+} from "./emailSuppressions";
 
 /** Sep 1 – Nov 15 (Northern Hemisphere pre-season). */
 export function shouldSendFreezeDrill(now = new Date()): boolean {
@@ -120,9 +125,29 @@ export async function sendFreezeDrillsForAllUsers(): Promise<{
       });
 
       if (user.email) {
-        await sendEmail(user.email, `Freeze readiness ${readiness.score}%: pre-season drill`, parts.text, {
-          html: parts.html,
-        });
+        if (
+          !isPlausibleEmailAddress(user.email) ||
+          (await isEmailSuppressed(user.email))
+        ) {
+          skipped += 1;
+          continue;
+        }
+        try {
+          await sendEmail(user.email, `Freeze readiness ${readiness.score}%: pre-season drill`, parts.text, {
+            html: parts.html,
+          });
+        } catch (error) {
+          if (isMailDeliveryBounceError(error)) {
+            await suppressEmail(
+              user.email,
+              "bounce",
+              error instanceof Error ? error.message : String(error),
+            );
+            skipped += 1;
+            continue;
+          }
+          throw error;
+        }
       }
 
       await notifyUser(
