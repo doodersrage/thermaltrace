@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for helping improve ThermalTrace. **Bugs and feature ideas** belong in [GitHub issues](https://github.com/doodersrage/thermaltrace/issues). **Account, billing, and household questions** go through the [contact form](https://thermaltrace.dev/contact).
+Thanks for helping improve ThermalTrace. Issue creation on this repo is currently restricted, so **bugs, feature ideas, account, billing, and household questions** all go through the [contact form](https://thermaltrace.dev/contact) for now. Code contributions are still welcome as PRs — see below.
 
 Please follow the [Code of Conduct](./CODE_OF_CONDUCT.md).
 
@@ -19,6 +19,7 @@ Details: [Local development](https://doodersrage.github.io/thermaltrace/guide/lo
 ```bash
 pnpm test
 pnpm typecheck
+pnpm lint
 ```
 
 CI on `main` and pull requests runs `pnpm test`, `pnpm build`, Playwright E2E (`pnpm test:e2e`), and Lighthouse. Sync E2E secrets to GitHub with `pnpm setup:e2e-github-secrets` after setting `E2E_TEST_*` and Supabase keys in `.env`. UI changes should stay consistent across pages that share the same state.

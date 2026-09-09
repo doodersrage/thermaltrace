@@ -104,7 +104,7 @@ Related repos: [arduino JSON probe](https://github.com/doodersrage/arduino-netwo
 
 ## Contributing
 
-Bugs and feature ideas: [GitHub issues](https://github.com/doodersrage/thermaltrace/issues). Account or billing: [contact form](https://thermaltrace.dev/contact). See [CONTRIBUTING.md](./CONTRIBUTING.md) and the [Code of Conduct](./CODE_OF_CONDUCT.md).
+Issue creation is currently restricted on this repo — bugs, feature ideas, and account/billing questions all go through the [contact form](https://thermaltrace.dev/contact). Code contributions are still welcome as PRs: see [CONTRIBUTING.md](./CONTRIBUTING.md) and the [Code of Conduct](./CODE_OF_CONDUCT.md).
 
 PRs should pass `pnpm test` and `pnpm typecheck`. CI also runs the Astro build and Playwright smoke. An **import-guard** Vitest suite fails the build if a page renders a component it never imports.
 
