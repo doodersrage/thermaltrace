@@ -82,12 +82,16 @@ export async function syncPlanGroupForUser(
   });
 
   if (error) {
-    // Fallback to legacy RPC if new one not applied yet
+    // Fallback to legacy RPC if new one not applied yet. Report the
+    // fallback's own outcome -- not the primary error -- once it runs:
+    // a successful fallback means the sync worked, and the caller
+    // (webhook handling, subscription upserts) should see error: null
+    // rather than a stale failure from the RPC that no longer exists.
     const fallback = await supabase.rpc("sync_member_group_membership", {
       target_user_id: userId,
       is_active: isActive,
     });
-    return { error: fallback.error?.message ?? error.message };
+    return { error: fallback.error ? fallback.error.message : null };
   }
 
   return { error: null };
