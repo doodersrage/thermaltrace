@@ -16,6 +16,23 @@ test.describe("checkout", () => {
     expect(res.headers()["location"] ?? "").toMatch(/\/signin/);
   });
 
+  test("checkout rejects an unknown plan for signed-in users", async ({ page }) => {
+    test.skip(!getE2ECredentials(), "Set E2E_TEST_EMAIL and E2E_TEST_PASSWORD");
+
+    await signIn(page, "/pricing");
+    const res = await page.request.post("/api/stripe/checkout", {
+      form: { plan: "not-a-real-plan", interval: "monthly" },
+      maxRedirects: 0,
+    });
+    // Either redirect back with an error flash or 4xx — never a Stripe session URL.
+    if ([302, 303].includes(res.status())) {
+      const location = res.headers()["location"] ?? "";
+      expect(location).not.toMatch(/checkout\.stripe\.com/);
+    } else {
+      expect(res.status()).toBeGreaterThanOrEqual(400);
+    }
+  });
+
   test("upgrade CTA redirects to a real Stripe checkout session", async ({ page }) => {
     test.skip(!getE2ECredentials(), "Set E2E_TEST_EMAIL and E2E_TEST_PASSWORD");
 

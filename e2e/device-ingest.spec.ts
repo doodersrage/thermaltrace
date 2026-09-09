@@ -9,6 +9,13 @@ test.describe("device ingest", () => {
     expect(res.status()).toBe(401);
   });
 
+  test("ingest rejects empty body for unknown key", async ({ request }) => {
+    const res = await request.post("/api/ingest/not-a-real-key", {
+      data: {},
+    });
+    expect(res.status()).toBe(401);
+  });
+
   test("create device, POST a reading, see it land, then clean up", async ({ page }) => {
     test.skip(!getE2ECredentials(), "Set E2E_TEST_EMAIL and E2E_TEST_PASSWORD");
 
@@ -34,6 +41,14 @@ test.describe("device ingest", () => {
         data: { temp1: 41.2, battery: 90 },
       });
       expect(ingestRes.ok()).toBeTruthy();
+      const ingestJson = await ingestRes.json().catch(() => null);
+      if (ingestJson && typeof ingestJson === "object") {
+        expect(ingestJson).toEqual(
+          expect.objectContaining({
+            ok: expect.anything(),
+          }),
+        );
+      }
 
       await page.reload();
       const deviceRow = page
