@@ -14,6 +14,7 @@ import Radio from "@lucide/astro/icons/radio";
 import Timer from "@lucide/astro/icons/timer";
 import UserCog from "@lucide/astro/icons/user-cog";
 import Mail from "@lucide/astro/icons/mail";
+import Ban from "@lucide/astro/icons/ban";
 import logo from "../assets/gtm.svg";
 
 interface Props {
@@ -111,6 +112,12 @@ const adminItems: NavItem[] = isAdmin
         label: "Jobs",
         isActive: currentPath.startsWith("/dashboard/jobs"),
         Icon: Timer,
+      },
+      {
+        href: "/dashboard/email-suppressions",
+        label: "Email suppressions",
+        isActive: currentPath.startsWith("/dashboard/email-suppressions"),
+        Icon: Ban,
       },
       {
         href: "/dashboard/users",

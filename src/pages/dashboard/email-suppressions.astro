@@ -1,0 +1,83 @@
+---
+import DashboardLayout from "../../layouts/DashboardLayout.astro";
+import { getAuthFromCookies } from "../../lib/auth";
+import { isUserAdmin } from "../../lib/adminAccess";
+import { listEmailSuppressions } from "../../lib/emailSuppressions";
+
+const { session, user } = await getAuthFromCookies(Astro.cookies);
+if (!session || !user) {
+  return Astro.redirect("/signin");
+}
+
+if (!(await isUserAdmin(user.id))) {
+  return Astro.redirect("/dashboard");
+}
+
+const removed = Astro.url.searchParams.get("removed") === "1";
+const removeError = Astro.url.searchParams.get("error")?.trim() ?? "";
+const { rows, error } = await listEmailSuppressions(200);
+---
+<DashboardLayout title="Email suppressions" requireAdmin>
+  <div class="space-y-6">
+    <section class="card">
+      <h2 class="card-title">Email suppressions</h2>
+      <p class="card-subtitle mb-0">
+        Addresses we will not send to (bounces, noreply aliases, invalid). Protects Cloudflare Email bounce rate.
+        Removing a row allows mail again — only do that when the mailbox is known-good.
+      </p>
+      {removed && (
+        <p class="alert-success mt-4 mb-0" role="status">Suppression removed.</p>
+      )}
+      {removeError && (
+        <p class="alert-warning mt-4 mb-0" role="alert">Could not remove: {removeError}</p>
+      )}
+    </section>
+
+    <section class="card">
+      {error ? (
+        <p class="alert-warning mb-0">Unable to load suppressions: {error}</p>
+      ) : rows.length === 0 ? (
+        <p class="mb-0 text-sm text-[var(--color-text-muted)]">No suppressed addresses yet.</p>
+      ) : (
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Reason</th>
+                <th>Updated</th>
+                <th>Last error</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr>
+                  <td>
+                    <code>{row.email}</code>
+                  </td>
+                  <td>{row.reason}</td>
+                  <td>{new Date(row.updated_at).toLocaleString()}</td>
+                  <td class="contact-message-cell">
+                    {row.last_error ? <code>{row.last_error}</code> : "—"}
+                  </td>
+                  <td>
+                    <form method="POST" action="/api/admin/email-suppressions/remove">
+                      <input type="hidden" name="email" value={row.email} />
+                      <button type="submit" class="btn-ghost text-sm">
+                        Remove
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <p class="mt-4 mb-0 text-sm text-[var(--color-text-muted)]">
+        Showing {rows.length} row{rows.length === 1 ? "" : "s"} (max 200). Also review Cloudflare Email Service suppressions in the dashboard.
+      </p>
+    </section>
+  </div>
+</DashboardLayout>

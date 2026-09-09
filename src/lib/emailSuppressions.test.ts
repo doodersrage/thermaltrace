@@ -9,8 +9,10 @@ import {
   isMailDeliveryBounceError,
   isPlausibleEmailAddress,
   isEmailSuppressed,
+  listEmailSuppressions,
   normalizeEmailAddress,
   suppressEmail,
+  unsuppressEmail,
 } from "./emailSuppressions";
 
 function chain(result: { data?: unknown; error?: { message: string } | null }) {
@@ -71,5 +73,42 @@ describe("emailSuppressions", () => {
       }),
       { onConflict: "email" },
     );
+  });
+
+  it("lists suppressions newest first", async () => {
+    const api = {
+      select: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockResolvedValue({
+        data: [
+          {
+            email: "a@example.com",
+            reason: "bounce",
+            last_error: null,
+            created_at: "2026-01-01T00:00:00Z",
+            updated_at: "2026-01-02T00:00:00Z",
+          },
+        ],
+        error: null,
+      }),
+    };
+    mockFrom.mockReturnValue(api);
+    const result = await listEmailSuppressions(50);
+    expect(result.error).toBeNull();
+    expect(result.rows).toHaveLength(1);
+    expect(api.order).toHaveBeenCalledWith("updated_at", { ascending: false });
+  });
+
+  it("deletes a suppression", async () => {
+    const api = {
+      delete: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockResolvedValue({ error: null }),
+    };
+    mockFrom.mockReturnValue(api);
+    expect(await unsuppressEmail("Bad@Example.com")).toEqual({
+      ok: true,
+      error: null,
+    });
+    expect(api.eq).toHaveBeenCalledWith("email", "bad@example.com");
   });
 });

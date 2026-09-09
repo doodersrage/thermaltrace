@@ -81,7 +81,8 @@ export async function suppressEmail(
   lastError?: string | null,
 ): Promise<void> {
   const normalized = normalizeEmailAddress(email);
-  if (!normalized || !isPlausibleEmailAddress(normalized)) return;
+  // Allow storing noreply/invalid addresses so we never retry them.
+  if (!normalized || normalized.length > 254 || !normalized.includes("@")) return;
   try {
     const supabase = createServerClient();
     const { error } = await supabase.from("email_suppressions").upsert(
@@ -98,5 +99,52 @@ export async function suppressEmail(
     }
   } catch (error) {
     console.error("email suppression upsert failed:", error);
+  }
+}
+
+export type EmailSuppressionRow = {
+  email: string;
+  reason: string;
+  last_error: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export async function listEmailSuppressions(
+  limit = 200,
+): Promise<{ rows: EmailSuppressionRow[]; error: string | null }> {
+  try {
+    const supabase = createServerClient();
+    const { data, error } = await supabase
+      .from("email_suppressions")
+      .select("email, reason, last_error, created_at, updated_at")
+      .order("updated_at", { ascending: false })
+      .limit(Math.min(Math.max(limit, 1), 500));
+    if (error) return { rows: [], error: error.message };
+    return { rows: (data ?? []) as EmailSuppressionRow[], error: null };
+  } catch (error) {
+    return {
+      rows: [],
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+export async function unsuppressEmail(email: string): Promise<{ ok: boolean; error: string | null }> {
+  const normalized = normalizeEmailAddress(email);
+  if (!normalized) return { ok: false, error: "Missing email" };
+  try {
+    const supabase = createServerClient();
+    const { error } = await supabase
+      .from("email_suppressions")
+      .delete()
+      .eq("email", normalized);
+    if (error) return { ok: false, error: error.message };
+    return { ok: true, error: null };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
   }
 }
