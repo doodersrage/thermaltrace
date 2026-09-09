@@ -163,6 +163,8 @@ const [{ settings: alertSettings }, weatherSnapshot] = await Promise.all([
   fetchWeatherSnapshotForConfig(weatherConfig),
 ]);
 
+const chartWindowDays = Math.min(30, Math.max(7, entitlements.historyDays));
+
 const [
   members,
   householdDevicesResult,
@@ -188,7 +190,7 @@ const [
   activeHouseholdId
     ? getUserHouseholdRole(user.id, activeHouseholdId)
     : Promise.resolve(null),
-  fetchGarageTempChartData(user.id, 7),
+  fetchGarageTempChartData(user.id, chartWindowDays),
 ]);
 
 const devices = householdDevicesResult.devices;
@@ -333,7 +335,7 @@ const [thermostatOverview, houseChartOverlay] = await Promise.all([
   !firstRunFocus && household.householdId
     ? fetchHouseChartOverlay({
         householdId: household.householdId,
-        days: 7,
+        days: chartWindowDays,
         hasThermostatConnection: thermostatConnections.length > 0,
         referenceSensorId: indoorReferenceSensorId,
       })
@@ -1068,10 +1070,10 @@ const garageRisk = computeGarageRiskStatus({
           <h2 id="curves-heading" class="dashboard-section-title">Probe curves</h2>
           <p class="dashboard-section-desc">
             {firstRunFocus
-              ? "Seven-day temperature trend. Insights unlock after freeze + email + a test alert."
+              ? `${chartWindowDays}-day temperature trend. Insights unlock after freeze + email + a test alert.`
               : showInsights
-                ? "Seven-day traces, freeze outlook, and week-over-week change."
-                : "Seven-day temperature trend. Switch to Insights for freeze outlook and comparisons."}
+                ? `${chartWindowDays}-day traces, freeze outlook, and week-over-week change.`
+                : `${chartWindowDays}-day temperature trend. Switch to Insights for freeze outlook and comparisons.`}
           </p>
         </div>
         {!firstRunFocus && <DashboardOverviewToggle mode={overviewMode} />}
@@ -1092,6 +1094,7 @@ const garageRisk = computeGarageRiskStatus({
             canExport={canExportCsv}
             exportFrom={exportFrom}
             exportTo={exportTo}
+            days={chartWindowDays}
           />
           {showInsights && (
             <NightsAtRiskCard

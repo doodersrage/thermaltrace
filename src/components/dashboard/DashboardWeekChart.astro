@@ -14,19 +14,24 @@ interface Props {
   exportFrom?: string;
   exportTo?: string;
   showHumidity?: boolean;
+  days?: number;
 }
 
 const {
   points,
   housePoints = [],
   houseLegend = null,
-  title = "Temperature trend (7 days)",
+  title,
   freezeThresholdF = null,
   canExport = false,
   exportFrom = "",
   exportTo = "",
   showHumidity = true,
+  days = 7,
 } = Astro.props;
+
+const chartTitle = title ?? `Temperature trend (${days} days)`;
+const cardTitle = `Probe curves (${days} days)`;
 
 const exportParams = new URLSearchParams();
 if (exportFrom) exportParams.set("from", exportFrom);
@@ -38,7 +43,7 @@ const exportCsvHref = exportParams.toString()
 <DashboardCard>
   <div class="card-header-row">
     <div>
-      <h2 class="card-title">Probe curves (7 days)</h2>
+      <h2 class="card-title">{cardTitle}</h2>
       <p class="card-subtitle mb-0">
         Temperature traces with freeze / target / high guide lines
         {showHumidity ? ", plus optional humidity and dew point" : ""}.
@@ -75,7 +80,7 @@ const exportCsvHref = exportParams.toString()
         points={points}
         housePoints={housePoints}
         houseLegend={houseLegend}
-        title={title}
+        title={chartTitle}
         freezeThresholdF={freezeThresholdF}
         showHumidity={showHumidity}
       >

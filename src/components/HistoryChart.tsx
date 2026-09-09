@@ -9,6 +9,7 @@ import {
   isFullyZoomedOut,
   matchingPresetId,
   panTimeWindow,
+  presetNarrowsDomain,
   tempToY,
   timeDomainFromPoints,
   timestampToX,
@@ -702,6 +703,11 @@ export default function HistoryChart({
       resetZoom();
       return;
     }
+    // Presets longer than the loaded series cannot change the viewport.
+    if (!presetNarrowsDomain(domain, spanMs)) {
+      resetZoom();
+      return;
+    }
     const next = windowForTrailingSpan(domain, spanMs);
     setViewWindow(isFullyZoomedOut(next, domain) ? null : next);
   }
@@ -980,17 +986,26 @@ export default function HistoryChart({
       <div class="history-chart-presets" role="group" aria-label="Time range presets">
         {CHART_VIEW_PRESETS.map((preset) => {
           const domainSpan = domain ? domain.maxTs - domain.minTs : 0;
+          const canNarrow = domain ? presetNarrowsDomain(domain, preset.spanMs) : false;
+          const isCurrentWindow =
+            !canNarrow &&
+            domain != null &&
+            Math.abs(domainSpan - preset.spanMs) <= 2 * 60 * 60 * 1000;
           return (
             <button
               key={preset.id}
               type="button"
               class={`history-chart-preset-btn${activePreset === preset.id ? " is-active" : ""}`}
               aria-pressed={activePreset === preset.id}
-              disabled={!domain}
+              disabled={!domain || (!canNarrow && !isCurrentWindow)}
               title={
-                domain && domainSpan < preset.spanMs
-                  ? `Shows all available data (about ${Math.max(1, Math.round(domainSpan / 36e5))}h)`
-                  : `Last ${preset.label}`
+                !domain
+                  ? undefined
+                  : canNarrow
+                    ? `Show last ${preset.label}`
+                    : isCurrentWindow
+                      ? `Already showing about ${preset.label} of loaded data`
+                      : `Only ${Math.max(1, Math.round(domainSpan / 36e5))}h loaded here — open History for a longer range`
               }
               onClick={() => applyPreset(preset.spanMs)}
             >
@@ -1007,6 +1022,18 @@ export default function HistoryChart({
           All
         </button>
       </div>
+      {domain && !presetNarrowsDomain(domain, 7 * 24 * 60 * 60 * 1000) && (
+        <p class="m-0 mb-2 text-xs text-[var(--color-text-muted)]">
+          Loaded window is about{" "}
+          {Math.max(1, Math.round((domain.maxTs - domain.minTs) / 36e5))}h.
+          {domain.maxTs - domain.minTs < 30 * 24 * 60 * 60 * 1000 - 36e5 && (
+            <>
+              {" "}
+              <a class="text-link" href="/dashboard/history">Open History</a> for 30-day views.
+            </>
+          )}
+        </p>
+      )}
       {(probeLabels.length > 0 || housePoints.length >= 2) && (
         <div class="history-chart-legend" role="group" aria-label="Series visibility">
           {probeLabels.map((label, i) => {

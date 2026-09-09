@@ -256,6 +256,16 @@ export const CHART_VIEW_PRESETS = [
 
 export type ChartViewPresetId = (typeof CHART_VIEW_PRESETS)[number]["id"];
 
+/** True when the loaded domain is long enough for this preset to zoom meaningfully. */
+export function presetNarrowsDomain(
+  domain: TimeWindow,
+  spanMs: number,
+  epsilonMs: number = 60 * 60 * 1000,
+): boolean {
+  const domainSpan = domain.maxTs - domain.minTs;
+  return spanMs + epsilonMs < domainSpan;
+}
+
 /** Trailing window ending at domain.maxTs, clamped to available data. */
 export function windowForTrailingSpan(
   domain: TimeWindow,
@@ -278,11 +288,26 @@ export function matchingPresetId(
   domain: TimeWindow,
   epsilonMs: number = 60_000,
 ): ChartViewPresetId | "all" | "custom" {
-  if (!view || isFullyZoomedOut(view, domain, epsilonMs)) return "all";
-  const span = view.maxTs - view.minTs;
-  const endDelta = Math.abs(view.maxTs - domain.maxTs);
+  const domainSpan = domain.maxTs - domain.minTs;
+  const effective = view ?? domain;
+  const fullyOut = !view || isFullyZoomedOut(effective, domain, epsilonMs);
+
+  if (fullyOut) {
+    // Prefer the largest named preset that matches the loaded window, so a
+    // 7-day Home chart highlights "7d" instead of a no-op "All".
+    let best: ChartViewPresetId | null = null;
+    for (const preset of CHART_VIEW_PRESETS) {
+      if (Math.abs(domainSpan - preset.spanMs) <= Math.max(epsilonMs, 2 * 60 * 60 * 1000)) {
+        best = preset.id;
+      }
+    }
+    return best ?? "all";
+  }
+
+  const span = effective.maxTs - effective.minTs;
+  const endDelta = Math.abs(effective.maxTs - domain.maxTs);
   for (const preset of CHART_VIEW_PRESETS) {
-    const targetSpan = Math.min(preset.spanMs, domain.maxTs - domain.minTs);
+    const targetSpan = Math.min(preset.spanMs, domainSpan);
     if (endDelta <= epsilonMs && Math.abs(span - targetSpan) <= epsilonMs) {
       return preset.id;
     }

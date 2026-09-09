@@ -8,6 +8,7 @@ import {
   nearestPointByTime,
   panTimeWindow,
   brushPixelsToWindow,
+  presetNarrowsDomain,
   tempToY,
   timeDomainFromPoints,
   timestampToX,
@@ -183,6 +184,21 @@ describe("historyChartInteraction", () => {
         domain,
       ),
     ).toBe("custom");
+  });
+
+  it("highlights 7d when the loaded domain is itself about a week", () => {
+    const day = 24 * 60 * 60 * 1000;
+    const domain = { minTs: 0, maxTs: 7 * day };
+    expect(matchingPresetId(null, domain)).toBe("7d");
+    expect(matchingPresetId(domain, domain)).toBe("7d");
+  });
+
+  it("knows when a preset cannot narrow the loaded domain", () => {
+    const day = 24 * 60 * 60 * 1000;
+    const domain = { minTs: 0, maxTs: 7 * day };
+    expect(presetNarrowsDomain(domain, day)).toBe(true);
+    expect(presetNarrowsDomain(domain, 7 * day)).toBe(false);
+    expect(presetNarrowsDomain(domain, 30 * day)).toBe(false);
   });
 
   it("converts a brush selection into a time window", () => {
