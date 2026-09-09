@@ -15,6 +15,7 @@ interface Props {
   exportTo?: string;
   showHumidity?: boolean;
   days?: number;
+  alertMarkers?: import("../../lib/chartAlertMarkers").ChartAlertMarker[];
 }
 
 const {
@@ -28,6 +29,7 @@ const {
   exportTo = "",
   showHumidity = true,
   days = 7,
+  alertMarkers = [],
 } = Astro.props;
 
 const chartTitle = title ?? `Temperature trend (${days} days)`;
@@ -83,6 +85,7 @@ const exportCsvHref = exportParams.toString()
         title={chartTitle}
         freezeThresholdF={freezeThresholdF}
         showHumidity={showHumidity}
+        alertMarkers={alertMarkers}
       >
         <ChartSkeleton slot="fallback" />
       </HistoryChart>

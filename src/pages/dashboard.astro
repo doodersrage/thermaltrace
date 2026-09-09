@@ -86,7 +86,8 @@ import TestAlertNudge from "../components/dashboard/TestAlertNudge.astro";
 import FreezeMapOptInNudge from "../components/dashboard/FreezeMapOptInNudge.astro";
 import RegionalBenchmarkCard from "../components/dashboard/RegionalBenchmarkCard.astro";
 import ClaimsPackPromptCard from "../components/dashboard/ClaimsPackPromptCard.astro";
-import { countUnacknowledgedAlerts } from "../lib/alertEvents";
+import { countUnacknowledgedAlerts, listAlertEventsInRange } from "../lib/alertEvents";
+import { toChartAlertMarkers } from "../lib/chartAlertMarkers";
 import LowBatteryBanner from "../components/dashboard/LowBatteryBanner.astro";
 import DashboardMultiPropertyNudge from "../components/dashboard/DashboardMultiPropertyNudge.astro";
 import DashboardOverviewToggle from "../components/dashboard/DashboardOverviewToggle.astro";
@@ -197,6 +198,21 @@ const devices = householdDevicesResult.devices;
 const canEdit = canEditHousehold(householdRole);
 const canExportCsv = entitlements.canDownloadCsv;
 const hasHistory = chartWeek.points.length > 0;
+
+const chartMarkerTimes = chartWeek.points
+  .map((p) => Date.parse(p.timestamp))
+  .filter((ts) => Number.isFinite(ts));
+const chartAlertMarkers =
+  chartMarkerTimes.length > 0
+    ? toChartAlertMarkers(
+        await listAlertEventsInRange(
+          user.id,
+          new Date(Math.min(...chartMarkerTimes)).toISOString(),
+          new Date(Math.max(...chartMarkerTimes)).toISOString(),
+          200,
+        ),
+      )
+    : [];
 
 /** Device + freeze email + at least one alert (test counts). Insights wait until this. */
 const hasDevices =
@@ -1095,6 +1111,7 @@ const garageRisk = computeGarageRiskStatus({
             exportFrom={exportFrom}
             exportTo={exportTo}
             days={chartWindowDays}
+            alertMarkers={chartAlertMarkers}
           />
           {showInsights && (
             <NightsAtRiskCard

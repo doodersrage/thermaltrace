@@ -37,6 +37,8 @@ import IndoorOutdoorChart from "../../components/IndoorOutdoorChart.tsx";
 import { clampIsoToHistoryWindow, historyCutoffIso } from "../../lib/retentionSchedule";
 import { formatHistoryRetention, getUserEntitlements } from "../../lib/entitlements";
 import { getAlertSettingsForUser } from "../../lib/notify";
+import { listAlertEventsInRange } from "../../lib/alertEvents";
+import { toChartAlertMarkers } from "../../lib/chartAlertMarkers";
 
 const { session, user } = await getAuthFromCookies(Astro.cookies);
 
@@ -143,6 +145,21 @@ const [
 ]);
 
 const priorYearData = { points: priorYearBundle.points, error: null };
+
+const chartMarkerTimes = chartData.points
+  .map((p) => Date.parse(p.timestamp))
+  .filter((ts) => Number.isFinite(ts));
+const chartAlertMarkers =
+  chartMarkerTimes.length > 0
+    ? toChartAlertMarkers(
+        await listAlertEventsInRange(
+          user.id,
+          new Date(Math.min(...chartMarkerTimes)).toISOString(),
+          new Date(Math.max(...chartMarkerTimes)).toISOString(),
+          200,
+        ),
+      )
+    : [];
 
 const outdoorDelta = await fetchIndoorOutdoorDelta(
   chartData.points,
@@ -434,6 +451,7 @@ const historyUpgradeFeature =
           houseLegend={houseChartLegend}
           viewMode={historyTab === "chart" ? "chart" : "table"}
           hideTitle
+          alertMarkers={chartAlertMarkers}
         />
       </>
     )}

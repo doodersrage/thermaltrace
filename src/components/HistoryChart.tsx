@@ -1,25 +1,28 @@
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import {
-  brushPixelsToWindow,
   CHART_VIEW_PRESETS,
   collectHoverHits,
-  downloadCanvasPng,
   formatAxisTime,
   formatHoverTime,
-  isFullyZoomedOut,
-  matchingPresetId,
-  panTimeWindow,
   presetNarrowsDomain,
   tempToY,
-  timeDomainFromPoints,
   timestampToX,
-  windowForTrailingSpan,
   xToTimestamp,
-  zoomTimeWindow,
   type HoverSeriesHit,
   type PlotBounds,
-  type TimeWindow,
 } from "../lib/historyChartInteraction";
+import {
+  mergeVisibleProbes,
+  readHistoryChartPrefs,
+  writeHistoryChartPrefs,
+} from "../lib/chartPrefs";
+import {
+  alertMarkerColor,
+  drawAlertMarkers,
+  nearestAlertMarker,
+  type ChartAlertMarker,
+} from "../lib/chartAlertMarkers";
+import { useHistoryChartInteraction } from "../lib/useHistoryChartInteraction";
 
 type Point = {
   timestamp: string;
@@ -43,6 +46,8 @@ interface Props {
   defaultTargetAmbientF?: number | null;
   /** Plot humidity % and dew point on a secondary axis when data exists. */
   showHumidity?: boolean;
+  /** Optional alert event ticks overlaid on the chart. */
+  alertMarkers?: ChartAlertMarker[];
 }
 
 const PROBE_COLORS = ["#60a5fa", "#34d399", "#f472b6", "#fbbf24", "#a78bfa", "#fb7185"];
@@ -109,9 +114,15 @@ export default function HistoryChart({
   defaultHighTempF = null,
   defaultTargetAmbientF = null,
   showHumidity = false,
+  alertMarkers = [],
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  // Created before the interaction hook so hover handlers can close over it.
   const plotBoundsRef = useRef<PlotBounds | null>(null);
+  const prevProbeLabelsRef = useRef<string[]>([]);
+  const dragActiveRef = useRef(false);
+
   const probeLabels = useMemo(
     () => [...new Set(points.map((p) => p.probeLabel || "Probe"))],
     [points],
@@ -123,124 +134,31 @@ export default function HistoryChart({
   );
   const [humidityOn, setHumidityOn] = useState(showHumidity);
   const [hydrated, setHydrated] = useState(false);
+  const [prefsReady, setPrefsReady] = useState(false);
+  const [initialPresetId, setInitialPresetId] = useState<
+    "24h" | "7d" | "30d" | "all" | null
+  >(null);
   const [visibleProbes, setVisibleProbes] = useState<Set<string>>(
     () => new Set(probeLabels),
   );
   const [hoverTs, setHoverTs] = useState<number | null>(null);
   const [hoverHits, setHoverHits] = useState<HoverSeriesHit[]>([]);
+  const [hoverMarker, setHoverMarker] = useState<ChartAlertMarker | null>(null);
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(
     null,
   );
   const [houseVisible, setHouseVisible] = useState(true);
-  const [viewWindow, setViewWindow] = useState<TimeWindow | null>(null);
-  const [isPanning, setIsPanning] = useState(false);
-  const [isBrushing, setIsBrushing] = useState(false);
-  const [brushRange, setBrushRange] = useState<{ startX: number; endX: number } | null>(
-    null,
-  );
-  const [expanded, setExpanded] = useState(false);
-  const [lightboxSlotHeight, setLightboxSlotHeight] = useState(0);
-  const prevProbeLabelsRef = useRef<string[]>([]);
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const expandBtnRef = useRef<HTMLButtonElement>(null);
-  const closeBtnRef = useRef<HTMLButtonElement>(null);
-  const wasExpandedRef = useRef(false);
-  const dragRef = useRef<{
-    kind: "pan" | "brush";
-    pointerId: number;
-    startX: number;
-    startView: TimeWindow;
-    shiftKey: boolean;
-    brushStartX: number;
-    brushEndX: number;
-    moved: boolean;
-  } | null>(null);
-  const viewWindowRef = useRef<TimeWindow | null>(null);
-  const domainRef = useRef<TimeWindow | null>(null);
 
-  const domain = useMemo(() => timeDomainFromPoints(points), [points]);
-  const activeView = viewWindow && domain ? viewWindow : domain;
-  const zoomed =
-    !!domain && !!activeView && !isFullyZoomedOut(activeView, domain);
-  const activePreset = domain
-    ? matchingPresetId(viewWindow, domain)
-    : "all";
-
-  useEffect(() => {
-    viewWindowRef.current = viewWindow;
-  }, [viewWindow]);
-
-  useEffect(() => {
-    if (!expanded) {
-      if (wasExpandedRef.current) {
-        expandBtnRef.current?.focus();
-      }
-      wasExpandedRef.current = false;
-      return;
+  const byProbe = useMemo(() => {
+    const map = new Map<string, Point[]>();
+    for (const point of points) {
+      const label = point.probeLabel || "Probe";
+      const list = map.get(label) ?? [];
+      list.push(point);
+      map.set(label, list);
     }
-    wasExpandedRef.current = true;
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    closeBtnRef.current?.focus();
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setExpanded(false);
-    };
-    window.addEventListener("keydown", onKey);
-    // Remeasure after paint so the taller canvas redraws cleanly.
-    requestAnimationFrame(() => {
-      window.dispatchEvent(new Event("resize"));
-    });
-    return () => {
-      document.body.style.overflow = prevOverflow;
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [expanded]);
-
-  function openLightbox() {
-    if (wrapRef.current) {
-      setLightboxSlotHeight(wrapRef.current.offsetHeight);
-    }
-    setExpanded(true);
-  }
-
-  function closeLightbox() {
-    setExpanded(false);
-  }
-
-  useEffect(() => {
-    domainRef.current = domain;
-    if (!domain) {
-      setViewWindow(null);
-      return;
-    }
-    setViewWindow((prev) => {
-      if (!prev) return null;
-      const next = {
-        minTs: Math.max(prev.minTs, domain.minTs),
-        maxTs: Math.min(prev.maxTs, domain.maxTs),
-      };
-      if (next.maxTs <= next.minTs || isFullyZoomedOut(next, domain)) return null;
-      return next;
-    });
-  }, [domain]);
-
-  useEffect(() => {
-    const prevLabels = prevProbeLabelsRef.current;
-    setVisibleProbes((prev) => {
-      const next = new Set(prev);
-      for (const label of [...next]) {
-        if (!probeLabels.includes(label)) next.delete(label);
-      }
-      for (const label of probeLabels) {
-        if (!prevLabels.includes(label)) next.add(label);
-      }
-      if (next.size === 0) {
-        for (const label of probeLabels) next.add(label);
-      }
-      return next;
-    });
-    prevProbeLabelsRef.current = probeLabels;
-  }, [probeLabels]);
+    return map;
+  }, [points]);
 
   const humidityPoints = useMemo(() => {
     if (!showHumidity) return [] as Point[];
@@ -258,26 +176,47 @@ export default function HistoryChart({
     return source.filter((p) => Number.isFinite(p.humidity) && p.humidity > 0);
   }, [points, probeLabels, showHumidity]);
 
-  const byProbe = useMemo(() => {
-    const map = new Map<string, Point[]>();
-    for (const point of points) {
-      const label = point.probeLabel || "Probe";
-      const list = map.get(label) ?? [];
-      list.push(point);
-      map.set(label, list);
-    }
-    return map;
-  }, [points]);
-
   useEffect(() => {
+    const prefs = readHistoryChartPrefs();
+    if (prefs?.presetId) setInitialPresetId(prefs.presetId);
+    setVisibleProbes(mergeVisibleProbes(prefs?.visibleProbes, probeLabels));
+    prevProbeLabelsRef.current = probeLabels;
+    if (typeof prefs?.houseVisible === "boolean") setHouseVisible(prefs.houseVisible);
+    if (showHumidity && typeof prefs?.humidityOn === "boolean") {
+      setHumidityOn(prefs.humidityOn);
+    }
+
     const storedHigh = readStoredNumber(STORAGE_HIGH);
     const storedTarget = readStoredNumber(STORAGE_TARGET);
     if (storedHigh != null) setHighTempF(storedHigh);
     else if (defaultHighTempF != null) setHighTempF(defaultHighTempF);
     if (storedTarget != null) setTargetAmbientF(storedTarget);
     else if (defaultTargetAmbientF != null) setTargetAmbientF(defaultTargetAmbientF);
+
     setHydrated(true);
-  }, [defaultHighTempF, defaultTargetAmbientF]);
+    setPrefsReady(true);
+    // Restore once on mount from stored prefs + defaults.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [defaultHighTempF, defaultTargetAmbientF, showHumidity]);
+
+  useEffect(() => {
+    if (!prefsReady) return;
+    const prevLabels = prevProbeLabelsRef.current;
+    setVisibleProbes((prev) => {
+      const next = new Set(prev);
+      for (const label of [...next]) {
+        if (!probeLabels.includes(label)) next.delete(label);
+      }
+      for (const label of probeLabels) {
+        if (!prevLabels.includes(label)) next.add(label);
+      }
+      if (next.size === 0) {
+        for (const label of probeLabels) next.add(label);
+      }
+      return next;
+    });
+    prevProbeLabelsRef.current = probeLabels;
+  }, [probeLabels, prefsReady]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -288,6 +227,131 @@ export default function HistoryChart({
     if (!hydrated) return;
     writeStoredNumber(STORAGE_TARGET, targetAmbientF);
   }, [targetAmbientF, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    writeHistoryChartPrefs({ visibleProbes: [...visibleProbes] });
+  }, [visibleProbes, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    writeHistoryChartPrefs({ houseVisible });
+  }, [houseVisible, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    writeHistoryChartPrefs({ humidityOn });
+  }, [humidityOn, hydrated]);
+
+  const hoverHandlers = useMemo(
+    () => ({
+      clearHover() {
+        setHoverTs(null);
+        setHoverHits([]);
+        setHoverMarker(null);
+        setTooltipPos(null);
+      },
+      updateHover(clientX: number, clientY: number) {
+        const canvas = canvasRef.current;
+        const bounds = plotBoundsRef.current;
+        if (!canvas || !bounds) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const localX = clientX - rect.left;
+        const ts = xToTimestamp(localX, bounds);
+        if (ts == null) {
+          setHoverTs(null);
+          setHoverHits([]);
+          setHoverMarker(null);
+          setTooltipPos(null);
+          return;
+        }
+
+        const hits = collectHoverHits({
+          targetTs: ts,
+          byProbe,
+          probeColors: PROBE_COLORS,
+          visibleProbes,
+          housePoints: houseVisible && housePoints.length >= 2 ? housePoints : [],
+          houseLegend,
+          houseColor: HOUSE_COLOR,
+          dewPointF: humidityOn ? dewPointF : undefined,
+        });
+
+        const marker = nearestAlertMarker(alertMarkers, bounds, localX, 10);
+        const snapTs = marker
+          ? Date.parse(marker.createdAt)
+          : hits[0]
+            ? Date.parse(hits[0].timestamp)
+            : ts;
+
+        setHoverTs(Number.isFinite(snapTs) ? snapTs : ts);
+        setHoverHits(hits);
+        setHoverMarker(marker);
+
+        if (hits.length === 0 && !marker) {
+          setTooltipPos(null);
+          return;
+        }
+
+        const localY = clientY - rect.top;
+        setTooltipPos({
+          x: Math.min(Math.max(localX + 12, 8), Math.max(8, rect.width - 188)),
+          y: Math.min(Math.max(localY - 8, 8), Math.max(8, rect.height - 8)),
+        });
+      },
+    }),
+    [
+      alertMarkers,
+      byProbe,
+      visibleProbes,
+      houseVisible,
+      housePoints,
+      houseLegend,
+      humidityOn,
+    ],
+  );
+
+  const interaction = useHistoryChartInteraction({
+    points,
+    canvasRef,
+    wrapRef,
+    plotBoundsRef,
+    pngFilenamePrefix: "thermaltrace-chart",
+    hover: hoverHandlers,
+    initialPresetId: prefsReady ? initialPresetId : null,
+    onPresetChange: (id) => {
+      if (id !== "custom") writeHistoryChartPrefs({ presetId: id });
+    },
+  });
+
+  const {
+    domain,
+    activeView,
+    zoomed,
+    activePreset,
+    expanded,
+    lightboxSlotHeight,
+    openLightbox,
+    closeLightbox,
+    expandBtnRef,
+    closeBtnRef,
+    isPanning,
+    isBrushing,
+    brushRange,
+    applyZoom,
+    applyPreset,
+    resetZoom,
+    exportPng,
+    onPointerDown,
+    onPointerMove,
+    onPointerUp,
+    bindWheelZoom,
+  } = interaction;
+
+  useEffect(() => {
+    dragActiveRef.current = isPanning || isBrushing;
+  }, [isPanning, isBrushing]);
 
   const chartSummary = useMemo(() => {
     if (points.length < 2) return "Not enough readings yet for a chart.";
@@ -315,13 +379,18 @@ export default function HistoryChart({
   }, [points, freezeThresholdF]);
 
   const hoverLive = useMemo(() => {
-    if (!hoverHits.length) return "";
-    const when = formatHoverTime(hoverHits[0]!.timestamp);
-    const parts = hoverHits.map(
-      (h) => `${h.probeLabel} ${h.tempf.toFixed(1)}°F`,
-    );
-    return `${when}: ${parts.join(", ")}`;
-  }, [hoverHits]);
+    const parts: string[] = [];
+    if (hoverMarker) {
+      parts.push(`Alert: ${hoverMarker.title}`);
+    }
+    if (hoverHits.length) {
+      const when = formatHoverTime(hoverHits[0]!.timestamp);
+      parts.push(
+        `${when}: ${hoverHits.map((h) => `${h.probeLabel} ${h.tempf.toFixed(1)}°F`).join(", ")}`,
+      );
+    }
+    return parts.join(". ");
+  }, [hoverHits, hoverMarker]);
 
   useEffect(() => {
     const canvasEl = canvasRef.current;
@@ -588,7 +657,13 @@ export default function HistoryChart({
         g.restore();
       }
 
-      if (hoverTs != null && hoverHits.length > 0) {
+      if (alertMarkers.length > 0 && plotBoundsRef.current) {
+        drawAlertMarkers(g, alertMarkers, plotBoundsRef.current, {
+          highlightId: hoverMarker?.id ?? null,
+        });
+      }
+
+      if (hoverTs != null && (hoverHits.length > 0 || hoverMarker)) {
         const lineBounds = plotBoundsRef.current!;
         const lineX = timestampToX(hoverTs, lineBounds);
         g.strokeStyle = "rgba(248, 250, 252, 0.45)";
@@ -642,26 +717,11 @@ export default function HistoryChart({
       draw();
     });
     ro.observe(canvas);
-
-    const onWheel = (event: WheelEvent) => {
-      const currentDomain = domainRef.current;
-      if (!currentDomain || !plotBoundsRef.current) return;
-      event.preventDefault();
-      const rect = canvas.getBoundingClientRect();
-      const x = event.clientX - rect.left;
-      const anchor =
-        xToTimestamp(x, plotBoundsRef.current) ??
-        (currentDomain.minTs + currentDomain.maxTs) / 2;
-      const currentView = viewWindowRef.current ?? currentDomain;
-      const factor = event.deltaY > 0 ? 1.18 : 1 / 1.18;
-      const next = zoomTimeWindow(currentView, currentDomain, anchor, factor);
-      setViewWindow(isFullyZoomedOut(next, currentDomain) ? null : next);
-    };
-    canvas.addEventListener("wheel", onWheel, { passive: false });
+    const unbindWheel = bindWheelZoom(canvas);
 
     return () => {
       ro.disconnect();
-      canvas.removeEventListener("wheel", onWheel);
+      unbindWheel();
     };
   }, [
     points,
@@ -677,194 +737,12 @@ export default function HistoryChart({
     byProbe,
     hoverTs,
     hoverHits,
+    hoverMarker,
     activeView,
     brushRange,
+    alertMarkers,
+    bindWheelZoom,
   ]);
-
-  function applyZoom(factor: number) {
-    if (!domain) return;
-    const currentView = viewWindow ?? domain;
-    const anchor = (currentView.minTs + currentView.maxTs) / 2;
-    const next = zoomTimeWindow(currentView, domain, anchor, factor);
-    setViewWindow(isFullyZoomedOut(next, domain) ? null : next);
-  }
-
-  function resetZoom() {
-    setViewWindow(null);
-    dragRef.current = null;
-    setIsPanning(false);
-    setIsBrushing(false);
-    setBrushRange(null);
-  }
-
-  function applyPreset(spanMs: number | null) {
-    if (!domain) return;
-    if (spanMs == null) {
-      resetZoom();
-      return;
-    }
-    // Presets longer than the loaded series cannot change the viewport.
-    if (!presetNarrowsDomain(domain, spanMs)) {
-      resetZoom();
-      return;
-    }
-    const next = windowForTrailingSpan(domain, spanMs);
-    setViewWindow(isFullyZoomedOut(next, domain) ? null : next);
-  }
-
-  function exportPng() {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const stamp = new Date().toISOString().slice(0, 10);
-    downloadCanvasPng(canvas, `thermaltrace-chart-${stamp}.png`);
-  }
-
-  function updateHoverFromClientX(clientX: number, clientY: number) {
-    const canvas = canvasRef.current;
-    const bounds = plotBoundsRef.current;
-    if (!canvas || !bounds) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const x = clientX - rect.left;
-    const ts = xToTimestamp(x, bounds);
-    if (ts == null) {
-      clearHover();
-      return;
-    }
-
-    const hits = collectHoverHits({
-      targetTs: ts,
-      byProbe,
-      probeColors: PROBE_COLORS,
-      visibleProbes,
-      housePoints: houseVisible && housePoints.length >= 2 ? housePoints : [],
-      houseLegend,
-      houseColor: HOUSE_COLOR,
-      dewPointF: humidityOn ? dewPointF : undefined,
-    });
-
-    const snapTs = hits[0] ? Date.parse(hits[0].timestamp) : ts;
-    setHoverTs(snapTs);
-    setHoverHits(hits);
-
-    const localX = clientX - rect.left;
-    const localY = clientY - rect.top;
-    setTooltipPos({
-      x: Math.min(Math.max(localX + 12, 8), Math.max(8, rect.width - 188)),
-      y: Math.min(Math.max(localY - 8, 8), Math.max(8, rect.height - 8)),
-    });
-  }
-
-  function clearHover() {
-    setHoverTs(null);
-    setHoverHits([]);
-    setTooltipPos(null);
-  }
-
-  function canvasLocalX(clientX: number): number {
-    const canvas = canvasRef.current;
-    if (!canvas) return 0;
-    return clientX - canvas.getBoundingClientRect().left;
-  }
-
-  function onCanvasPointerDown(e: {
-    clientX: number;
-    clientY: number;
-    pointerId: number;
-    shiftKey: boolean;
-    currentTarget: EventTarget;
-  }) {
-    updateHoverFromClientX(e.clientX, e.clientY);
-    if (!domain || !activeView) return;
-    const canvas = e.currentTarget as HTMLCanvasElement;
-    canvas.setPointerCapture?.(e.pointerId);
-    const useBrush = e.shiftKey || !zoomed;
-    const localX = canvasLocalX(e.clientX);
-    dragRef.current = {
-      kind: useBrush ? "brush" : "pan",
-      pointerId: e.pointerId,
-      startX: e.clientX,
-      startView: activeView,
-      shiftKey: e.shiftKey,
-      brushStartX: localX,
-      brushEndX: localX,
-      moved: false,
-    };
-    if (useBrush) {
-      setBrushRange({ startX: localX, endX: localX });
-      setIsBrushing(false);
-    }
-  }
-
-  function onCanvasPointerMove(e: {
-    clientX: number;
-    clientY: number;
-    pointerId: number;
-  }) {
-    const drag = dragRef.current;
-    if (drag && drag.pointerId === e.pointerId && domain && plotBoundsRef.current) {
-      const dx = e.clientX - drag.startX;
-      if (drag.kind === "brush") {
-        if (!drag.moved && Math.abs(dx) < 5) {
-          updateHoverFromClientX(e.clientX, e.clientY);
-          return;
-        }
-        drag.moved = true;
-        drag.brushEndX = canvasLocalX(e.clientX);
-        setIsBrushing(true);
-        setBrushRange({
-          startX: drag.brushStartX,
-          endX: drag.brushEndX,
-        });
-        clearHover();
-        return;
-      }
-
-      if (!isPanning && Math.abs(dx) < 5) {
-        updateHoverFromClientX(e.clientX, e.clientY);
-        return;
-      }
-      if (!isPanning) setIsPanning(true);
-      const bounds = plotBoundsRef.current;
-      const innerW = bounds.width - bounds.padLeft - bounds.padRight;
-      const span = drag.startView.maxTs - drag.startView.minTs || 1;
-      const deltaTs = -(dx / Math.max(innerW, 1)) * span;
-      setViewWindow(panTimeWindow(drag.startView, domain, deltaTs));
-      clearHover();
-      return;
-    }
-    updateHoverFromClientX(e.clientX, e.clientY);
-  }
-
-  function onCanvasPointerUp(e: {
-    clientX: number;
-    pointerId: number;
-    currentTarget: EventTarget;
-  }) {
-    const drag = dragRef.current;
-    if (drag?.pointerId === e.pointerId) {
-      if (drag.kind === "brush" && drag.moved && domain && plotBoundsRef.current) {
-        const next = brushPixelsToWindow(
-          drag.brushStartX,
-          drag.brushEndX,
-          plotBoundsRef.current,
-          domain,
-        );
-        if (next) {
-          setViewWindow(isFullyZoomedOut(next, domain) ? null : next);
-        }
-      }
-      dragRef.current = null;
-      setIsPanning(false);
-      setIsBrushing(false);
-      setBrushRange(null);
-      try {
-        (e.currentTarget as HTMLCanvasElement).releasePointerCapture?.(e.pointerId);
-      } catch {
-        /* already released */
-      }
-    }
-  }
 
   function toggleProbe(label: string) {
     setVisibleProbes((prev) => {
@@ -897,6 +775,12 @@ export default function HistoryChart({
       </div>
     );
   }
+
+  const showTooltip =
+    tooltipPos &&
+    (hoverHits.length > 0 || hoverMarker) &&
+    !isPanning &&
+    !isBrushing;
 
   return (
     <>
@@ -1079,19 +963,22 @@ export default function HistoryChart({
       <p class="m-0 mb-2 text-xs text-[var(--color-text-muted)]">
         {expanded
           ? "Expanded view — drag to select a range, scroll to zoom, Esc or Close to exit."
-          : "Drag to select a range (Shift+drag when zoomed), scroll to zoom, PNG to save."}{" "}
+          : "Drag to select a range (Shift+drag when zoomed), scroll to zoom, PNG to save."}
+        {alertMarkers.length > 0
+          ? " Colored ticks mark alerts — hover near a tick for details."
+          : ""}{" "}
         Trace turns <span style={{ color: COLOR_BELOW }}>cool</span> at/below freeze
         and <span style={{ color: COLOR_ABOVE }}>warm</span> at/above the high line.
       </p>
       <div
         class="history-chart-canvas-wrap"
         onPointerLeave={() => {
-          if (!dragRef.current) clearHover();
-        }}
-        onPointerCancel={() => {
-          dragRef.current = null;
-          setIsPanning(false);
-          clearHover();
+          if (!dragActiveRef.current) {
+            setHoverTs(null);
+            setHoverHits([]);
+            setHoverMarker(null);
+            setTooltipPos(null);
+          }
         }}
       >
         <canvas
@@ -1100,21 +987,35 @@ export default function HistoryChart({
           role="img"
           aria-label={`Interactive line chart of ${title}. Drag to select a range, scroll to zoom, expand for a larger view.`}
           aria-describedby="history-chart-summary"
-          onPointerDown={onCanvasPointerDown}
-          onPointerMove={onCanvasPointerMove}
-          onPointerUp={onCanvasPointerUp}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
           onDblClick={resetZoom}
         />
-        {tooltipPos && hoverHits.length > 0 && !isPanning && (
+        {showTooltip && tooltipPos && (
           <div
             class="history-chart-tooltip"
             style={{ left: `${tooltipPos.x}px`, top: `${tooltipPos.y}px` }}
             role="status"
           >
             <p class="history-chart-tooltip-time">
-              {formatHoverTime(hoverHits[0]!.timestamp)}
+              {hoverMarker
+                ? formatHoverTime(hoverMarker.createdAt)
+                : formatHoverTime(hoverHits[0]!.timestamp)}
             </p>
             <ul class="history-chart-tooltip-list">
+              {hoverMarker && (
+                <li>
+                  <span
+                    class="history-chart-tooltip-swatch"
+                    style={{ background: alertMarkerColor(hoverMarker.kind) }}
+                  />
+                  <span class="history-chart-tooltip-label">Alert</span>
+                  <span class="history-chart-tooltip-value">
+                    {hoverMarker.title}
+                  </span>
+                </li>
+              )}
               {hoverHits.map((hit) => (
                 <li key={hit.probeLabel}>
                   <span

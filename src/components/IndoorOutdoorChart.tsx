@@ -1,23 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import {
-  brushPixelsToWindow,
   CHART_VIEW_PRESETS,
-  downloadCanvasPng,
   formatAxisTime,
   formatHoverTime,
-  isFullyZoomedOut,
-  matchingPresetId,
   nearestPointByTime,
-  panTimeWindow,
   presetNarrowsDomain,
-  timeDomainFromPoints,
   timestampToX,
-  windowForTrailingSpan,
   xToTimestamp,
-  zoomTimeWindow,
-  type PlotBounds,
-  type TimeWindow,
 } from "../lib/historyChartInteraction";
+import {
+  readDeltaChartPrefs,
+  writeDeltaChartPrefs,
+} from "../lib/chartPrefs";
+import { useHistoryChartInteraction } from "../lib/useHistoryChartInteraction";
 import type { IndoorOutdoorPoint } from "../lib/indoorOutdoorDelta";
 
 interface Props {
@@ -33,23 +28,11 @@ export default function IndoorOutdoorChart({
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
-  const plotBoundsRef = useRef<PlotBounds | null>(null);
-  const expandBtnRef = useRef<HTMLButtonElement>(null);
-  const closeBtnRef = useRef<HTMLButtonElement>(null);
-  const wasExpandedRef = useRef(false);
-  const viewWindowRef = useRef<TimeWindow | null>(null);
-  const domainRef = useRef<TimeWindow | null>(null);
-  const dragRef = useRef<{
-    kind: "pan" | "brush";
-    pointerId: number;
-    startX: number;
-    startView: TimeWindow;
-    brushStartX: number;
-    brushEndX: number;
-    moved: boolean;
-  } | null>(null);
+  const plotBoundsRef = useRef<import("../lib/historyChartInteraction").PlotBounds | null>(
+    null,
+  );
+  const dragActiveRef = useRef(false);
 
-  const [viewWindow, setViewWindow] = useState<TimeWindow | null>(null);
   const [hover, setHover] = useState<{
     point: IndoorOutdoorPoint;
     x: number;
@@ -58,19 +41,16 @@ export default function IndoorOutdoorChart({
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(
     null,
   );
-  const [expanded, setExpanded] = useState(false);
-  const [lightboxSlotHeight, setLightboxSlotHeight] = useState(0);
-  const [isPanning, setIsPanning] = useState(false);
-  const [isBrushing, setIsBrushing] = useState(false);
-  const [brushRange, setBrushRange] = useState<{ startX: number; endX: number } | null>(
-    null,
-  );
+  const [initialPresetId, setInitialPresetId] = useState<
+    "24h" | "7d" | "30d" | "all" | null
+  >(null);
+  const [prefsReady, setPrefsReady] = useState(false);
 
-  const domain = useMemo(() => timeDomainFromPoints(points), [points]);
-  const activeView = viewWindow && domain ? viewWindow : domain;
-  const zoomed =
-    !!domain && !!activeView && !isFullyZoomedOut(activeView, domain);
-  const activePreset = domain ? matchingPresetId(viewWindow, domain) : "all";
+  useEffect(() => {
+    const prefs = readDeltaChartPrefs();
+    if (prefs?.presetId) setInitialPresetId(prefs.presetId);
+    setPrefsReady(true);
+  }, []);
 
   const seriesAsChartPoints = useMemo(
     () =>
@@ -83,47 +63,91 @@ export default function IndoorOutdoorChart({
     [points],
   );
 
-  useEffect(() => {
-    viewWindowRef.current = viewWindow;
-  }, [viewWindow]);
+  const hoverHandlers = useMemo(
+    () => ({
+      clearHover() {
+        setHover(null);
+        setTooltipPos(null);
+      },
+      updateHover(clientX: number, clientY: number) {
+        const canvas = canvasRef.current;
+        const bounds = plotBoundsRef.current;
+        if (!canvas || !bounds) return;
+        const rect = canvas.getBoundingClientRect();
+        const ts = xToTimestamp(clientX - rect.left, bounds);
+        if (ts == null) {
+          setHover(null);
+          setTooltipPos(null);
+          return;
+        }
+        const nearest = nearestPointByTime(seriesAsChartPoints, ts);
+        if (!nearest) {
+          setHover(null);
+          setTooltipPos(null);
+          return;
+        }
+        const point = points.find((p) => p.timestamp === nearest.timestamp);
+        if (!point) {
+          setHover(null);
+          setTooltipPos(null);
+          return;
+        }
+        setHover({
+          point,
+          x: timestampToX(Date.parse(point.timestamp), bounds),
+          y: 0,
+        });
+        setTooltipPos({
+          x: Math.min(Math.max(clientX - rect.left + 12, 8), Math.max(8, rect.width - 188)),
+          y: Math.min(Math.max(clientY - rect.top - 8, 8), Math.max(8, rect.height - 8)),
+        });
+      },
+    }),
+    [points, seriesAsChartPoints],
+  );
 
-  useEffect(() => {
-    domainRef.current = domain;
-    if (!domain) {
-      setViewWindow(null);
-      return;
-    }
-    setViewWindow((prev) => {
-      if (!prev) return null;
-      const next = {
-        minTs: Math.max(prev.minTs, domain.minTs),
-        maxTs: Math.min(prev.maxTs, domain.maxTs),
-      };
-      if (next.maxTs <= next.minTs || isFullyZoomedOut(next, domain)) return null;
-      return next;
-    });
-  }, [domain]);
+  const interaction = useHistoryChartInteraction({
+    points,
+    canvasRef,
+    wrapRef,
+    plotBoundsRef,
+    pngFilenamePrefix: "thermaltrace-delta",
+    hover: hoverHandlers,
+    initialPresetId: prefsReady ? initialPresetId : null,
+    onPresetChange: (presetId) => {
+      if (presetId === "custom") return;
+      writeDeltaChartPrefs({ presetId });
+    },
+  });
 
+  const {
+    domain,
+    activeView,
+    zoomed,
+    activePreset,
+    expanded,
+    lightboxSlotHeight,
+    openLightbox,
+    closeLightbox,
+    expandBtnRef,
+    closeBtnRef,
+    isPanning,
+    isBrushing,
+    brushRange,
+    applyPreset,
+    resetZoom,
+    exportPng,
+    onPointerDown,
+    onPointerMove,
+    onPointerUp,
+    bindWheelZoom,
+    setViewWindow,
+  } = interaction;
+
+  // Keep a live flag so pointer-leave can ignore mid-drag clears.
   useEffect(() => {
-    if (!expanded) {
-      if (wasExpandedRef.current) expandBtnRef.current?.focus();
-      wasExpandedRef.current = false;
-      return;
-    }
-    wasExpandedRef.current = true;
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    closeBtnRef.current?.focus();
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setExpanded(false);
-    };
-    window.addEventListener("keydown", onKey);
-    requestAnimationFrame(() => window.dispatchEvent(new Event("resize")));
-    return () => {
-      document.body.style.overflow = prevOverflow;
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [expanded]);
+    dragActiveRef.current = isPanning || isBrushing;
+  }, [isPanning, isBrushing]);
 
   useEffect(() => {
     const canvasEl = canvasRef.current;
@@ -263,170 +287,13 @@ export default function IndoorOutdoorChart({
     draw();
     const ro = new ResizeObserver(() => draw());
     ro.observe(canvas);
-
-    const onWheel = (event: WheelEvent) => {
-      const currentDomain = domainRef.current;
-      if (!currentDomain || !plotBoundsRef.current) return;
-      event.preventDefault();
-      const rect = canvas.getBoundingClientRect();
-      const anchor =
-        xToTimestamp(event.clientX - rect.left, plotBoundsRef.current) ??
-        (currentDomain.minTs + currentDomain.maxTs) / 2;
-      const currentView = viewWindowRef.current ?? currentDomain;
-      const factor = event.deltaY > 0 ? 1.18 : 1 / 1.18;
-      const next = zoomTimeWindow(currentView, currentDomain, anchor, factor);
-      setViewWindow(isFullyZoomedOut(next, currentDomain) ? null : next);
-    };
-    canvas.addEventListener("wheel", onWheel, { passive: false });
+    const unbindWheel = bindWheelZoom(canvas);
 
     return () => {
       ro.disconnect();
-      canvas.removeEventListener("wheel", onWheel);
+      unbindWheel();
     };
-  }, [points, activeView, hover, brushRange]);
-
-  function canvasLocalX(clientX: number): number {
-    const canvas = canvasRef.current;
-    if (!canvas) return 0;
-    return clientX - canvas.getBoundingClientRect().left;
-  }
-
-  function clearHover() {
-    setHover(null);
-    setTooltipPos(null);
-  }
-
-  function updateHover(clientX: number, clientY: number) {
-    const canvas = canvasRef.current;
-    const bounds = plotBoundsRef.current;
-    if (!canvas || !bounds) return;
-    const rect = canvas.getBoundingClientRect();
-    const ts = xToTimestamp(clientX - rect.left, bounds);
-    if (ts == null) {
-      clearHover();
-      return;
-    }
-    const nearest = nearestPointByTime(seriesAsChartPoints, ts);
-    if (!nearest) {
-      clearHover();
-      return;
-    }
-    const point = points.find((p) => p.timestamp === nearest.timestamp);
-    if (!point) {
-      clearHover();
-      return;
-    }
-    setHover({
-      point,
-      x: timestampToX(Date.parse(point.timestamp), bounds),
-      y: 0,
-    });
-    setTooltipPos({
-      x: Math.min(Math.max(clientX - rect.left + 12, 8), Math.max(8, rect.width - 188)),
-      y: Math.min(Math.max(clientY - rect.top - 8, 8), Math.max(8, rect.height - 8)),
-    });
-  }
-
-  function applyPreset(spanMs: number | null) {
-    if (!domain) return;
-    if (spanMs == null) {
-      setViewWindow(null);
-      return;
-    }
-    if (!presetNarrowsDomain(domain, spanMs)) {
-      setViewWindow(null);
-      return;
-    }
-    const next = windowForTrailingSpan(domain, spanMs);
-    setViewWindow(isFullyZoomedOut(next, domain) ? null : next);
-  }
-
-  function onPointerDown(e: {
-    clientX: number;
-    clientY: number;
-    pointerId: number;
-    shiftKey: boolean;
-    currentTarget: EventTarget;
-  }) {
-    updateHover(e.clientX, e.clientY);
-    if (!domain || !activeView) return;
-    (e.currentTarget as HTMLCanvasElement).setPointerCapture?.(e.pointerId);
-    const useBrush = e.shiftKey || !zoomed;
-    const localX = canvasLocalX(e.clientX);
-    dragRef.current = {
-      kind: useBrush ? "brush" : "pan",
-      pointerId: e.pointerId,
-      startX: e.clientX,
-      startView: activeView,
-      brushStartX: localX,
-      brushEndX: localX,
-      moved: false,
-    };
-    if (useBrush) {
-      setBrushRange({ startX: localX, endX: localX });
-      setIsBrushing(false);
-    }
-  }
-
-  function onPointerMove(e: { clientX: number; clientY: number; pointerId: number }) {
-    const drag = dragRef.current;
-    if (drag && drag.pointerId === e.pointerId && domain && plotBoundsRef.current) {
-      const dx = e.clientX - drag.startX;
-      if (drag.kind === "brush") {
-        if (!drag.moved && Math.abs(dx) < 5) {
-          updateHover(e.clientX, e.clientY);
-          return;
-        }
-        drag.moved = true;
-        drag.brushEndX = canvasLocalX(e.clientX);
-        setIsBrushing(true);
-        setBrushRange({ startX: drag.brushStartX, endX: drag.brushEndX });
-        clearHover();
-        return;
-      }
-      if (!isPanning && Math.abs(dx) < 5) {
-        updateHover(e.clientX, e.clientY);
-        return;
-      }
-      if (!isPanning) setIsPanning(true);
-      const bounds = plotBoundsRef.current;
-      const innerW = bounds.width - bounds.padLeft - bounds.padRight;
-      const span = drag.startView.maxTs - drag.startView.minTs || 1;
-      setViewWindow(
-        panTimeWindow(
-          drag.startView,
-          domain,
-          -(dx / Math.max(innerW, 1)) * span,
-        ),
-      );
-      clearHover();
-      return;
-    }
-    updateHover(e.clientX, e.clientY);
-  }
-
-  function onPointerUp(e: { pointerId: number; currentTarget: EventTarget }) {
-    const drag = dragRef.current;
-    if (drag?.pointerId !== e.pointerId) return;
-    if (drag.kind === "brush" && drag.moved && domain && plotBoundsRef.current) {
-      const next = brushPixelsToWindow(
-        drag.brushStartX,
-        drag.brushEndX,
-        plotBoundsRef.current,
-        domain,
-      );
-      if (next) setViewWindow(isFullyZoomedOut(next, domain) ? null : next);
-    }
-    dragRef.current = null;
-    setIsPanning(false);
-    setIsBrushing(false);
-    setBrushRange(null);
-    try {
-      (e.currentTarget as HTMLCanvasElement).releasePointerCapture?.(e.pointerId);
-    } catch {
-      /* ignore */
-    }
-  }
+  }, [points, activeView, hover, brushRange, bindWheelZoom, plotBoundsRef]);
 
   if (points.length < 2) return null;
 
@@ -444,7 +311,7 @@ export default function IndoorOutdoorChart({
           type="button"
           class="history-chart-lightbox-scrim"
           aria-label="Close expanded chart"
-          onClick={() => setExpanded(false)}
+          onClick={closeLightbox}
         />
       )}
       <div
@@ -462,7 +329,7 @@ export default function IndoorOutdoorChart({
               class="history-chart-zoom-btn"
               aria-label="Reset zoom"
               disabled={!zoomed}
-              onClick={() => setViewWindow(null)}
+              onClick={resetZoom}
             >
               Reset
             </button>
@@ -470,14 +337,7 @@ export default function IndoorOutdoorChart({
               type="button"
               class="history-chart-zoom-btn history-chart-expand-btn"
               aria-label="Download chart PNG"
-              onClick={() => {
-                const canvas = canvasRef.current;
-                if (!canvas) return;
-                downloadCanvasPng(
-                  canvas,
-                  `thermaltrace-delta-${new Date().toISOString().slice(0, 10)}.png`,
-                );
-              }}
+              onClick={exportPng}
             >
               PNG
             </button>
@@ -487,7 +347,7 @@ export default function IndoorOutdoorChart({
                 type="button"
                 class="history-chart-zoom-btn history-chart-expand-btn"
                 aria-label="Close expanded chart"
-                onClick={() => setExpanded(false)}
+                onClick={closeLightbox}
               >
                 Close
               </button>
@@ -498,12 +358,7 @@ export default function IndoorOutdoorChart({
                 class="history-chart-zoom-btn history-chart-expand-btn"
                 aria-label="Expand chart"
                 aria-haspopup="dialog"
-                onClick={() => {
-                  if (wrapRef.current) {
-                    setLightboxSlotHeight(wrapRef.current.offsetHeight);
-                  }
-                  setExpanded(true);
-                }}
+                onClick={openLightbox}
               >
                 Expand
               </button>
@@ -550,7 +405,10 @@ export default function IndoorOutdoorChart({
         <div
           class="history-chart-canvas-wrap"
           onPointerLeave={() => {
-            if (!dragRef.current) clearHover();
+            if (!dragActiveRef.current) {
+              setHover(null);
+              setTooltipPos(null);
+            }
           }}
         >
           <canvas
