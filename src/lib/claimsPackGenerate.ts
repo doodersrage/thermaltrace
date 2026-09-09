@@ -13,19 +13,34 @@ import { listHouseholdDevices } from "./devices";
 import { listAlertEventsInRange } from "./alertEvents";
 import { createServerClient } from "./supabase";
 import { buildClaimsPackData, type ClaimsDeviceSummary, type ClaimsPackData } from "./claimsPack";
+import { buildHistoryChartUrl } from "./historyUrls";
 
 export function parseClaimsDateParam(
   value: string | null | undefined,
   endOfDay = false,
 ): string | undefined {
   if (!value?.trim()) return undefined;
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return undefined;
-  if (endOfDay) {
-    parsed.setHours(23, 59, 59, 999);
+  const trimmed = value.trim();
+  // Date-only values are household calendar days in UTC (match History filters).
+  const dayOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
+  let parsed: Date;
+  if (dayOnly) {
+    const y = Number(dayOnly[1]);
+    const m = Number(dayOnly[2]) - 1;
+    const d = Number(dayOnly[3]);
+    parsed = endOfDay
+      ? new Date(Date.UTC(y, m, d, 23, 59, 59, 999))
+      : new Date(Date.UTC(y, m, d, 0, 0, 0, 0));
   } else {
-    parsed.setHours(0, 0, 0, 0);
+    parsed = new Date(trimmed);
+    if (Number.isNaN(parsed.getTime())) return undefined;
+    if (endOfDay) {
+      parsed.setUTCHours(23, 59, 59, 999);
+    } else {
+      parsed.setUTCHours(0, 0, 0, 0);
+    }
   }
+  if (Number.isNaN(parsed.getTime())) return undefined;
   return parsed.toISOString();
 }
 
@@ -100,6 +115,7 @@ export async function generateClaimsPackForUser(
     devices,
     readingsCsvUrl: `${cleanSiteUrl}/api/garage-temps/export.csv?${qs}`,
     alertsCsvUrl: `${cleanSiteUrl}/api/alerts/export.csv?${qs}`,
+    historyUrl: buildHistoryChartUrl(cleanSiteUrl, { from: fromQ, to: toQ }),
   });
 
   return { pack, householdId, fromQ, toQ };

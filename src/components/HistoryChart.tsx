@@ -23,6 +23,10 @@ import {
   type ChartAlertMarker,
 } from "../lib/chartAlertMarkers";
 import { useHistoryChartInteraction } from "../lib/useHistoryChartInteraction";
+import {
+  buildHistoryChartUrl,
+  timeWindowToHistoryDates,
+} from "../lib/historyUrls";
 
 type Point = {
   timestamp: string;
@@ -48,6 +52,10 @@ interface Props {
   showHumidity?: boolean;
   /** Optional alert event ticks overlaid on the chart. */
   alertMarkers?: ChartAlertMarker[];
+  /** Highlight a specific alert tick (e.g. from ?alert=). */
+  highlightAlertId?: number | null;
+  /** Show claims-pack deep-link for the visible window (History only). */
+  canUseClaimsPack?: boolean;
 }
 
 const PROBE_COLORS = ["#60a5fa", "#34d399", "#f472b6", "#fbbf24", "#a78bfa", "#fb7185"];
@@ -115,6 +123,8 @@ export default function HistoryChart({
   defaultTargetAmbientF = null,
   showHumidity = false,
   alertMarkers = [],
+  highlightAlertId = null,
+  canUseClaimsPack = false,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -148,6 +158,7 @@ export default function HistoryChart({
     null,
   );
   const [houseVisible, setHouseVisible] = useState(true);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   const byProbe = useMemo(() => {
     const map = new Map<string, Point[]>();
@@ -659,7 +670,7 @@ export default function HistoryChart({
 
       if (alertMarkers.length > 0 && plotBoundsRef.current) {
         drawAlertMarkers(g, alertMarkers, plotBoundsRef.current, {
-          highlightId: hoverMarker?.id ?? null,
+          highlightId: hoverMarker?.id ?? highlightAlertId ?? null,
         });
       }
 
@@ -741,8 +752,41 @@ export default function HistoryChart({
     activeView,
     brushRange,
     alertMarkers,
+    highlightAlertId,
     bindWheelZoom,
   ]);
+
+  function shareRangeDates(): { from: string; to: string } | null {
+    if (!activeView) return null;
+    return timeWindowToHistoryDates(activeView);
+  }
+
+  async function copyChartLink() {
+    const range = shareRangeDates();
+    if (!range) return;
+    const path = buildHistoryChartUrl(null, {
+      from: range.from,
+      to: range.to,
+      highlightAlertId: highlightAlertId ?? undefined,
+    });
+    const url =
+      typeof window !== "undefined" ? `${window.location.origin}${path}` : path;
+    try {
+      await navigator.clipboard.writeText(url);
+      setLinkCopied(true);
+      window.setTimeout(() => setLinkCopied(false), 2000);
+    } catch {
+      /* ignore clipboard failures */
+    }
+  }
+
+  function claimsPackHrefForView(): string | null {
+    if (!canUseClaimsPack) return null;
+    const range = shareRangeDates();
+    if (!range) return null;
+    const qs = new URLSearchParams({ from: range.from, to: range.to });
+    return `/api/claims/pack?${qs.toString()}`;
+  }
 
   function toggleProbe(label: string) {
     setVisibleProbes((prev) => {
@@ -843,6 +887,23 @@ export default function HistoryChart({
           >
             PNG
           </button>
+          <button
+            type="button"
+            class="history-chart-zoom-btn history-chart-expand-btn"
+            aria-label="Copy link to this chart window"
+            onClick={() => void copyChartLink()}
+          >
+            {linkCopied ? "Copied" : "Link"}
+          </button>
+          {claimsPackHrefForView() && (
+            <a
+              class="history-chart-zoom-btn history-chart-expand-btn"
+              href={claimsPackHrefForView()!}
+              aria-label="Download claims pack PDF for this chart window"
+            >
+              Claims
+            </a>
+          )}
           {expanded ? (
             <button
               ref={closeBtnRef}
@@ -963,7 +1024,7 @@ export default function HistoryChart({
       <p class="m-0 mb-2 text-xs text-[var(--color-text-muted)]">
         {expanded
           ? "Expanded view — drag to select a range, scroll to zoom, Esc or Close to exit."
-          : "Drag to select a range (Shift+drag when zoomed), scroll to zoom, PNG to save."}
+          : "Drag to select a range (Shift+drag when zoomed), scroll to zoom, Link to copy this window, PNG to save."}
         {alertMarkers.length > 0
           ? " Colored ticks mark alerts — hover near a tick for details."
           : ""}{" "}

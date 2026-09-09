@@ -106,6 +106,9 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
         `Verification code: ${contentHash}`,
       ],
       cta: { label: "View claims pack", url: verifyUrl },
+      secondaryCta: pack.historyUrl
+        ? { label: "Open this window on History", url: pack.historyUrl }
+        : undefined,
       tone: "brand",
       footerNote:
         "This report was sent by a ThermalTrace household member. It's a monitoring summary, not a certified inspection -- see the report itself for full context.",

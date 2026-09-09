@@ -7,6 +7,7 @@ import { brandedEmailParts } from "./emailLayout";
 import { resolveSiteUrl } from "./schemaMarkup";
 import { sendEmail } from "./mailer";
 import { computeFreezeHours } from "./freezeHours";
+import { buildHistoryChartUrl, trailingHistoryWindowDays } from "./historyUrls";
 
 async function sendDigestEmail(
   to: string,
@@ -181,7 +182,10 @@ export async function sendWeeklyDigestsForAllUsers(): Promise<{
           ...seasonal.map((item) => `${item.title}: ${item.detail}`),
           "Tip: outage and leak alerts fire separately when sensors go quiet or wet.",
         ],
-        cta: { label: "Open history", url: `${siteUrl}/dashboard/history` },
+        cta: {
+          label: "Open this week on History",
+          url: buildHistoryChartUrl(siteUrl, trailingHistoryWindowDays(7)),
+        },
         secondaryCta: {
           label: "Manage digest settings",
           url: `${siteUrl}/dashboard/alerts#alert-section-essentials`,

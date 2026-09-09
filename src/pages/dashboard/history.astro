@@ -256,6 +256,9 @@ const claimsPackQs = new URLSearchParams({
 const claimsPackHref = `/api/claims/pack?${claimsPackQs}`;
 
 const claimsEmailed = Astro.url.searchParams.get("claims_emailed") === "1";
+const alertParam = Number(Astro.url.searchParams.get("alert") ?? "");
+const highlightAlertId =
+  Number.isFinite(alertParam) && alertParam > 0 ? alertParam : null;
 const claimsErrorCode = Astro.url.searchParams.get("claims_error");
 const claimsErrorMessage =
   claimsErrorCode === "pro_required"
@@ -452,12 +455,76 @@ const historyUpgradeFeature =
           viewMode={historyTab === "chart" ? "chart" : "table"}
           hideTitle
           alertMarkers={chartAlertMarkers}
+          highlightAlertId={highlightAlertId}
+          canUseClaimsPack={entitlements.canUseClaimsPack}
         />
       </>
     )}
 
     {historyTab === "exports" && (
       <>
+        <section class="card" id="season-summary">
+          <h2 class="card-title">Window summary</h2>
+          <p class="card-subtitle">
+            Snapshot for {claimsFrom} → {claimsTo} (same window as claims pack below). Open the Chart tab to explore, or download evidence from Exports.
+          </p>
+          {chartData.points.length < 2 ? (
+            <p class="mb-0 text-sm text-[var(--color-text-muted)]">
+              Not enough readings in this window for a summary yet.
+            </p>
+          ) : (
+            <>
+              <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 mb-4">
+                <div>
+                  <p class="m-0 text-xs text-[var(--color-text-muted)]">Coldest</p>
+                  <p class="m-0 text-lg font-semibold">
+                    {freezeHours.coldestF != null ? `${freezeHours.coldestF.toFixed(1)}°F` : "—"}
+                  </p>
+                </div>
+                <div>
+                  <p class="m-0 text-xs text-[var(--color-text-muted)]">
+                    Hours ≤ {alertSettings.freezeThresholdF}°F
+                  </p>
+                  <p class="m-0 text-lg font-semibold">
+                    {freezeHours.hoursBelow34.toFixed(1)} h
+                  </p>
+                </div>
+                <div>
+                  <p class="m-0 text-xs text-[var(--color-text-muted)]">Readings</p>
+                  <p class="m-0 text-lg font-semibold">{freezeHours.totalReadings}</p>
+                </div>
+                <div>
+                  <p class="m-0 text-xs text-[var(--color-text-muted)]">Critical alert ticks</p>
+                  <p class="m-0 text-lg font-semibold">{chartAlertMarkers.length}</p>
+                </div>
+              </div>
+              <p class="mb-3 text-sm">
+                <a
+                  class="text-link"
+                  href={`/dashboard/history?from=${claimsFrom}&to=${claimsTo}&tab=chart`}
+                >
+                  Open this window on the Chart tab
+                </a>
+                {entitlements.canUseClaimsPack && (
+                  <>
+                    {" · "}
+                    <a class="text-link" href={claimsPackHref}>Download claims pack (PDF)</a>
+                  </>
+                )}
+              </p>
+              {insights.length > 0 && (
+                <ul class="space-y-2 mb-0 text-sm">
+                  {insights.slice(0, 4).map((insight) => (
+                    <li>
+                      <strong>{insight.title}:</strong> {insight.detail}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
+          )}
+        </section>
+
         <section class="card" id="claims-pack">
       <h2 class="card-title">Claims / insurance pack</h2>
       <p class="card-subtitle">

@@ -36,6 +36,8 @@ interface Props {
   hideTitle?: boolean;
   tab?: string;
   alertMarkers?: import("../lib/chartAlertMarkers").ChartAlertMarker[];
+  highlightAlertId?: number | null;
+  canUseClaimsPack?: boolean;
 }
 
 const {
@@ -63,6 +65,8 @@ const {
   hideTitle = false,
   tab = "",
   alertMarkers = [],
+  highlightAlertId = null,
+  canUseClaimsPack = false,
 } = Astro.props;
 const { readings, page, pageSize, totalCount, totalPages, error } = history;
 
@@ -213,6 +217,8 @@ const clearFiltersHref = basePath;
       freezeThresholdF={freezeThresholdF}
       showHumidity
       alertMarkers={alertMarkers}
+      highlightAlertId={highlightAlertId}
+      canUseClaimsPack={canUseClaimsPack}
     />
   )}
 

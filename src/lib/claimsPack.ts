@@ -41,6 +41,8 @@ export type ClaimsPackData = {
   executiveSummary: string;
   /** How an adjuster should use companion CSVs + verification. */
   adjusterNotes: string;
+  /** Live History deep-link for the same window. */
+  historyUrl?: string;
   /** Set after the pack is persisted as a durable export -- see claimsPackExports.ts. */
   verifyUrl?: string | null;
   contentHash?: string | null;
@@ -115,6 +117,8 @@ export function buildClaimsPackData(input: {
   devices: ClaimsDeviceSummary[];
   readingsCsvUrl: string;
   alertsCsvUrl: string;
+  /** Deep-link to History for the same window. */
+  historyUrl?: string;
 }): ClaimsPackData {
   const freezeHours = computeFreezeHours(input.points, input.freezeThresholdF);
   const probes = summarizeProbesForReport(input.points);
@@ -135,6 +139,7 @@ export function buildClaimsPackData(input: {
     floodAlertCount,
     readingsCsvUrl: input.readingsCsvUrl,
     alertsCsvUrl: input.alertsCsvUrl,
+    historyUrl: input.historyUrl,
     disclaimer: CLAIMS_DISCLAIMER,
     executiveSummary: buildClaimsExecutiveSummary({
       householdLabel: input.householdLabel,
@@ -288,6 +293,11 @@ export function buildClaimsPackHtml(data: ClaimsPackData): string {
       <ul>
         <li><a href="${escapeHtml(data.readingsCsvUrl)}">Readings CSV</a> (same date window)</li>
         <li><a href="${escapeHtml(data.alertsCsvUrl)}">Alert events CSV</a> (same date window)</li>
+        ${
+          data.historyUrl
+            ? `<li><a href="${escapeHtml(data.historyUrl)}">Open this window on History</a></li>`
+            : ""
+        }
       </ul>
     </div>
 

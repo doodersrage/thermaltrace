@@ -219,6 +219,8 @@ describe("generateClaimsPackForUser", () => {
       expect.objectContaining({
         readingsCsvUrl: "https://example.com/api/garage-temps/export.csv?from=2024-06-01&to=2024-06-10",
         alertsCsvUrl: "https://example.com/api/alerts/export.csv?from=2024-06-01&to=2024-06-10",
+        historyUrl:
+          "https://example.com/dashboard/history?from=2024-06-01&to=2024-06-10",
       }),
     );
   });

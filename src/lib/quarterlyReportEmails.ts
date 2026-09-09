@@ -6,6 +6,7 @@ import { fetchNightsAtRisk } from "./FetchWeather";
 import { getUserPreferences } from "./userPreferences";
 import { computeFreezeHours } from "./freezeHours";
 import { resolveSiteUrl } from "./schemaMarkup";
+import { buildHistoryChartUrl, trailingHistoryWindowDays } from "./historyUrls";
 import {
   buildMonthlyReportHtmlDocument,
   buildMonthlyReportHtmlEmail,
@@ -140,7 +141,7 @@ async function sendQuarterlyReportForUser(userId: string): Promise<boolean> {
     freezeHours: computeFreezeHours(points, settings.freezeThresholdF),
     probes: summarizeProbesForReport(points),
     alertsUrl: `${siteUrl}/dashboard/alerts`,
-    historyUrl: `${siteUrl}/dashboard/history`,
+    historyUrl: buildHistoryChartUrl(siteUrl, trailingHistoryWindowDays(90)),
   };
 
   const subject = formatPeriodReportSubject(reportData);
