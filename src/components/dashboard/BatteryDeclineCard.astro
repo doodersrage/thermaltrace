@@ -10,7 +10,7 @@ interface Props {
 const { rows } = Astro.props;
 const chartSeries = rows.map((row) => ({
   label: row.deviceName,
-  samples: row.samples,
+  samples: row.samples.map((sample) => ({ value: sample.pct, at: sample.at })),
 }));
 ---
 {rows.length > 0 && (
@@ -37,7 +37,7 @@ const chartSeries = rows.map((row) => ({
     </ul>
     {chartSeries.some((s) => s.samples.length >= 2) && (
       <div class="mt-4">
-        <BatteryTrendChart client:visible series={chartSeries} />
+        <BatteryTrendChart client:visible series={chartSeries} unitSuffix="%" />
       </div>
     )}
     <p class="mt-4 mb-0 text-sm">

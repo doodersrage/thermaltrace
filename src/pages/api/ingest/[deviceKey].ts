@@ -21,7 +21,7 @@ import {
   readJsonBodyWithLimit,
 } from "../../../lib/ingestLimits";
 import { recordIngestStat } from "../../../lib/ingestStats";
-import { appendBatterySample } from "../../../lib/batteryTrend";
+import { enrichDeviceMetaHistories } from "../../../lib/rssiHistory";
 
 async function sha256Hex(value: string): Promise<string> {
   const digest = await crypto.subtle.digest(
@@ -211,18 +211,14 @@ export const POST: APIRoute = async ({ params, request }) => {
       (payload as Record<string, unknown>).battery_pct,
   );
   const rssi = Number((payload as Record<string, unknown>).rssi);
-  if (Number.isFinite(battery)) {
-    metaPatch.battery_pct = battery;
-    metaPatch.battery_history = appendBatterySample(
-      device.meta?.battery_history,
-      battery,
-      recordedAt,
-    );
-  }
+  if (Number.isFinite(battery)) metaPatch.battery_pct = battery;
   if (Number.isFinite(rssi)) metaPatch.rssi = rssi;
 
   if (Object.keys(metaPatch).length > 0) {
-    await updateDeviceMeta(device.id, metaPatch);
+    await updateDeviceMeta(
+      device.id,
+      enrichDeviceMetaHistories(device.meta, metaPatch, recordedAt),
+    );
   } else {
     await touchDeviceLastSeen(device.id);
   }

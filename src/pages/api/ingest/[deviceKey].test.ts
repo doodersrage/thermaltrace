@@ -57,9 +57,9 @@ vi.mock("../../../lib/ingestStats", () => ({
   recordIngestStat: (...a: unknown[]) => mockRecordIngestStat(...a),
 }));
 
-const mockAppendBatterySample = vi.fn();
-vi.mock("../../../lib/batteryTrend", () => ({
-  appendBatterySample: (...a: unknown[]) => mockAppendBatterySample(...a),
+const mockEnrichDeviceMetaHistories = vi.fn();
+vi.mock("../../../lib/rssiHistory", () => ({
+  enrichDeviceMetaHistories: (...a: unknown[]) => mockEnrichDeviceMetaHistories(...a),
 }));
 
 const mockListHouseholdMembers = vi.fn();
@@ -147,8 +147,9 @@ beforeEach(() => {
   mockTouchDeviceLastSeen.mockReset().mockResolvedValue(undefined);
   mockUpdateDeviceMeta.mockReset().mockResolvedValue(undefined);
   mockRecordIngestStat.mockReset().mockResolvedValue(undefined);
-  mockAppendBatterySample.mockReset().mockReturnValue([]);
-  mockListHouseholdMembers.mockReset().mockResolvedValue({ members: [] });
+  mockEnrichDeviceMetaHistories.mockReset().mockImplementation(
+    (_meta: unknown, patch: Record<string, unknown>) => patch,
+  );  mockListHouseholdMembers.mockReset().mockResolvedValue({ members: [] });
   mockListHouseholdDevices.mockReset().mockResolvedValue({ devices: [] });
   mockFetchLatestSensorValues.mockReset().mockResolvedValue([]);
   mockGetAlertSettingsForUser.mockReset().mockResolvedValue({});

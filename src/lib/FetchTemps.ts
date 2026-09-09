@@ -22,6 +22,7 @@ import {
   updateDeviceMeta,
   type DeviceWithSensors,
 } from "./devices";
+import { enrichDeviceMetaHistories } from "./rssiHistory";
 
 export type FetchTempsOptions = {
   feeds?: TempFeedConfig[];
@@ -126,7 +127,11 @@ export async function fetchTemps(
         if (!result.error) {
           await touchDeviceLastSeen(result.id);
           if (result.deviceMeta && Object.keys(result.deviceMeta).length > 0) {
-            await updateDeviceMeta(result.id, result.deviceMeta);
+            const existing = devices.find((device) => device.id === result.id);
+            await updateDeviceMeta(
+              result.id,
+              enrichDeviceMetaHistories(existing?.meta, result.deviceMeta),
+            );
           }
         }
       }

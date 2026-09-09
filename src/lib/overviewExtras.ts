@@ -10,6 +10,7 @@ import {
   type BatterySample,
 } from "./batteryTrend";
 import { parseBatteryHistory, batterySparklinePath } from "./batterySparkline";
+import { parseRssiHistory, type RssiSample } from "./rssiHistory";
 import {
   fetchRecentBoolReadings,
   getRecentNumericReadingSamples,
@@ -68,6 +69,7 @@ export type RssiOverviewRow = {
   deviceName: string;
   rssi: number;
   weak: boolean;
+  samples: RssiSample[];
 };
 
 export type InsightCallout = {
@@ -435,6 +437,7 @@ export function buildRssiOverview(
       deviceName: device.name,
       rssi,
       weak: rssi <= weakThresholdDbm,
+      samples: parseRssiHistory(device.meta),
     });
   }
   return rows.sort((a, b) => a.rssi - b.rssi).slice(0, 6);

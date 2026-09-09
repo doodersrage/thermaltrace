@@ -7,69 +7,38 @@ import {
   xToTimestamp,
   type PlotBounds,
 } from "../lib/historyChartInteraction";
-
-export type MetaTrendSample = { value: number; at: string };
-
-export type MetaTrendSeries = {
-  label: string;
-  samples: MetaTrendSample[];
-  color?: string;
-};
-
-/** @deprecated Prefer MetaTrendSeries — kept for existing battery card imports. */
-export type BatteryTrendSeries = MetaTrendSeries;
+import type { ProbeSpreadPoint } from "../lib/probeSpread";
 
 interface Props {
-  series: MetaTrendSeries[];
+  points: ProbeSpreadPoint[];
   title?: string;
-  /** Axis / tooltip unit, e.g. "%" or "dBm". */
-  unitSuffix?: string;
-  /** Extra padding around the value domain. */
-  valuePad?: number;
-  canvasClassName?: string;
 }
 
-const COLORS = ["#34d399", "#60a5fa", "#fbbf24", "#f472b6"];
+const LINE = "#f472b6";
 
-export default function BatteryTrendChart({
-  series,
-  title = "Battery % over recent samples",
-  unitSuffix = "%",
-  valuePad = 5,
-  canvasClassName = "history-chart-canvas--battery",
+export default function ProbeSpreadChart({
+  points,
+  title = "Probe spread (°F)",
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const plotBoundsRef = useRef<PlotBounds | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [slotHeight, setSlotHeight] = useState(0);
-  const [hover, setHover] = useState<{
-    label: string;
-    color: string;
-    value: number;
-    at: string;
-  } | null>(null);
+  const [hover, setHover] = useState<ProbeSpreadPoint | null>(null);
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(null);
 
-  const usable = useMemo(
-    () => series.filter((s) => s.samples.length >= 2).slice(0, 6),
-    [series],
-  );
-
-  const allPoints = useMemo(
+  const domain = useMemo(() => timeDomainFromPoints(points), [points]);
+  const mapped = useMemo(
     () =>
-      usable.flatMap((s) =>
-        s.samples.map((sample) => ({
-          timestamp: sample.at,
-          tempf: sample.value,
-          humidity: 0,
-          probeLabel: s.label,
-        })),
-      ),
-    [usable],
+      points.map((p) => ({
+        timestamp: p.timestamp,
+        tempf: p.spreadF,
+        humidity: 0,
+        probeLabel: "spread",
+      })),
+    [points],
   );
-
-  const domain = useMemo(() => timeDomainFromPoints(allPoints), [allPoints]);
 
   useEffect(() => {
     if (!expanded) return;
@@ -88,7 +57,7 @@ export default function BatteryTrendChart({
 
   useEffect(() => {
     const canvasEl = canvasRef.current;
-    if (!canvasEl || !domain || usable.length === 0) return;
+    if (!canvasEl || !domain || points.length < 2) return;
     const ctx = canvasEl.getContext("2d");
     if (!ctx) return;
     const canvas = canvasEl;
@@ -102,17 +71,15 @@ export default function BatteryTrendChart({
       canvas.height = height * dpr;
       g.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-      const pad = { top: 16, right: 16, bottom: 28, left: 44 };
+      const pad = { top: 16, right: 16, bottom: 28, left: 40 };
       const innerW = width - pad.left - pad.right;
       const innerH = height - pad.top - pad.bottom;
       const minTs = domain!.minTs;
       const maxTs = domain!.maxTs;
       const tsRange = maxTs - minTs || 1;
-      const values = usable.flatMap((s) => s.samples.map((sample) => sample.value));
-      const rawMin = Math.min(...values);
-      const rawMax = Math.max(...values);
-      const min = rawMin - valuePad;
-      const max = rawMax + valuePad;
+      const spreads = points.map((p) => p.spreadF);
+      const min = 0;
+      const max = Math.max(...spreads, 1) + 1;
       const range = max - min || 1;
 
       plotBoundsRef.current = {
@@ -129,8 +96,7 @@ export default function BatteryTrendChart({
       };
 
       const xFor = (ts: number) => pad.left + ((ts - minTs) / tsRange) * innerW;
-      const yFor = (value: number) =>
-        pad.top + innerH - ((value - min) / range) * innerH;
+      const yFor = (v: number) => pad.top + innerH - ((v - min) / range) * innerH;
 
       g.clearRect(0, 0, width, height);
       g.fillStyle = "#151b24";
@@ -147,28 +113,22 @@ export default function BatteryTrendChart({
         g.fillStyle = "#94a3b8";
         g.font = "10px system-ui, sans-serif";
         g.textAlign = "right";
-        g.fillText(`${val.toFixed(0)}${unitSuffix}`, pad.left - 6, y + 3);
+        g.fillText(`${val.toFixed(0)}°F`, pad.left - 6, y + 3);
       }
 
-      usable.forEach((s, index) => {
-        const color = s.color ?? COLORS[index % COLORS.length]!;
-        const ordered = [...s.samples].sort(
-          (a, b) => Date.parse(a.at) - Date.parse(b.at),
-        );
-        g.strokeStyle = color;
-        g.lineWidth = 2;
-        g.beginPath();
-        ordered.forEach((sample, i) => {
-          const x = xFor(Date.parse(sample.at));
-          const y = yFor(sample.value);
-          if (i === 0) g.moveTo(x, y);
-          else g.lineTo(x, y);
-        });
-        g.stroke();
+      g.strokeStyle = LINE;
+      g.lineWidth = 2;
+      g.beginPath();
+      points.forEach((point, i) => {
+        const x = xFor(Date.parse(point.timestamp));
+        const y = yFor(point.spreadF);
+        if (i === 0) g.moveTo(x, y);
+        else g.lineTo(x, y);
       });
+      g.stroke();
 
       if (hover && plotBoundsRef.current) {
-        const hx = timestampToX(Date.parse(hover.at), plotBoundsRef.current);
+        const hx = timestampToX(Date.parse(hover.timestamp), plotBoundsRef.current);
         g.strokeStyle = "rgba(248, 250, 252, 0.45)";
         g.setLineDash([3, 3]);
         g.beginPath();
@@ -176,9 +136,9 @@ export default function BatteryTrendChart({
         g.lineTo(hx, height - pad.bottom);
         g.stroke();
         g.setLineDash([]);
-        g.fillStyle = hover.color;
+        g.fillStyle = LINE;
         g.beginPath();
-        g.arc(hx, yFor(hover.value), 4.5, 0, Math.PI * 2);
+        g.arc(hx, yFor(hover.spreadF), 4.5, 0, Math.PI * 2);
         g.fill();
       }
 
@@ -194,9 +154,9 @@ export default function BatteryTrendChart({
     const ro = new ResizeObserver(() => draw());
     ro.observe(canvas);
     return () => ro.disconnect();
-  }, [usable, domain, hover, expanded, unitSuffix, valuePad]);
+  }, [points, domain, hover, expanded]);
 
-  if (usable.length === 0) return null;
+  if (points.length < 2) return null;
 
   return (
     <>
@@ -248,12 +208,7 @@ export default function BatteryTrendChart({
           </div>
         </div>
         <p class="m-0 mb-2 text-xs text-[var(--color-text-muted)]">
-          {usable.map((s, i) => (
-            <span key={s.label}>
-              {i > 0 ? " · " : ""}
-              <span style={{ color: s.color ?? COLORS[i % COLORS.length] }}>{s.label}</span>
-            </span>
-          ))}
+          Hourly warmest−coldest gap across probes. Wider spread can mean stratification or a failing sensor.
         </p>
         <div
           class="history-chart-canvas-wrap"
@@ -264,7 +219,7 @@ export default function BatteryTrendChart({
         >
           <canvas
             ref={canvasRef}
-            class={`w-full history-chart-canvas ${canvasClassName}`}
+            class="w-full history-chart-canvas history-chart-canvas--bars"
             role="img"
             aria-label={title}
             onPointerMove={(e) => {
@@ -274,37 +229,13 @@ export default function BatteryTrendChart({
               const rect = canvas.getBoundingClientRect();
               const ts = xToTimestamp(e.clientX - rect.left, bounds);
               if (ts == null) return;
-              let best: {
-                label: string;
-                color: string;
-                value: number;
-                at: string;
-                delta: number;
-              } | null = null;
-              usable.forEach((s, index) => {
-                const mapped = s.samples.map((sample) => ({
-                  timestamp: sample.at,
-                  tempf: sample.value,
-                  humidity: 0,
-                  probeLabel: s.label,
-                }));
-                const nearest = nearestPointByTime(mapped, ts);
-                if (!nearest) return;
-                const delta = Math.abs(Date.parse(nearest.timestamp) - ts);
-                if (!best || delta < best.delta) {
-                  best = {
-                    label: s.label,
-                    color: s.color ?? COLORS[index % COLORS.length]!,
-                    value: nearest.tempf,
-                    at: nearest.timestamp,
-                    delta,
-                  };
-                }
-              });
-              if (!best) return;
-              setHover(best);
+              const nearest = nearestPointByTime(mapped, ts);
+              if (!nearest) return;
+              const point = points.find((p) => p.timestamp === nearest.timestamp);
+              if (!point) return;
+              setHover(point);
               setTooltipPos({
-                x: Math.min(Math.max(e.clientX - rect.left + 12, 8), rect.width - 160),
+                x: Math.min(Math.max(e.clientX - rect.left + 12, 8), rect.width - 170),
                 y: Math.min(Math.max(e.clientY - rect.top - 8, 8), rect.height - 8),
               });
             }}
@@ -315,18 +246,24 @@ export default function BatteryTrendChart({
               style={{ left: `${tooltipPos.x}px`, top: `${tooltipPos.y}px` }}
               role="status"
             >
-              <p class="history-chart-tooltip-time">{formatHoverTime(hover.at)}</p>
+              <p class="history-chart-tooltip-time">{formatHoverTime(hover.timestamp)}</p>
               <ul class="history-chart-tooltip-list">
                 <li>
-                  <span
-                    class="history-chart-tooltip-swatch"
-                    style={{ background: hover.color }}
-                  />
-                  <span class="history-chart-tooltip-label">{hover.label}</span>
+                  <span class="history-chart-tooltip-swatch" style={{ background: LINE }} />
+                  <span class="history-chart-tooltip-label">Spread</span>
                   <span class="history-chart-tooltip-value">
-                    {hover.value.toFixed(0)}
-                    {unitSuffix}
+                    {hover.spreadF.toFixed(1)}°F
                   </span>
+                </li>
+                <li>
+                  <span class="history-chart-tooltip-swatch" style={{ background: "#38bdf8" }} />
+                  <span class="history-chart-tooltip-label">Coldest</span>
+                  <span class="history-chart-tooltip-value">{hover.minF.toFixed(1)}°F</span>
+                </li>
+                <li>
+                  <span class="history-chart-tooltip-swatch" style={{ background: "#fb923c" }} />
+                  <span class="history-chart-tooltip-label">Warmest</span>
+                  <span class="history-chart-tooltip-value">{hover.maxF.toFixed(1)}°F</span>
                 </li>
               </ul>
             </div>

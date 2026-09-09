@@ -29,6 +29,8 @@ import { fetchHouseChartOverlay } from "../../lib/houseContext";
 import { listConnectionsForHousehold } from "../../lib/thermostatConnections";
 import { computeDailyFreezeHours, computeFreezeHours } from "../../lib/freezeHours";
 import FreezeHoursChart from "../../components/FreezeHoursChart";
+import ProbeSpreadChart from "../../components/ProbeSpreadChart";
+import { buildProbeSpreadSeries } from "../../lib/probeSpread";
 
 import { buildColdestDayOverlay, shiftSeriesOntoCurrentWindow } from "../../lib/historyOverlay";
 import IndoorOutdoorChart from "../../components/IndoorOutdoorChart.tsx";
@@ -155,6 +157,7 @@ const dailyFreezeHours = computeDailyFreezeHours(
   chartData.points,
   alertSettings.freezeThresholdF,
 );
+const probeSpreadSeries = buildProbeSpreadSeries(chartData.points);
 
 const coldestOverlay = overlayColdest
   ? buildColdestDayOverlay(priorYearData.points, chartData.points)
@@ -355,6 +358,18 @@ const historyUpgradeFeature =
                   <IndoorOutdoorChart client:visible points={indoorOutdoorSeries} />
                 </div>
               )}
+            </div>
+          </details>
+        )}
+
+        {historyTab === "chart" && probeSpreadSeries.length >= 2 && (
+          <details class="card" open>
+            <summary class="dashboard-recommendations-summary">Probe spread</summary>
+            <div class="dashboard-recommendations-body">
+              <p class="card-subtitle mb-4">
+                Hourly gap between the warmest and coldest probe in this window.
+              </p>
+              <ProbeSpreadChart client:visible points={probeSpreadSeries} />
             </div>
           </details>
         )}
