@@ -4,12 +4,11 @@ import TempFeedsSettings from "../../components/TempFeedsSettings.astro";
 import PullProbeMapper from "../../components/PullProbeMapper";
 import PullFetchButton from "../../components/PullFetchButton";
 import PullFeedSaveBar from "../../components/PullFeedSaveBar";
-import PushInlineRename from "../../components/PushInlineRename";
-import RevealIngestKeyButton from "../../components/RevealIngestKeyButton";
 import DeviceSetupWizard from "../../components/DeviceSetupWizard.astro";
 import IngestFirmwarePanel from "../../components/dashboard/IngestFirmwarePanel.astro";
 import DevicesFirstRunCard from "../../components/dashboard/DevicesFirstRunCard.astro";
 import DeviceHealthPanel from "../../components/dashboard/DeviceHealthPanel.astro";
+import PushDevicesPanel from "../../components/dashboard/PushDevicesPanel.astro";
 import DeviceIntegrationsStrip from "../../components/DeviceIntegrationsStrip.astro";
 import FirstAlertSetupCard from "../../components/FirstAlertSetupCard.astro";
 import DemoPullNudge from "../../components/DemoPullNudge.astro";
@@ -27,7 +26,6 @@ import { fetchThermostatContextWithStatus } from "../../lib/thermostatCorrelatio
 import { listConfiguredThermostatProviders } from "../../lib/thermostatOAuth";
 import { getUserEntitlements } from "../../lib/entitlements";
 import { fetchLatestSensorValues } from "../../lib/sensorReadings";
-import { formatRelativeAge, freshnessDetail } from "../../lib/relativeTime";
 import UpgradeNudge from "../../components/UpgradeNudge.astro";
 import { renderIngestQrSvg } from "../../lib/qrSvg";
 import {
@@ -238,15 +236,6 @@ const wizardStep =
     : pushDevices.some((d) => !d.last_seen_at)
       ? 2
       : 2;
-function deviceHasRecoverableKey(meta: unknown): boolean {
-  if (!meta || typeof meta !== "object" || Array.isArray(meta)) return false;
-  return typeof (meta as Record<string, unknown>).ingest_key_enc === "string";
-}
-
-function sensorNeedsRename(label: string): boolean {
-  return /^Probe \d+$/.test(label.trim());
-}
-
 const ingestKeyVaultLive = ingestKeyVaultConfigured();
 const pullFeedIds = preferences.tempFeeds.filter((f) => f.url).map((f) => f.id);
 const showRenameBatch =
@@ -530,407 +519,20 @@ const firmwareSensors =
       <DeviceHealthPanel devices={devices} latest={latest} feedHealth={feedHealth} />
     )}
 
-    <section class:list={["card", activeTab !== "push" && "hidden"]} id="push-devices">
-      <h2 class="card-title">Push from ESP / Pico / MCU</h2>
-      <p class="card-subtitle">
-        Your device POSTs readings to an ingest URL. Keys auto-import on first POST: manual mapping is optional.
-        Limit: {entitlements.maxDevices} devices per property ({entitlements.tier}).
-        See <a class="text-link" href="/about/ingest-and-webhooks">ingest docs</a>
-        {" · "}
-        <a class="text-link" href="/docs/api">API quick reference</a>.
-      </p>
-
-      {!ingestKeyVaultLive && pushDevices.length > 0 && canEdit && (
-        <p class="alert-warning mb-4" role="status">
-          Ingest key recovery (Reveal) is not enabled on this deployment. Copy the key from the 30-minute
-          callout when you create or <strong>Rotate key</strong> on a device card, there is nothing to decrypt later.
-        </p>
-      )}
-
-      {atDeviceLimit ? (
-        <div class="alert-warning mb-4">
-          <p class="m-0">
-            You are at your push device limit.
-            <a class="text-link" href="/dashboard#plans">Upgrade your plan</a> to add more, or delete a device below.
-          </p>
-        </div>
-      ) : canEdit && devices.length > 0 ? (
-        <form action="/api/devices" method="post" class="flex flex-wrap items-center gap-3">
-          <input type="hidden" name="action" value="create_push" />
-          <input type="hidden" name="redirect" value={redirectTo} />
-          <input type="hidden" name="name" value="Workshop probe" />
-          <button class="btn-primary" type="submit">Create push device</button>
-          <span class="text-sm text-[var(--color-text-muted)]">
-            Named “Workshop probe”: rename anytime after.
-          </span>
-        </form>
-      ) : canEdit && devices.length === 0 ? (
-        <p class="text-sm text-[var(--color-text-muted)] mb-0">
-          Use <a class="text-link" href="#devices-first-run">Connect your first probe</a> above to create a push device or try another path.
-        </p>
-      ) : (
-        <p class="text-sm text-[var(--color-text-muted)] mb-0">
-          View-only access: device creation is disabled.
-        </p>
-      )}
-
-      {pushDevices.length > 0 && (
-        <ul class="mt-6 space-y-6">
-          {pushDevices.map((device) => {
-            const seen = formatRelativeAge(device.last_seen_at, "never seen");
-            const tempRenameSensors = device.sensors
-              .filter((sensor) => sensor.kind === "temperature")
-              .map((sensor) => ({
-                id: sensor.id,
-                key: sensor.key,
-                label: sensor.label,
-                kind: sensor.kind,
-              }));
-            const showInlineRename =
-              canEdit &&
-              tempRenameSensors.length > 0 &&
-              showRenameBatch;
-            const highlightRename =
-              focusDevice === device.id ||
-              (showRenameBatch && tempRenameSensors.some((sensor) => sensorNeedsRename(sensor.label)));
-            const showRevealKey =
-              canEdit &&
-              ingestKeyVaultLive &&
-              deviceHasRecoverableKey(device.meta) &&
-              !(ingestKey && focusDevice === device.id);
-            const showRenameHint =
-              canEdit &&
-              !showInlineRename &&
-              tempRenameSensors.some((sensor) => sensorNeedsRename(sensor.label));
-            return (
-            <li class="rounded-xl border border-[var(--color-border)] p-4">
-              <div class="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <strong>{device.name}</strong>
-                  <p class="m-0 text-sm text-[var(--color-text-muted)]">
-                    key prefix {device.ingest_key_prefix}…
-                    {" · "}
-                    <span class={seen.lagging ? "text-amber-300" : ""} title={seen.absolute ?? undefined}>
-                      {seen.label === "never seen"
-                        ? "never seen"
-                        : freshnessDetail(seen)}
-                    </span>
-                  </p>
-                  {showRenameHint && (
-                    <p class="m-0 mt-1 text-sm text-[var(--color-text-muted)]">
-                      Labels are fine as-is.{" "}
-                      <a class="text-link" href={`${redirectTo}?rename_sensors=1&focus_device=${device.id}`}>
-                        Rename later
-                      </a>
-                    </p>
-                  )}
-                  {seen.label === "never seen" && (
-                    <p class="m-0 mt-1 text-sm text-[var(--color-text-muted)]">
-                      {device.sensors.length === 0
-                        ? "No POSTs yet: first JSON POST auto-imports sensor keys."
-                        : (
-                          <>
-                            Waiting for first POST with keys{" "}
-                            <code class="text-xs">
-                              {device.sensors.map((s) => s.key).join(", ")}
-                            </code>
-                            .{" "}
-                            <a class="text-link" href="#verify-ingest-step">See waiting checklist</a>
-                          </>
-                        )}
-                    </p>
-                  )}
-                </div>
-                <div class="flex flex-wrap gap-2">
-                  <form method="POST" class="flex flex-wrap items-end gap-2" data-device-rename-form>
-                    <input type="hidden" name="action" value="rename" />
-                    <input type="hidden" name="device_id" value={device.id} />
-                    <input type="hidden" name="redirect" value={redirectTo} />
-                    <div class="form-field mb-0">
-                      <label class="form-label" for={`rename-${device.id}`}>Name</label>
-                      <input
-                        class="form-input"
-                        id={`rename-${device.id}`}
-                        name="name"
-                        value={device.name}
-                        required
-                      />
-                    </div>
-                    <button class="btn-secondary" type="submit">Rename</button>
-                    <p class="m-0 text-sm text-[var(--color-success)] hidden" data-device-status></p>
-                    <p class="m-0 text-sm text-[var(--color-danger)] hidden" data-device-error></p>
-                  </form>
-                  <form method="POST" class="flex flex-wrap items-end gap-2" data-device-space-form>
-                    <input type="hidden" name="action" value="set_space" />
-                    <input type="hidden" name="device_id" value={device.id} />
-                    <input type="hidden" name="redirect" value={redirectTo} />
-                    <div class="form-field mb-0">
-                      <label class="form-label" for={`space-${device.id}`}>Space</label>
-                      <input
-                        class="form-input"
-                        id={`space-${device.id}`}
-                        name="space"
-                        value={device.space ?? ""}
-                        placeholder="garage, attic, crawlspace…"
-                        list="space-suggestions"
-                      />
-                    </div>
-                    <button class="btn-secondary" type="submit">Save space</button>
-                    <p class="m-0 text-sm text-[var(--color-success)] hidden" data-device-status></p>
-                    <p class="m-0 text-sm text-[var(--color-danger)] hidden" data-device-error></p>
-                  </form>
-                  <form action="/api/devices" method="post" onsubmit="return confirm('Rotate this ingest key? The old key stops working immediately.');">
-                    <input type="hidden" name="action" value="rotate_key" />
-                    <input type="hidden" name="device_id" value={device.id} />
-                    <input type="hidden" name="redirect" value={redirectTo} />
-                    <button class="btn-secondary" type="submit">Rotate key</button>
-                  </form>
-                  {showRevealKey && (
-                    <RevealIngestKeyButton client:visible deviceId={device.id} deviceName={device.name} />
-                  )}
-                  {canEdit && transferTargets.length > 0 && (
-                    <form action="/api/devices" method="post" class="flex flex-wrap gap-2 items-end">
-                      <input type="hidden" name="action" value="transfer" />
-                      <input type="hidden" name="device_id" value={device.id} />
-                      <input type="hidden" name="redirect" value={redirectTo} />
-                      <div class="form-field mb-0">
-                        <label class="form-label" for={`transfer-${device.id}`}>Move to</label>
-                        <select class="form-input" id={`transfer-${device.id}`} name="target_household_id" required>
-                          {transferTargets.map((h) => (
-                            <option value={h.household_id}>{h.name ?? h.household_id}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <button class="btn-secondary" type="submit">Transfer device</button>
-                    </form>
-                  )}
-                  {canEdit && (
-                  <form action="/api/devices" method="post" onsubmit="return confirm('Delete this push device and its sensors?');">
-                    <input type="hidden" name="action" value="delete" />
-                    <input type="hidden" name="device_id" value={device.id} />
-                    <input type="hidden" name="redirect" value={redirectTo} />
-                    <button class="btn-ghost" type="submit">Delete</button>
-                  </form>
-                  )}
-                </div>
-              </div>
-
-              {showInlineRename && (
-                <PushInlineRename
-                  client:visible
-                  deviceId={device.id}
-                  deviceName={device.name}
-                  sensors={tempRenameSensors}
-                  highlight={highlightRename}
-                />
-              )}
-
-              {device.sensors.length === 0 ? (
-                <p class="mt-3 mb-0 text-sm text-[var(--color-text-muted)]">
-                  No sensors yet: they appear automatically after your first POST. Use Advanced below only if you
-                  need to pre-map keys.
-                </p>
-              ) : (
-                <ul class="mt-4 space-y-2">
-                  {device.sensors.map((sensor) => (
-                    <li class="sensor-map-row">
-                      <form action="/api/devices" method="post" class="sensor-map-form" data-sensor-update-form>
-                        <input type="hidden" name="action" value="update_sensor" />
-                        <input type="hidden" name="sensor_id" value={sensor.id} />
-                        <input type="hidden" name="device_id" value={device.id} />
-                        <input type="hidden" name="redirect" value={redirectTo} />
-                        <div class="sensor-map-primary">
-                          <div class="form-field mb-0">
-                            <label class="form-label" for={`key-${sensor.id}`}>JSON key</label>
-                            <input
-                              class="form-input font-mono"
-                              id={`key-${sensor.id}`}
-                              name="key"
-                              value={sensor.key}
-                              required
-                              placeholder="temp1"
-                            />
-                          </div>
-                          <div class="form-field mb-0">
-                            <label class="form-label" for={`label-${sensor.id}`}>Name on Home</label>
-                            <input
-                              class="form-input"
-                              id={`label-${sensor.id}`}
-                              name="label"
-                              value={sensor.label}
-                              required
-                              placeholder="Workshop"
-                            />
-                          </div>
-                          <div class="form-field mb-0">
-                            <label class="form-label" for={`kind-${sensor.id}`}>Type</label>
-                            <select class="form-input" id={`kind-${sensor.id}`} name="kind">
-                              {Object.entries(kindLabels).map(([value, label]) => (
-                                <option value={value} selected={sensor.kind === value}>{label}</option>
-                              ))}
-                            </select>
-                          </div>
-                          <div class="sensor-map-actions">
-                            <label class="checkbox-row mb-0">
-                              <input
-                                type="checkbox"
-                                name="visible"
-                                value="true"
-                                checked={sensor.visible}
-                              />
-                              <span>Show on Home</span>
-                            </label>
-                            <button class="btn-secondary" type="submit">Save</button>
-                            <p class="m-0 text-sm text-[var(--color-success)] hidden" data-sensor-status></p>
-                            <p class="m-0 text-sm text-[var(--color-danger)] hidden" data-sensor-error></p>
-                          </div>
-                        </div>
-                        <details class="sensor-map-advanced mt-2">
-                          <summary class="text-sm text-[var(--color-text-muted)] cursor-pointer">
-                            Advanced
-                            {(sensor.offset_num ?? 0) !== 0
-                              ? ` · offset ${(sensor.offset_num ?? 0) > 0 ? "+" : ""}${sensor.offset_num ?? 0}`
-                              : ""}
-                            {sensor.unit ? ` · ${sensor.unit}` : ""}
-                          </summary>
-                          <div class="sensor-map-advanced-grid mt-3">
-                            <div class="form-field mb-0">
-                              <label class="form-label" for={`unit-${sensor.id}`}>Unit override</label>
-                              <input
-                                class="form-input"
-                                id={`unit-${sensor.id}`}
-                                name="unit"
-                                value={sensor.unit ?? ""}
-                                placeholder="Leave blank for type default"
-                              />
-                            </div>
-                            <div class="form-field mb-0">
-                              <label class="form-label" for={`offset-${sensor.id}`}>
-                                Calibration offset
-                              </label>
-                              <input
-                                class="form-input"
-                                id={`offset-${sensor.id}`}
-                                name="offset_num"
-                                type="number"
-                                step="0.1"
-                                min={sensor.kind === "humidity" ? -15 : -10}
-                                max={sensor.kind === "humidity" ? 15 : 10}
-                                value={sensor.offset_num ?? 0}
-                              />
-                              <p class="form-hint mb-0">
-                                {sensor.kind === "humidity"
-                                  ? "Added to %RH (±15)."
-                                  : sensor.kind === "temperature"
-                                    ? "Added to °F (±10)."
-                                    : "Added to numeric readings (±10)."}
-                                {" "}Raw readings stay unchanged.
-                              </p>
-                            </div>
-                          </div>
-                        </details>
-                      </form>
-                      <form
-                        action="/api/devices"
-                        method="post"
-                        class="sensor-map-delete"
-                        data-sensor-delete-form
-                        onsubmit="return confirm('Delete this sensor?');"
-                      >
-                        <input type="hidden" name="action" value="delete_sensor" />
-                        <input type="hidden" name="sensor_id" value={sensor.id} />
-                        <input type="hidden" name="device_id" value={device.id} />
-                        <input type="hidden" name="redirect" value={redirectTo} />
-                        <button class="btn-ghost" type="submit">Delete</button>
-                      </form>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </li>
-            );
-          })}
-        </ul>
-      )}
-
-      {pushDevices.length > 0 && (
-        <details class="mt-6 space-y-4 border-t border-[var(--color-border)] pt-4" id="add-sensor">
-          <summary class="cursor-pointer text-base font-semibold">Advanced: map JSON keys manually</summary>
-          <div class="mt-4 space-y-4">
-          <div>
-            <p class="card-subtitle mb-0 mt-1">
-              Optional: skip this if you already POST JSON and let auto-import handle keys.
-            </p>
-          </div>
-
-          <form action="/api/devices" method="post" class="sensor-quick-pair rounded-lg border border-[var(--color-border)] p-4" data-sensor-pair-form>
-            <input type="hidden" name="action" value="add_sensor_pair" />
-            <input type="hidden" name="redirect" value={redirectTo} />
-            <p class="m-0 mb-3 text-sm font-medium">Quick add: temperature + humidity pair</p>
-            <p class="card-subtitle mt-0 mb-3">
-              Same JSON key for both (e.g. <code>0</code> or <code>temp1</code>): the usual DHT-style probe.
-            </p>
-            <div class="sensor-map-primary">
-              <div class="form-field mb-0">
-                <label class="form-label" for="pair-device">Device</label>
-                <select class="form-input" id="pair-device" name="device_id">
-                  {pushDevices.map((d) => (
-                    <option value={d.id} selected={focusDevice === d.id}>{d.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div class="form-field mb-0">
-                <label class="form-label" for="pair-key">JSON key</label>
-                <input class="form-input font-mono" id="pair-key" name="key" required placeholder="0" />
-              </div>
-              <div class="form-field mb-0">
-                <label class="form-label" for="pair-label">Name on Home</label>
-                <input class="form-input" id="pair-label" name="label" placeholder="Workshop" value="Workshop" />
-              </div>
-              <div class="sensor-map-actions">
-                <button class="btn-primary" type="submit">Add pair</button>
-              </div>
-            </div>
-          </form>
-
-          <form action="/api/devices" method="post" class="space-y-3" data-sensor-add-form>
-            <p class="m-0 text-sm font-medium">Or add one sensor</p>
-            <input type="hidden" name="action" value="add_sensor" />
-            <input type="hidden" name="redirect" value={redirectTo} />
-            <div class="sensor-map-primary">
-              <div class="form-field mb-0">
-                <label class="form-label" for="sensor-device">Device</label>
-                <select class="form-input" id="sensor-device" name="device_id">
-                  {pushDevices.map((d) => (
-                    <option value={d.id} selected={focusDevice === d.id}>{d.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div class="form-field mb-0">
-                <label class="form-label" for="sensor-key">JSON key</label>
-                <input class="form-input font-mono" id="sensor-key" name="key" required placeholder="door1" />
-              </div>
-              <div class="form-field mb-0">
-                <label class="form-label" for="sensor-label">Name on Home</label>
-                <input class="form-input" id="sensor-label" name="label" required placeholder="Shop door" />
-              </div>
-              <div class="form-field mb-0">
-                <label class="form-label" for="sensor-kind">Type</label>
-                <select class="form-input" id="sensor-kind" name="kind">
-                  {Object.entries(kindLabels).map(([value, label]) => (
-                    <option value={value}>{label}</option>
-                  ))}
-                </select>
-              </div>
-              <div class="sensor-map-actions">
-                <button class="btn-secondary" type="submit">Add sensor</button>
-              </div>
-            </div>
-          </form>
-          </div>
-        </details>
-      )}
-    </section>
+    <PushDevicesPanel
+      activeTab={activeTab}
+      entitlements={entitlements}
+      ingestKeyVaultLive={ingestKeyVaultLive}
+      pushDevices={pushDevices}
+      canEdit={canEdit}
+      atDeviceLimit={atDeviceLimit}
+      redirectTo={redirectTo}
+      devices={devices}
+      showRenameBatch={showRenameBatch}
+      focusDevice={focusDevice}
+      ingestKey={ingestKey}
+      transferTargets={transferTargets}
+    />
 
     {!showDeviceWizard && (
       <>
