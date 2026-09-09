@@ -9,6 +9,7 @@ import {
   matchingPresetId,
   nearestPointByTime,
   panTimeWindow,
+  presetNarrowsDomain,
   timeDomainFromPoints,
   timestampToX,
   windowForTrailingSpan,
@@ -332,6 +333,10 @@ export default function IndoorOutdoorChart({
       setViewWindow(null);
       return;
     }
+    if (!presetNarrowsDomain(domain, spanMs)) {
+      setViewWindow(null);
+      return;
+    }
     const next = windowForTrailingSpan(domain, spanMs);
     setViewWindow(isFullyZoomedOut(next, domain) ? null : next);
   }
@@ -507,17 +512,26 @@ export default function IndoorOutdoorChart({
         </div>
 
         <div class="history-chart-presets" role="group" aria-label="Time range presets">
-          {CHART_VIEW_PRESETS.map((preset) => (
-            <button
-              key={preset.id}
-              type="button"
-              class={`history-chart-preset-btn${activePreset === preset.id ? " is-active" : ""}`}
-              aria-pressed={activePreset === preset.id}
-              onClick={() => applyPreset(preset.spanMs)}
-            >
-              {preset.label}
-            </button>
-          ))}
+          {CHART_VIEW_PRESETS.map((preset) => {
+            const canNarrow = domain ? presetNarrowsDomain(domain, preset.spanMs) : false;
+            const domainSpan = domain ? domain.maxTs - domain.minTs : 0;
+            const isCurrentWindow =
+              !canNarrow &&
+              domain != null &&
+              Math.abs(domainSpan - preset.spanMs) <= 2 * 60 * 60 * 1000;
+            return (
+              <button
+                key={preset.id}
+                type="button"
+                class={`history-chart-preset-btn${activePreset === preset.id ? " is-active" : ""}`}
+                aria-pressed={activePreset === preset.id}
+                disabled={!domain || (!canNarrow && !isCurrentWindow)}
+                onClick={() => applyPreset(preset.spanMs)}
+              >
+                {preset.label}
+              </button>
+            );
+          })}
           <button
             type="button"
             class={`history-chart-preset-btn${activePreset === "all" ? " is-active" : ""}`}
