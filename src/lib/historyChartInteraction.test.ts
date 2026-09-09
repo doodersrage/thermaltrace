@@ -4,11 +4,14 @@ import {
   collectHoverHits,
   formatHoverTime,
   isFullyZoomedOut,
+  matchingPresetId,
   nearestPointByTime,
   panTimeWindow,
+  brushPixelsToWindow,
   tempToY,
   timeDomainFromPoints,
   timestampToX,
+  windowForTrailingSpan,
   xToTimestamp,
   zoomTimeWindow,
   type ChartSeriesPoint,
@@ -156,5 +159,48 @@ describe("historyChartInteraction", () => {
     const view = { minTs: 4_000, maxTs: 4_200 };
     const next = clampTimeWindow(view, domain, 1_000);
     expect(next.maxTs - next.minTs).toBe(1_000);
+  });
+
+  it("builds trailing preset windows clamped to the domain", () => {
+    const domain = { minTs: 0, maxTs: 10_000 };
+    expect(windowForTrailingSpan(domain, 3_000)).toEqual({
+      minTs: 7_000,
+      maxTs: 10_000,
+    });
+    expect(windowForTrailingSpan(domain, 50_000)).toEqual(domain);
+  });
+
+  it("matches trailing presets and all/custom", () => {
+    const day = 24 * 60 * 60 * 1000;
+    const domain = { minTs: 0, maxTs: 40 * day };
+    expect(matchingPresetId(null, domain)).toBe("all");
+    expect(
+      matchingPresetId(windowForTrailingSpan(domain, day), domain),
+    ).toBe("24h");
+    expect(
+      matchingPresetId(
+        { minTs: domain.minTs + 5 * day, maxTs: domain.minTs + 8 * day },
+        domain,
+      ),
+    ).toBe("custom");
+  });
+
+  it("converts a brush selection into a time window", () => {
+    const day = 24 * 60 * 60 * 1000;
+    const domain = { minTs: 0, maxTs: 10 * day };
+    const wideBounds: PlotBounds = {
+      ...bounds,
+      minTs: domain.minTs,
+      maxTs: domain.maxTs,
+    };
+    const next = brushPixelsToWindow(
+      40,
+      40 + (400 - 40 - 16) / 2,
+      wideBounds,
+      domain,
+    );
+    expect(next?.minTs).toBe(0);
+    expect(next?.maxTs).toBe(5 * day);
+    expect(brushPixelsToWindow(40, 44, wideBounds, domain)).toBeNull();
   });
 });

@@ -1,13 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import {
+  brushPixelsToWindow,
+  CHART_VIEW_PRESETS,
   collectHoverHits,
+  downloadCanvasPng,
   formatAxisTime,
   formatHoverTime,
   isFullyZoomedOut,
+  matchingPresetId,
   panTimeWindow,
   tempToY,
   timeDomainFromPoints,
   timestampToX,
+  windowForTrailingSpan,
   xToTimestamp,
   zoomTimeWindow,
   type HoverSeriesHit,
@@ -128,6 +133,10 @@ export default function HistoryChart({
   const [houseVisible, setHouseVisible] = useState(true);
   const [viewWindow, setViewWindow] = useState<TimeWindow | null>(null);
   const [isPanning, setIsPanning] = useState(false);
+  const [isBrushing, setIsBrushing] = useState(false);
+  const [brushRange, setBrushRange] = useState<{ startX: number; endX: number } | null>(
+    null,
+  );
   const [expanded, setExpanded] = useState(false);
   const [lightboxSlotHeight, setLightboxSlotHeight] = useState(0);
   const prevProbeLabelsRef = useRef<string[]>([]);
@@ -136,9 +145,14 @@ export default function HistoryChart({
   const closeBtnRef = useRef<HTMLButtonElement>(null);
   const wasExpandedRef = useRef(false);
   const dragRef = useRef<{
+    kind: "pan" | "brush";
     pointerId: number;
     startX: number;
     startView: TimeWindow;
+    shiftKey: boolean;
+    brushStartX: number;
+    brushEndX: number;
+    moved: boolean;
   } | null>(null);
   const viewWindowRef = useRef<TimeWindow | null>(null);
   const domainRef = useRef<TimeWindow | null>(null);
@@ -147,6 +161,9 @@ export default function HistoryChart({
   const activeView = viewWindow && domain ? viewWindow : domain;
   const zoomed =
     !!domain && !!activeView && !isFullyZoomedOut(activeView, domain);
+  const activePreset = domain
+    ? matchingPresetId(viewWindow, domain)
+    : "all";
 
   useEffect(() => {
     viewWindowRef.current = viewWindow;
@@ -595,6 +612,20 @@ export default function HistoryChart({
         }
       }
 
+      if (brushRange) {
+        const left = Math.min(brushRange.startX, brushRange.endX);
+        const right = Math.max(brushRange.startX, brushRange.endX);
+        const clippedLeft = Math.max(left, pad.left);
+        const clippedRight = Math.min(right, width - pad.right);
+        if (clippedRight > clippedLeft) {
+          g.fillStyle = "rgba(96, 165, 250, 0.18)";
+          g.fillRect(clippedLeft, pad.top, clippedRight - clippedLeft, innerH);
+          g.strokeStyle = "rgba(147, 197, 253, 0.85)";
+          g.lineWidth = 1;
+          g.strokeRect(clippedLeft, pad.top, clippedRight - clippedLeft, innerH);
+        }
+      }
+
       g.restore();
 
       g.fillStyle = "#94a3b8";
@@ -646,6 +677,7 @@ export default function HistoryChart({
     hoverTs,
     hoverHits,
     activeView,
+    brushRange,
   ]);
 
   function applyZoom(factor: number) {
@@ -660,6 +692,25 @@ export default function HistoryChart({
     setViewWindow(null);
     dragRef.current = null;
     setIsPanning(false);
+    setIsBrushing(false);
+    setBrushRange(null);
+  }
+
+  function applyPreset(spanMs: number | null) {
+    if (!domain) return;
+    if (spanMs == null) {
+      resetZoom();
+      return;
+    }
+    const next = windowForTrailingSpan(domain, spanMs);
+    setViewWindow(isFullyZoomedOut(next, domain) ? null : next);
+  }
+
+  function exportPng() {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const stamp = new Date().toISOString().slice(0, 10);
+    downloadCanvasPng(canvas, `thermaltrace-chart-${stamp}.png`);
   }
 
   function updateHoverFromClientX(clientX: number, clientY: number) {
@@ -704,21 +755,39 @@ export default function HistoryChart({
     setTooltipPos(null);
   }
 
+  function canvasLocalX(clientX: number): number {
+    const canvas = canvasRef.current;
+    if (!canvas) return 0;
+    return clientX - canvas.getBoundingClientRect().left;
+  }
+
   function onCanvasPointerDown(e: {
     clientX: number;
     clientY: number;
     pointerId: number;
+    shiftKey: boolean;
     currentTarget: EventTarget;
   }) {
     updateHoverFromClientX(e.clientX, e.clientY);
-    if (!domain || !zoomed || !activeView) return;
+    if (!domain || !activeView) return;
     const canvas = e.currentTarget as HTMLCanvasElement;
     canvas.setPointerCapture?.(e.pointerId);
+    const useBrush = e.shiftKey || !zoomed;
+    const localX = canvasLocalX(e.clientX);
     dragRef.current = {
+      kind: useBrush ? "brush" : "pan",
       pointerId: e.pointerId,
       startX: e.clientX,
       startView: activeView,
+      shiftKey: e.shiftKey,
+      brushStartX: localX,
+      brushEndX: localX,
+      moved: false,
     };
+    if (useBrush) {
+      setBrushRange({ startX: localX, endX: localX });
+      setIsBrushing(false);
+    }
   }
 
   function onCanvasPointerMove(e: {
@@ -729,6 +798,22 @@ export default function HistoryChart({
     const drag = dragRef.current;
     if (drag && drag.pointerId === e.pointerId && domain && plotBoundsRef.current) {
       const dx = e.clientX - drag.startX;
+      if (drag.kind === "brush") {
+        if (!drag.moved && Math.abs(dx) < 5) {
+          updateHoverFromClientX(e.clientX, e.clientY);
+          return;
+        }
+        drag.moved = true;
+        drag.brushEndX = canvasLocalX(e.clientX);
+        setIsBrushing(true);
+        setBrushRange({
+          startX: drag.brushStartX,
+          endX: drag.brushEndX,
+        });
+        clearHover();
+        return;
+      }
+
       if (!isPanning && Math.abs(dx) < 5) {
         updateHoverFromClientX(e.clientX, e.clientY);
         return;
@@ -746,12 +831,27 @@ export default function HistoryChart({
   }
 
   function onCanvasPointerUp(e: {
+    clientX: number;
     pointerId: number;
     currentTarget: EventTarget;
   }) {
-    if (dragRef.current?.pointerId === e.pointerId) {
+    const drag = dragRef.current;
+    if (drag?.pointerId === e.pointerId) {
+      if (drag.kind === "brush" && drag.moved && domain && plotBoundsRef.current) {
+        const next = brushPixelsToWindow(
+          drag.brushStartX,
+          drag.brushEndX,
+          plotBoundsRef.current,
+          domain,
+        );
+        if (next) {
+          setViewWindow(isFullyZoomedOut(next, domain) ? null : next);
+        }
+      }
       dragRef.current = null;
       setIsPanning(false);
+      setIsBrushing(false);
+      setBrushRange(null);
       try {
         (e.currentTarget as HTMLCanvasElement).releasePointerCapture?.(e.pointerId);
       } catch {
@@ -845,6 +945,14 @@ export default function HistoryChart({
           >
             Reset
           </button>
+          <button
+            type="button"
+            class="history-chart-zoom-btn history-chart-expand-btn"
+            aria-label="Download chart PNG"
+            onClick={exportPng}
+          >
+            PNG
+          </button>
           {expanded ? (
             <button
               ref={closeBtnRef}
@@ -868,6 +976,36 @@ export default function HistoryChart({
             </button>
           )}
         </div>
+      </div>
+      <div class="history-chart-presets" role="group" aria-label="Time range presets">
+        {CHART_VIEW_PRESETS.map((preset) => {
+          const domainSpan = domain ? domain.maxTs - domain.minTs : 0;
+          return (
+            <button
+              key={preset.id}
+              type="button"
+              class={`history-chart-preset-btn${activePreset === preset.id ? " is-active" : ""}`}
+              aria-pressed={activePreset === preset.id}
+              disabled={!domain}
+              title={
+                domain && domainSpan < preset.spanMs
+                  ? `Shows all available data (about ${Math.max(1, Math.round(domainSpan / 36e5))}h)`
+                  : `Last ${preset.label}`
+              }
+              onClick={() => applyPreset(preset.spanMs)}
+            >
+              {preset.label}
+            </button>
+          );
+        })}
+        <button
+          type="button"
+          class={`history-chart-preset-btn${activePreset === "all" ? " is-active" : ""}`}
+          aria-pressed={activePreset === "all"}
+          onClick={() => applyPreset(null)}
+        >
+          All
+        </button>
       </div>
       {(probeLabels.length > 0 || housePoints.length >= 2) && (
         <div class="history-chart-legend" role="group" aria-label="Series visibility">
@@ -913,8 +1051,8 @@ export default function HistoryChart({
       )}
       <p class="m-0 mb-2 text-xs text-[var(--color-text-muted)]">
         {expanded
-          ? "Expanded view — scroll to zoom, drag to pan, Esc or Close to exit."
-          : "Scroll to zoom, drag to pan when zoomed, Expand for a larger view."}{" "}
+          ? "Expanded view — drag to select a range, scroll to zoom, Esc or Close to exit."
+          : "Drag to select a range (Shift+drag when zoomed), scroll to zoom, PNG to save."}{" "}
         Trace turns <span style={{ color: COLOR_BELOW }}>cool</span> at/below freeze
         and <span style={{ color: COLOR_ABOVE }}>warm</span> at/above the high line.
       </p>
@@ -931,9 +1069,9 @@ export default function HistoryChart({
       >
         <canvas
           ref={canvasRef}
-          class={`w-full history-chart-canvas${zoomed ? " is-zoomed" : ""}${isPanning ? " is-panning" : ""}`}
+          class={`w-full history-chart-canvas${zoomed ? " is-zoomed" : ""}${isPanning ? " is-panning" : ""}${isBrushing ? " is-brushing" : ""}`}
           role="img"
-          aria-label={`Interactive line chart of ${title}. Scroll to zoom, drag to pan, hover for readings.`}
+          aria-label={`Interactive line chart of ${title}. Drag to select a range, scroll to zoom, expand for a larger view.`}
           aria-describedby="history-chart-summary"
           onPointerDown={onCanvasPointerDown}
           onPointerMove={onCanvasPointerMove}

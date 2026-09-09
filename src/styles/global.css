@@ -3450,6 +3450,14 @@
     cursor: crosshair;
   }
 
+  .history-chart-canvas--delta {
+    height: clamp(160px, 42vw, 200px);
+  }
+
+  .history-chart-wrap.is-lightbox .history-chart-canvas--delta {
+    height: clamp(240px, 48vh, 520px);
+  }
+
   .history-chart-canvas-wrap {
     position: relative;
   }
@@ -3623,6 +3631,40 @@
 
   .history-chart-canvas.is-panning {
     cursor: grabbing;
+  }
+
+  .history-chart-canvas.is-brushing {
+    cursor: col-resize;
+  }
+
+  .history-chart-presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin: 0 0 0.65rem;
+  }
+
+  .history-chart-preset-btn {
+    appearance: none;
+    border: 1px solid var(--color-border);
+    background: transparent;
+    color: var(--color-text-muted);
+    border-radius: 999px;
+    padding: 0.15rem 0.6rem;
+    font-size: 0.72rem;
+    line-height: 1.35;
+    cursor: pointer;
+  }
+
+  .history-chart-preset-btn.is-active {
+    color: var(--color-text);
+    border-color: color-mix(in srgb, #60a5fa 55%, var(--color-border));
+    background: color-mix(in srgb, #60a5fa 14%, transparent);
+  }
+
+  .history-chart-preset-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
   }
 
   .history-chart-lightbox-scrim {

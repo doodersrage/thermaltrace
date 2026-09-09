@@ -247,3 +247,85 @@ export function formatAxisTime(ts: number, spanMs: number): string {
   }
   return d.toLocaleDateString();
 }
+
+export const CHART_VIEW_PRESETS = [
+  { id: "24h", label: "24h", spanMs: 24 * 60 * 60 * 1000 },
+  { id: "7d", label: "7d", spanMs: 7 * 24 * 60 * 60 * 1000 },
+  { id: "30d", label: "30d", spanMs: 30 * 24 * 60 * 60 * 1000 },
+] as const;
+
+export type ChartViewPresetId = (typeof CHART_VIEW_PRESETS)[number]["id"];
+
+/** Trailing window ending at domain.maxTs, clamped to available data. */
+export function windowForTrailingSpan(
+  domain: TimeWindow,
+  spanMs: number,
+): TimeWindow {
+  const domainSpan = Math.max(domain.maxTs - domain.minTs, 1);
+  const safeSpan = Math.max(1, Math.min(spanMs, domainSpan));
+  return clampTimeWindow(
+    {
+      minTs: domain.maxTs - safeSpan,
+      maxTs: domain.maxTs,
+    },
+    domain,
+    Math.min(MIN_ZOOM_SPAN_MS, safeSpan),
+  );
+}
+
+export function matchingPresetId(
+  view: TimeWindow | null,
+  domain: TimeWindow,
+  epsilonMs: number = 60_000,
+): ChartViewPresetId | "all" | "custom" {
+  if (!view || isFullyZoomedOut(view, domain, epsilonMs)) return "all";
+  const span = view.maxTs - view.minTs;
+  const endDelta = Math.abs(view.maxTs - domain.maxTs);
+  for (const preset of CHART_VIEW_PRESETS) {
+    const targetSpan = Math.min(preset.spanMs, domain.maxTs - domain.minTs);
+    if (endDelta <= epsilonMs && Math.abs(span - targetSpan) <= epsilonMs) {
+      return preset.id;
+    }
+  }
+  return "custom";
+}
+
+/** Convert a horizontal brush in CSS pixels into a clamped time window. */
+export function brushPixelsToWindow(
+  x0: number,
+  x1: number,
+  bounds: PlotBounds,
+  domain: TimeWindow,
+  minPixelWidth: number = 10,
+): TimeWindow | null {
+  const left = Math.min(x0, x1);
+  const right = Math.max(x0, x1);
+  if (right - left < minPixelWidth) return null;
+  const t0 = xToTimestamp(left, bounds);
+  const t1 = xToTimestamp(right, bounds);
+  if (t0 == null || t1 == null) return null;
+  return clampTimeWindow(
+    { minTs: Math.min(t0, t1), maxTs: Math.max(t0, t1) },
+    domain,
+  );
+}
+
+export function downloadCanvasPng(
+  canvas: HTMLCanvasElement,
+  filename: string,
+): boolean {
+  try {
+    const href = canvas.toDataURL("image/png");
+    if (!href || href === "data:,") return false;
+    const anchor = document.createElement("a");
+    anchor.href = href;
+    anchor.download = filename;
+    anchor.rel = "noopener";
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    return true;
+  } catch {
+    return false;
+  }
+}
