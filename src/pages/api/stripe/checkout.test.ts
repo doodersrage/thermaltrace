@@ -83,6 +83,17 @@ describe("POST /api/stripe/checkout", () => {
     expect(response.headers.get("Location")).toBe("/signin");
   });
 
+  it("returns 400 for an unknown plan instead of falling back to member", async () => {
+    const { POST } = await import("./checkout");
+
+    const response = await POST(makeContext({ plan: "not-a-real-plan" }));
+
+    expect(response.status).toBe(400);
+    expect(await response.text()).toBe("Unknown plan");
+    expect(mockSessionsCreate).not.toHaveBeenCalled();
+    expect(mockResolveStripePriceId).not.toHaveBeenCalled();
+  });
+
   it("returns 500 when the Stripe price is not configured", async () => {
     mockResolveStripePriceId.mockReturnValue(undefined);
     const { POST } = await import("./checkout");

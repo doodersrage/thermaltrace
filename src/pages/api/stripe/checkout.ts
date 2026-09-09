@@ -18,9 +18,14 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   }
 
   const formData = await request.formData().catch(() => null);
-  const planRaw = formData?.get("plan")?.toString();
+  const planRaw = formData?.get("plan")?.toString().trim() ?? "";
   const plan =
-    planRaw === "portfolio" ? "portfolio" : planRaw === "pro" ? "pro" : "member";
+    planRaw === "portfolio" || planRaw === "pro" || planRaw === "member"
+      ? planRaw
+      : null;
+  if (!plan) {
+    return new Response("Unknown plan", { status: 400 });
+  }
   const interval =
     formData?.get("interval")?.toString() === "annual" ? "annual" : "monthly";
   const checkoutSource = formData?.get("source")?.toString().trim() || null;
