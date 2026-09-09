@@ -27,7 +27,9 @@ import { getOrCreateHouseholdForUser } from "../../lib/households";
 import { getIndoorReferenceSensorId, findReferenceSensorLabel } from "../../lib/indoorReference";
 import { fetchHouseChartOverlay } from "../../lib/houseContext";
 import { listConnectionsForHousehold } from "../../lib/thermostatConnections";
-import { computeFreezeHours } from "../../lib/freezeHours";
+import { computeDailyFreezeHours, computeFreezeHours } from "../../lib/freezeHours";
+import FreezeHoursChart from "../../components/FreezeHoursChart";
+
 import { buildColdestDayOverlay, shiftSeriesOntoCurrentWindow } from "../../lib/historyOverlay";
 import IndoorOutdoorChart from "../../components/IndoorOutdoorChart.tsx";
 import { clampIsoToHistoryWindow, historyCutoffIso } from "../../lib/retentionSchedule";
@@ -149,6 +151,10 @@ const indoorOutdoorSeries = outdoorDelta
   ? buildIndoorOutdoorSeries(chartData.points, outdoorDelta.outdoorF)
   : [];
 const freezeHours = computeFreezeHours(chartData.points, alertSettings.freezeThresholdF);
+const dailyFreezeHours = computeDailyFreezeHours(
+  chartData.points,
+  alertSettings.freezeThresholdF,
+);
 
 const coldestOverlay = overlayColdest
   ? buildColdestDayOverlay(priorYearData.points, chartData.points)
@@ -354,19 +360,19 @@ const historyUpgradeFeature =
         )}
 
         {historyTab === "chart" && chartData.points.length >= 2 && (
-          <details class="card">
+          <details class="card" open={dailyFreezeHours.some((d) => d.hoursBelow > 0)}>
             <summary class="dashboard-recommendations-summary">Season freeze exposure</summary>
             <div class="dashboard-recommendations-body">
               <p class="card-subtitle mb-4">
-                Estimated time below 34°F in the selected chart window.
+                Estimated time at or below {alertSettings.freezeThresholdF}°F in the selected chart window.
               </p>
               <div class="stat-grid">
                 <article class="stat-item">
-                  <span class="stat-label">Hours ≤ 34°F</span>
+                  <span class="stat-label">Hours ≤ {alertSettings.freezeThresholdF}°F</span>
                   <p class="stat-value">{freezeHours.hoursBelow34.toFixed(1)}</p>
                 </article>
                 <article class="stat-item">
-                  <span class="stat-label">Readings ≤ 34°F</span>
+                  <span class="stat-label">Readings ≤ {alertSettings.freezeThresholdF}°F</span>
                   <p class="stat-value">{freezeHours.readingsBelow34}</p>
                 </article>
                 <article class="stat-item">
@@ -376,6 +382,15 @@ const historyUpgradeFeature =
                   </p>
                 </article>
               </div>
+              {dailyFreezeHours.length >= 2 && (
+                <div class="mt-4">
+                  <FreezeHoursChart
+                    client:visible
+                    days={dailyFreezeHours}
+                    thresholdF={alertSettings.freezeThresholdF}
+                  />
+                </div>
+              )}
             </div>
           </details>
         )}

@@ -1,5 +1,6 @@
 ---
 import DashboardCard from "./DashboardCard.astro";
+import BatteryTrendChart from "../BatteryTrendChart";
 import type { BatteryOverviewRow } from "../../lib/overviewExtras";
 
 interface Props {
@@ -7,6 +8,10 @@ interface Props {
 }
 
 const { rows } = Astro.props;
+const chartSeries = rows.map((row) => ({
+  label: row.deviceName,
+  samples: row.samples,
+}));
 ---
 {rows.length > 0 && (
   <DashboardCard>
@@ -19,22 +24,6 @@ const { rows } = Astro.props;
             <strong>{row.deviceName}</strong>
             <span>{row.latestPct}%</span>
           </div>
-          {row.sparkPath && (
-            <svg
-              class="block mt-1 text-[var(--color-accent)]"
-              width="96"
-              height="28"
-              viewBox="0 0 96 28"
-              aria-hidden="true"
-            >
-              <path
-                d={row.sparkPath}
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.5"
-              />
-            </svg>
-          )}
           {row.message && (
             <p class="m-0 mt-1 text-[var(--color-warning-text)]">{row.message}</p>
           )}
@@ -46,6 +35,11 @@ const { rows } = Astro.props;
         </li>
       ))}
     </ul>
+    {chartSeries.some((s) => s.samples.length >= 2) && (
+      <div class="mt-4">
+        <BatteryTrendChart client:visible series={chartSeries} />
+      </div>
+    )}
     <p class="mt-4 mb-0 text-sm">
       <a class="text-link" href="/dashboard/temperature">Open Devices</a>
     </p>

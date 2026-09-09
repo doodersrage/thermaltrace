@@ -3454,7 +3454,14 @@
     height: clamp(160px, 42vw, 200px);
   }
 
-  .history-chart-wrap.is-lightbox .history-chart-canvas--delta {
+  .history-chart-canvas--bars,
+  .history-chart-canvas--battery {
+    height: clamp(150px, 40vw, 200px);
+  }
+
+  .history-chart-wrap.is-lightbox .history-chart-canvas--delta,
+  .history-chart-wrap.is-lightbox .history-chart-canvas--bars,
+  .history-chart-wrap.is-lightbox .history-chart-canvas--battery {
     height: clamp(240px, 48vh, 520px);
   }
 
