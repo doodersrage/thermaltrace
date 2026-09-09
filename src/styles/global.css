@@ -3620,6 +3620,10 @@
     font-size: 0.8rem;
     line-height: 1;
     cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
   }
 
   .history-chart-zoom-btn:hover:not(:disabled) {
