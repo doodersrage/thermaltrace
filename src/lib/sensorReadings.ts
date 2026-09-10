@@ -192,17 +192,24 @@ export async function fetchLatestSensorValues(
   const deviceSpace = new Map(
     devices.map((d) => [d.id, typeof d.space === "string" ? d.space : null]),
   );
-  const results = [];
 
-  for (const sensor of sensors) {
-    const { data: reading } = await supabase
-      .from("sensor_readings")
-      .select("value_num, value_bool, value_text, recorded_at")
-      .eq("sensor_id", sensor.id)
-      .order("recorded_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+  // One round-trip per sensor in parallel (was sequential N+1). Index:
+  // sensor_readings_sensor_recorded_idx (sensor_id, recorded_at desc).
+  const readingRows = await Promise.all(
+    sensors.map(async (sensor) => {
+      const { data: reading } = await supabase
+        .from("sensor_readings")
+        .select("value_num, value_bool, value_text, recorded_at")
+        .eq("sensor_id", sensor.id)
+        .order("recorded_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return { sensor, reading };
+    }),
+  );
 
+  const results: LatestSensorRow[] = [];
+  for (const { sensor, reading } of readingRows) {
     if (!reading) continue;
 
     const offset =

@@ -13,7 +13,10 @@ import DashboardStoryCard from "../components/dashboard/DashboardStoryCard.astro
 import GarageRiskStatusCard from "../components/dashboard/GarageRiskStatusCard.astro";
 import { computeGarageRiskStatus } from "../lib/garageRiskStatus";
 import { getAuthFromCookies } from "../lib/auth";
-import { getUserPreferences } from "../lib/userPreferences";
+import {
+  getDisplayPreferencesFromMetadata,
+  personalWeatherConfigFromPreferences,
+} from "../lib/userPreferences";
 import { getUserEntitlements } from "../lib/entitlements";
 import { latestFromShell } from "../lib/dashboardShell";
 import { listHouseholdDevices } from "../lib/devices";
@@ -24,6 +27,7 @@ import {
   listUserHouseholds,
   getUserHouseholdRole,
   canEditHousehold,
+  type HouseholdRole,
 } from "../lib/households";
 import TimeToFreezeCard from "../components/TimeToFreezeCard.astro";
 import WeekCompareCard from "../components/WeekCompareCard.astro";
@@ -47,7 +51,6 @@ import {
   fetchWeatherSnapshotForConfig,
 } from "../lib/weatherContext";
 import { isWeatherLocationConfigured } from "../lib/personalWeatherStations";
-import { personalWeatherConfigFromPreferences } from "../lib/userPreferences";
 import { fetchNwsAlerts } from "../lib/nwsAlerts";
 import {
   buildTimeToFreezeProjection,
@@ -151,15 +154,17 @@ const onboardingDismissed =
   (user.user_metadata as Record<string, unknown> | undefined)?.onboarding_dismissed ===
   true;
 
+// Metadata-only prefs: avoid getUserPreferences → temp-config migrate + device list.
+const preferences = getDisplayPreferencesFromMetadata(user);
+const weatherConfig = personalWeatherConfigFromPreferences(preferences);
+
 const [
-  preferences,
   entitlements,
   alertSettingsLoaded,
   household,
   userHouseholds,
   unackedAlertCount,
 ] = await Promise.all([
-  getUserPreferences(user),
   shell ? Promise.resolve(shell.entitlements) : getUserEntitlements(user.id),
   getAlertSettingsForUser(user.id, user.user_metadata as Record<string, unknown>),
   shell?.activeHouseholdId
@@ -172,21 +177,25 @@ const [
 ]);
 
 const activeHouseholdId = household.householdId;
-const weatherConfig = personalWeatherConfigFromPreferences(preferences);
 const chartWindowDays = Math.min(30, Math.max(7, entitlements.historyDays));
+const roleFromShell =
+  shell?.households.find((row) => row.household_id === activeHouseholdId)?.role ?? null;
 
+const evidencePromise = ensureAlertDeliveryEvidence(user.id, alertSettingsLoaded);
 const [{ settings: alertSettings }, members, householdDevicesResult, householdRole] =
   await Promise.all([
-    ensureAlertDeliveryEvidence(user.id, alertSettingsLoaded),
+    evidencePromise,
     household.householdId && !onboardingDismissed
       ? listHouseholdMembers(household.householdId)
       : Promise.resolve({ members: [] as Awaited<ReturnType<typeof listHouseholdMembers>>["members"] }),
     household.householdId
       ? listHouseholdDevices(household.householdId)
       : Promise.resolve({ devices: [] as Awaited<ReturnType<typeof listHouseholdDevices>>["devices"] }),
-    activeHouseholdId
-      ? getUserHouseholdRole(user.id, activeHouseholdId)
-      : Promise.resolve(null),
+    roleFromShell
+      ? Promise.resolve(roleFromShell as HouseholdRole)
+      : activeHouseholdId
+        ? getUserHouseholdRole(user.id, activeHouseholdId)
+        : Promise.resolve(null),
   ]);
 
 const shellLatest = latestFromShell(shell, household.householdId);
@@ -230,22 +239,29 @@ const showInsightsEarly =
 const loadHeavyWeather = showInsightsEarly;
 const loadChart = showInsightsEarly;
 
-const [weatherSnapshot, nightsAtRisk, chartWeek] = await Promise.all([
-  loadHeavyWeather
-    ? fetchWeatherSnapshotForConfig(weatherConfig)
-    : Promise.resolve(null),
-  showInsightsEarly
-    ? fetchNightsAtRiskForConfig(
+const weatherPromise = loadHeavyWeather
+  ? fetchWeatherSnapshotForConfig(weatherConfig)
+  : Promise.resolve(null);
+const chartPromise = loadChart
+  ? fetchGarageTempChartData(user.id, chartWindowDays)
+  : Promise.resolve({
+      points: [] as Awaited<ReturnType<typeof fetchGarageTempChartData>>["points"],
+      error: null as string | null,
+    });
+const nightsPromise = showInsightsEarly
+  ? weatherPromise.then((snap) =>
+      fetchNightsAtRiskForConfig(
         weatherConfig,
         alertSettings.freezeThresholdF,
-      )
-    : Promise.resolve([] as Awaited<ReturnType<typeof fetchNightsAtRiskForConfig>>),
-  loadChart
-    ? fetchGarageTempChartData(user.id, chartWindowDays)
-    : Promise.resolve({
-        points: [] as Awaited<ReturnType<typeof fetchGarageTempChartData>>["points"],
-        error: null as string | null,
-      }),
+        snap,
+      ),
+    )
+  : Promise.resolve([] as Awaited<ReturnType<typeof fetchNightsAtRiskForConfig>>);
+
+const [weatherSnapshot, nightsAtRisk, chartWeek] = await Promise.all([
+  weatherPromise,
+  nightsPromise,
+  chartPromise,
 ]);
 
 const devices = householdDevicesResult.devices;
@@ -311,6 +327,7 @@ const [
   outdoorHourly,
   chartAlertEvents,
 ] = await Promise.all([
+  // Nest nudge (Simple) + house overlay (Insights) — skip on first-run.
   entitlements.canUseThermostatIntegration &&
   household.householdId &&
   !firstRunFocus
@@ -319,7 +336,8 @@ const [
   showInsights && household.householdId
     ? getIndoorReferenceSensorId(household.householdId)
     : Promise.resolve(null),
-  household.householdId
+  // Freeze-map opt-in nudge + Insights benchmark only for settled users.
+  household.householdId && !firstRunFocus
     ? getHouseholdFreezeMapSettings(household.householdId)
     : Promise.resolve({
         optIn: false,
@@ -423,9 +441,7 @@ const houseContext = buildHouseContext({
   devices,
 });
 
-const hasSensors =
-  preferences.tempProbes.length > 0 ||
-  devices.some((d) => d.sensors.length > 0);
+const hasSensors = devices.some((d) => d.sensors.length > 0);
 const hasHouseholdMembers = members.members.length > 1;
 
 const passwordUpdated = Astro.url.searchParams.get("password") === "updated";
@@ -1105,7 +1121,7 @@ const garageRisk = computeGarageRiskStatus({
     <DemoPullNudge show={showDemoPullNudge} />
     <ProbeSimulatorNudge show={showProbeSimulatorNudge} />
 
-    {(hasDevices || chartWeek.points.length > 0) && (
+    {showInsights && (hasDevices || chartWeek.points.length > 0) && (
       <TimeToFreezeCard
         projection={timeToFreeze}
         freezeThresholdF={alertSettings.freezeThresholdF}
