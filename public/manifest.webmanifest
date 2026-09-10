@@ -46,6 +46,12 @@
       "description": "Freeze risk and live status"
     },
     {
+      "name": "Live",
+      "short_name": "Live",
+      "url": "/dashboard/live",
+      "description": "Glanceable probe readings and weather"
+    },
+    {
       "name": "Devices",
       "short_name": "Devices",
       "url": "/dashboard/devices",

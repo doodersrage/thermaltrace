@@ -36,6 +36,7 @@
         "<h2>Keyboard shortcuts</h2>" +
         "<ul>" +
         "<li><kbd>g</kbd> then <kbd>o</kbd> Overview</li>" +
+        "<li><kbd>g</kbd> then <kbd>v</kbd> Live</li>" +
         "<li><kbd>g</kbd> then <kbd>d</kbd> Devices</li>" +
         "<li><kbd>g</kbd> then <kbd>a</kbd> Alerts</li>" +
         "<li><kbd>g</kbd> then <kbd>h</kbd> History</li>" +
@@ -89,6 +90,7 @@
       if (chordTimer) clearTimeout(chordTimer);
       var map = {
         o: "/dashboard",
+        v: "/dashboard/live",
         d: "/dashboard/devices",
         a: "/dashboard/alerts",
         h: "/dashboard/history",

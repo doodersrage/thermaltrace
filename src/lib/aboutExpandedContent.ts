@@ -862,7 +862,7 @@ export const expandedAboutContent: Record<string, AboutContentBlock[]> = {
   "personal-weather-stations": [
       { type: "p", html: "OpenWeather city IDs are fine for a rough regional forecast. If you already run an <strong>Ambient Weather</strong> or <strong>WeatherFlow Tempest</strong> station in the yard, ThermalTrace can read outdoor temp/humidity from <em>your</em> property, and use those coordinates for NWS and forecast freeze alerts." },
       { type: "h2", text: "Dashboard → Settings" },
-      { type: "ol", items: ["Open <a class=\"text-link\" href=\"/dashboard/settings\">Dashboard → Settings</a> → Home page display.","Under <strong>Outdoor weather source</strong>, choose Ambient or WeatherFlow.","Enter your station credentials (see below) and save.","Confirm the home weather card shows your station name."] },
+      { type: "ol", items: ["Open <a class=\"text-link\" href=\"/dashboard/settings\">Dashboard → Settings</a> → Live display.","Under <strong>Outdoor weather source</strong>, choose Ambient or WeatherFlow.","Enter your station credentials (see below) and save.","Confirm the Live weather card shows your station name."] },
       { type: "h2", text: "Ambient Weather" },
       { type: "ul", items: ["**MAC address**: shown on the Ambient dashboard for your station.","**API key**, from ambientweather.net → Account → API keys (your personal key).","Site operator: set <code>AMBIENT_APPLICATION_KEY</code> in Worker secrets (developer application key)."] },
       { type: "h2", text: "WeatherFlow Tempest" },

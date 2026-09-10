@@ -134,7 +134,7 @@ const hero = getAboutPhoto("ethernet-cable");
       <a class="text-link" href="https://github.com/doodersrage/thermaltrace/blob/main/sketches/relay/push_https_forward.py" target="_blank" rel="noreferrer"><code>push_https_forward.py</code></a>).
     </li>
     <li>
-      Smoke-test with curl, then open <a class="text-link" href="/">Home</a> while signed in. Within about 30 minutes without a post, Home warns that a probe may be offline.
+      Smoke-test with curl, then open <a class="text-link" href="/dashboard/live">Live</a> while signed in. Within about 30 minutes without a post, Live warns that a probe may be offline.
     </li>
   </ol>
 
@@ -186,7 +186,7 @@ const hero = getAboutPhoto("ethernet-cable");
       Click <strong>Save pull setup</strong>: probe keys auto-import from the live feed. Rename labels on the same page, or click <strong>Accept suggested names</strong>.
     </li>
     <li>
-      Click <strong>Fetch now</strong> to pull readings immediately, or wait for the next scheduled poll and confirm cards on <a class="text-link" href="/">Home</a>.
+      Click <strong>Fetch now</strong> to pull readings immediately, or wait for the next scheduled poll and confirm cards on <a class="text-link" href="/dashboard/live">Live</a>.
     </li>
   </ol>
   <p>
@@ -209,7 +209,7 @@ const hero = getAboutPhoto("ethernet-cable");
 
   <h2>Verify you’re live</h2>
   <ul>
-    <li><strong>Home</strong>, live cards update; lagging probes show a yellow offline warning after ~30 minutes.</li>
+    <li><strong>Live</strong>, live cards update; lagging probes show a yellow offline warning after ~30 minutes.</li>
     <li><strong>Devices → Device health</strong>: last seen, battery, and RSSI when the payload includes them (after first live reading).</li>
     <li><strong>Overview</strong>: space status plus Status metrics (freeze hours, coldest margin, indoor−outdoor ΔT, probe spread). Switch to <strong>Insights</strong> for nights-at-risk, door/power/motion cards, and air quality. Week charts can overlay humidity and dew point when RH is present.</li>
     <li><strong>Freeze essentials</strong>, set freeze °F + email on Devices after first POST, or under Alerts → Essentials, then send a test.</li>

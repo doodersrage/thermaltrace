@@ -2,6 +2,7 @@
 import { Image } from "astro:assets";
 import Building2 from "@lucide/astro/icons/building-2";
 import LayoutDashboard from "@lucide/astro/icons/layout-dashboard";
+import Thermometer from "@lucide/astro/icons/thermometer";
 import Cpu from "@lucide/astro/icons/cpu";
 import Bell from "@lucide/astro/icons/bell";
 import History from "@lucide/astro/icons/history";
@@ -39,6 +40,12 @@ const monitorItems: NavItem[] = [
     label: "Overview",
     isActive: currentPath === "/dashboard",
     Icon: LayoutDashboard,
+  },
+  {
+    href: "/dashboard/live",
+    label: "Live",
+    isActive: currentPath.startsWith("/dashboard/live"),
+    Icon: Thermometer,
   },
   {
     href: "/dashboard/portfolio",

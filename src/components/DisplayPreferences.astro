@@ -21,8 +21,8 @@ const selectValue = !currentId ? "" : isCustom ? "custom" : currentId;
   <form method="POST" id="weather-prefs-form" data-prefs-form>
     <input type="hidden" name="redirect" value={redirectTo} />
     <input type="hidden" name="weather_city_id" id="weather_city_id_value" value={currentId} />
-    <h2 class="card-title">Home page display</h2>
-    <p class="card-subtitle">Choose which blocks appear on the home page while you are signed in.</p>
+    <h2 class="card-title">Live display</h2>
+    <p class="card-subtitle">Choose which blocks appear on Dashboard → Live.</p>
     <p class="alert-success mt-0 mb-4 hidden" id="prefs-status" role="status"></p>
     <p class="alert-warning mt-0 mb-4 hidden" id="prefs-error" role="alert"></p>
 

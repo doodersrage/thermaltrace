@@ -188,5 +188,6 @@ test.describe("public smoke", () => {
     const urls = (manifest.shortcuts ?? []).map((s: { url: string }) => s.url);
     expect(urls).toContain("/dashboard/portfolio");
     expect(urls).toContain("/dashboard/alerts");
+    expect(urls).toContain("/dashboard/live");
   });
 });

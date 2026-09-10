@@ -1,0 +1,45 @@
+---
+import DashboardLayout from "../../layouts/DashboardLayout.astro";
+import LiveTempsPanel from "../../components/LiveTempsPanel";
+import WeatherPanel from "../../components/WeatherPanel";
+import { getAuthFromCookies } from "../../lib/auth";
+import { getUserPreferences } from "../../lib/userPreferences";
+
+const { session, user } = await getAuthFromCookies(Astro.cookies);
+if (!session || !user) {
+  return Astro.redirect("/signin?next=/dashboard/live");
+}
+
+const preferences = await getUserPreferences(user);
+const showGarageTemps = preferences.showGarageTemps;
+const showWeather = preferences.showWeather;
+---
+<DashboardLayout title="Live">
+  <div class="space-y-6">
+    <section class="card" aria-labelledby="live-intro-title">
+      <h2 class="card-title" id="live-intro-title">Live readings</h2>
+      <p class="card-subtitle mb-0">
+        Glanceable probe cards and outdoor weather. Overview stays the ops hub;
+        this page is for what’s happening right now.
+      </p>
+    </section>
+
+    <div class="grid gap-6">
+      {showGarageTemps && <LiveTempsPanel client:visible />}
+      {showWeather && (
+        <WeatherPanel client:visible cityId={preferences.weatherCityId ?? null} />
+      )}
+      {!showGarageTemps && !showWeather && (
+        <div class="empty-state">
+          <p class="empty-state-title">Live panels are hidden</p>
+          <p class="mb-0">
+            Update display preferences to show live readings and weather again.
+          </p>
+          <div class="empty-state-actions">
+            <a class="btn-primary" href="/dashboard/settings">Open settings</a>
+          </div>
+        </div>
+      )}
+    </div>
+  </div>
+</DashboardLayout>

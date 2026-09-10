@@ -869,7 +869,7 @@ const garageRisk = computeGarageRiskStatus({
       <div class="alert-warning mb-0" role="status" data-stale-banner>
         {staleSummary.bannerMessage}.
         {" "}
-        <a href="/" class="text-link">Open live Home</a>
+        <a href="/dashboard/live" class="text-link">Open Live</a>
         {" · "}
         <a href="/dashboard/devices" class="text-link">Devices</a>
         {" · "}
@@ -970,7 +970,7 @@ const garageRisk = computeGarageRiskStatus({
             <div class="alert-warning mb-0" role="status" data-stale-banner>
               {staleSummary.bannerMessage}.
               {" "}
-              <a href="/" class="text-link">Open live Home</a>
+              <a href="/dashboard/live" class="text-link">Open Live</a>
               {" · "}
               <a href="/dashboard/devices" class="text-link">Devices</a>
             </div>
@@ -1068,7 +1068,7 @@ const garageRisk = computeGarageRiskStatus({
           <MetricCard
             label="Last reading"
             value={newestReading ? lastAge.label : "None yet"}
-            href="/"
+            href="/dashboard/live"
             tone={!newestReading || lastAge.lagging ? "warning" : "success"}
             metricId="last_reading"
             pinned
@@ -1163,7 +1163,7 @@ const garageRisk = computeGarageRiskStatus({
                     ? `${coldestProbeTempF.toFixed(1)}°F vs ${alertSettings.freezeThresholdF}°F alert`
                     : "No live probe"
                 }
-                href="/"
+                href="/dashboard/live"
                 tone={
                   coldestProbeMarginF == null
                     ? "neutral"
@@ -1194,7 +1194,7 @@ const garageRisk = computeGarageRiskStatus({
                       ? `${coldestProbeTempF.toFixed(0)}°F indoor vs ${weatherSnapshot.temp.toFixed(0)}°F out`
                       : "ΔT using coldest probe"
                 }
-                href="/"
+                href="/dashboard/live"
                 tone={
                   indoorOutdoorDeltaF == null
                     ? "neutral"
@@ -1216,7 +1216,7 @@ const garageRisk = computeGarageRiskStatus({
                     ? `${probeSpread.coldestF.toFixed(1)}–${probeSpread.warmestF.toFixed(1)}°F · ${probeSpread.probeCount} probes`
                     : "Need 2+ live temps"
                 }
-                href="/"
+                href="/dashboard/live"
                 tone={
                   probeSpread == null
                     ? "neutral"

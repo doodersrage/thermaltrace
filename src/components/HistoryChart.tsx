@@ -853,7 +853,7 @@ export default function HistoryChart({
           {" → "}
           verify ingest
           {" → "}
-          <a class="text-link" href="/">open Home</a>
+          <a class="text-link" href="/dashboard/live">open Live</a>
           {" "}so snapshots can collect.
         </p>
       </div>
