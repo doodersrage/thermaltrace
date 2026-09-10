@@ -192,7 +192,14 @@ function sensorNeedsRename(label: string): boolean {
               !showInlineRename &&
               tempRenameSensors.some((sensor) => sensorNeedsRename(sensor.label));
             return (
-            <li class="rounded-xl border border-[var(--color-border)] p-4">
+            <li
+              class:list={[
+                "rounded-xl border border-[var(--color-border)] p-4",
+                focusDevice === device.id && "ring-2 ring-[var(--color-accent)]",
+              ]}
+              id={`device-${device.id}`}
+              data-device-card={device.id}
+            >
               <div class="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <strong>{device.name}</strong>

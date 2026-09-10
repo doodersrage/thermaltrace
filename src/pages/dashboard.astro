@@ -796,7 +796,7 @@ const garageRisk = computeGarageRiskStatus({
       Showing last-known dashboard status (offline or stale cache).
     </div>
     <div class="overview-refresh-row flex flex-wrap items-center gap-2 text-sm text-[var(--color-text-muted)]">
-      <span id="overview-refresh-label">Loaded just now</span>
+      <span id="overview-refresh-label">Updated just now</span>
       <button type="button" class="btn-ghost btn-sm" id="overview-refresh-btn">
         Refresh
       </button>
@@ -829,6 +829,13 @@ const garageRisk = computeGarageRiskStatus({
       snoozeUntil={alertSettings.snoozeUntil ?? null}
       spaceCheckedAt={spaceCheckedAtForHousehold}
       householdId={household.householdId}
+      deviceSpaces={[
+        ...new Set(
+          devices
+            .map((device) => device.space?.trim())
+            .filter((space): space is string => Boolean(space)),
+        ),
+      ].sort((a, b) => a.localeCompare(b))}
     />
 
     <LowBatteryBanner message={primaryBannerIds.has("lowBattery") ? lowBatteryMessage : null} />
@@ -1339,23 +1346,91 @@ const garageRisk = computeGarageRiskStatus({
       var loadedAt = Date.now();
       var label = document.getElementById("overview-refresh-label");
       var btn = document.getElementById("overview-refresh-btn");
+      var flashKeys = [
+        "checked_saved",
+        "checked_error",
+        "ack_ok",
+        "ack_msg",
+        "ack_error",
+        "password",
+        "prefs_saved",
+        "prefs_error",
+        "snooze",
+      ];
+
+      function stripFlashParams() {
+        var url = new URL(window.location.href);
+        var changed = false;
+        flashKeys.forEach(function (key) {
+          if (url.searchParams.has(key)) {
+            url.searchParams.delete(key);
+            changed = true;
+          }
+        });
+        if (changed) {
+          window.history.replaceState({}, "", url.pathname + (url.search || "") + url.hash);
+        }
+      }
 
       function renderAge() {
         if (!label) return;
         var mins = Math.max(0, Math.round((Date.now() - loadedAt) / 60000));
         label.textContent =
-          mins < 1 ? "Loaded just now" : mins === 1 ? "Loaded 1m ago" : "Loaded " + mins + "m ago";
+          mins < 1 ? "Updated just now" : mins === 1 ? "Updated 1m ago" : "Updated " + mins + "m ago";
       }
 
-      btn?.addEventListener("click", function () {
-        location.reload();
-      });
+      function applySnapshot(data) {
+        if (!data || typeof data !== "object") return;
+        loadedAt = Date.now();
+        renderAge();
+        var title = document.querySelector('[data-overview-field="riskTitle"]');
+        var detail = document.querySelector('[data-overview-field="riskDetail"]');
+        var riskCard = document.querySelector("[data-overview-risk]");
+        if (title && data.riskTitle) title.textContent = data.riskTitle;
+        if (detail && data.riskDetail) detail.textContent = data.riskDetail;
+        if (riskCard && data.risk) {
+          riskCard.setAttribute("data-risk-level", data.risk);
+          riskCard.className = riskCard.className.replace(
+            /garage-risk-status--\w+/g,
+            "garage-risk-status--" + data.risk,
+          );
+        }
+        var unacked = document.querySelector('[data-overview-field="unackedCount"]');
+        if (unacked && typeof data.unackedAlerts === "number") {
+          unacked.textContent = String(data.unackedAlerts);
+        }
+        var banner = document.getElementById("overview-offline-banner");
+        if (banner) banner.hidden = true;
+      }
 
+      function softRefresh() {
+        if (btn) btn.disabled = true;
+        fetch("/api/user/dashboard-snapshot", { headers: { Accept: "application/json" } })
+          .then(function (res) {
+            var banner = document.getElementById("overview-offline-banner");
+            if (res.headers.get("X-ThermalTrace-Stale") === "1" && banner) {
+              banner.hidden = false;
+            }
+            if (!res.ok) throw new Error("refresh failed");
+            return res.json();
+          })
+          .then(applySnapshot)
+          .catch(function () {
+            var banner = document.getElementById("overview-offline-banner");
+            if (banner) banner.hidden = false;
+          })
+          .finally(function () {
+            if (btn) btn.disabled = false;
+          });
+      }
+
+      btn?.addEventListener("click", softRefresh);
+      stripFlashParams();
       setInterval(renderAge, 30000);
       setInterval(function () {
         if (document.visibilityState !== "visible") return;
         if (Date.now() - loadedAt < 2.5 * 60 * 1000) return;
-        location.reload();
+        softRefresh();
       }, 60000);
 
       fetch("/api/user/dashboard-snapshot", { headers: { Accept: "application/json" } })

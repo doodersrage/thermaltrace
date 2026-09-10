@@ -295,7 +295,7 @@ const viewMode = Astro.url.searchParams.get("view") === "heatmap" ? "heatmap" : 
           })}
         </div>
       )}
-      <div class:list={["overflow-x-auto", viewMode === "heatmap" && "hidden"]}>
+      <div class:list={["overflow-x-auto portfolio-list-desktop", viewMode === "heatmap" && "hidden"]}>
         <table class="w-full text-sm">
           <thead>
             <tr>
@@ -353,6 +353,42 @@ const viewMode = Astro.url.searchParams.get("view") === "heatmap" ? "heatmap" : 
             ))}
           </tbody>
         </table>
+      </div>
+      <div class:list={["portfolio-list-mobile space-y-3", viewMode === "heatmap" && "hidden"]}>
+        {listed.rows.map((p) => (
+          <article class="rounded-lg border border-[var(--color-border)] p-3 text-sm">
+            <div class="flex flex-wrap items-baseline justify-between gap-2">
+              <form action="/api/household/switch" method="post" class="inline">
+                <input type="hidden" name="household_id" value={p.householdId} />
+                <input type="hidden" name="redirect" value="/dashboard" />
+                <button type="submit" class="text-link font-semibold">{p.name}</button>
+              </form>
+              <span
+                class:list={[
+                  "font-medium",
+                  p.health.label === "healthy" && "text-[var(--color-success)]",
+                  p.health.label === "watch" && "text-[var(--color-warning)]",
+                  (p.health.label === "at_risk" || p.health.label === "offline") &&
+                    "text-[var(--color-danger)]",
+                ]}
+              >
+                {p.health.score}%
+              </span>
+            </div>
+            <p class="m-0 mt-1 text-xs text-[var(--color-text-muted)]">
+              {p.role.replace("_", " ")}
+              {" · "}
+              {p.minTempF != null ? `${p.minTempF.toFixed(1)}°F` : "no temp"}
+              {" · "}
+              {p.deviceCount} device{p.deviceCount === 1 ? "" : "s"}
+              {p.atRisk ? (p.floodWet ? " · wet" : " · at risk") : ""}
+            </p>
+            <p class="m-0 mt-2 text-xs text-[var(--color-text-muted)]">{p.health.detail}</p>
+            <p class="m-0 mt-2">
+              <ReadingAgeBadge iso={p.lastReadingAt} emptyLabel="No readings" />
+            </p>
+          </article>
+        ))}
       </div>
       <div class="pagination">
         <p class="pagination-summary">
@@ -437,5 +473,19 @@ const viewMode = Astro.url.searchParams.get("view") === "heatmap" ? "heatmap" : 
   .portfolio-heatmap-meta {
     font-size: 0.75rem;
     color: var(--color-text-muted);
+  }
+
+  .portfolio-list-desktop {
+    display: none;
+  }
+
+  @media (min-width: 768px) {
+    .portfolio-list-mobile {
+      display: none;
+    }
+
+    .portfolio-list-desktop {
+      display: block;
+    }
   }
 </style>

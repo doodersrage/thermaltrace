@@ -14,12 +14,18 @@ const { status } = Astro.props;
   ]}
   id="garage-risk"
   aria-labelledby="garage-risk-heading"
+  data-overview-risk
+  data-risk-level={status.level}
 >
   <p class="garage-risk-eyebrow">Space status</p>
-  <h2 id="garage-risk-heading" class="card-title garage-risk-title">
+  <h2
+    id="garage-risk-heading"
+    class="card-title garage-risk-title"
+    data-overview-field="riskTitle"
+  >
     {status.title}
   </h2>
-  <p class="card-subtitle mb-4">{status.detail}</p>
+  <p class="card-subtitle mb-4" data-overview-field="riskDetail">{status.detail}</p>
   <a class="btn-primary" href={status.actionHref}>{status.actionLabel}</a>
 </section>
 

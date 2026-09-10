@@ -102,6 +102,15 @@ export function buildAlertSettingsFromFormData(
       "freeze_threshold_f",
       existing.freezeThresholdF,
     ),
+    freezeDwellMinutes: Math.max(
+      0,
+      Math.min(
+        120,
+        Math.round(
+          formNumber(formData, "freeze_dwell_minutes", existing.freezeDwellMinutes),
+        ),
+      ),
+    ),
     humidityThreshold: formNumber(
       formData,
       "humidity_threshold",

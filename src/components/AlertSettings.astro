@@ -169,6 +169,24 @@ const rulesJson = JSON.stringify(settings.alertRules ?? []);
       <div class="form-field mb-0">
         <label class="form-label" for="freeze_threshold_f">Freeze below (°F)</label>
         <input class="form-input" type="number" step="0.5" id="freeze_threshold_f" name="freeze_threshold_f" value={settings.freezeThresholdF} />
+        <p class="form-hint mb-0">Alert when a probe is at or below this temperature.</p>
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="freeze_dwell_minutes">Below for (minutes)</label>
+        <input
+          class="form-input"
+          type="number"
+          min="0"
+          max="120"
+          step="1"
+          id="freeze_dwell_minutes"
+          name="freeze_dwell_minutes"
+          value={settings.freezeDwellMinutes}
+        />
+        <p class="form-hint mb-0">
+          Require the probe to stay at/below freeze for this many minutes before alerting.
+          Use 5–15 to ignore brief door-open blips. 0 = alert on the first reading.
+        </p>
       </div>
       <div class="form-field mb-0">
         <label class="form-label" for="alert_email">Alert email</label>

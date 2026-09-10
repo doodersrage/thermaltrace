@@ -8,13 +8,18 @@ interface Props {
 const { count, showClaimsPackCta = false, canAckAll = false } = Astro.props;
 ---
 {count > 0 && (
-  <div class="alert-warning mb-4" role="status">
-    <strong>{count}</strong> unhandled alert{count === 1 ? "" : "s"}.
+  <div class="alert-warning mb-4" role="status" data-overview-field="unackedBanner">
+    <strong data-overview-field="unackedCount">{count}</strong> unhandled alert{count === 1 ? "" : "s"}.
     <a href="/dashboard/alerts" class="text-link ml-1">Review</a>
     {canAckAll && (
       <>
         {" · "}
-        <form action="/api/user/alert-events/ack" method="post" class="inline">
+        <form
+          action="/api/user/alert-events/ack"
+          method="post"
+          class="inline"
+          onsubmit={`return confirm('Mark all ${count} unhandled alerts as handled?');`}
+        >
           <input type="hidden" name="redirect" value="/dashboard" />
           <input type="hidden" name="action" value="ack_all" />
           <button type="submit" class="text-link bg-transparent border-0 p-0 cursor-pointer">

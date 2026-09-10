@@ -112,6 +112,7 @@ export type Database = {
           forecast_hours_ahead: number
           freeze_drill_enabled: boolean
           freeze_threshold_f: number
+          freeze_dwell_minutes: number
           humidity_threshold: number
           last_alert_sent_at: string | null
           last_battery_alert_at: string | null
@@ -201,6 +202,7 @@ export type Database = {
           forecast_hours_ahead?: number
           freeze_drill_enabled?: boolean
           freeze_threshold_f?: number
+          freeze_dwell_minutes?: number
           humidity_threshold?: number
           last_alert_sent_at?: string | null
           last_battery_alert_at?: string | null
@@ -290,6 +292,7 @@ export type Database = {
           forecast_hours_ahead?: number
           freeze_drill_enabled?: boolean
           freeze_threshold_f?: number
+          freeze_dwell_minutes?: number
           humidity_threshold?: number
           last_alert_sent_at?: string | null
           last_battery_alert_at?: string | null

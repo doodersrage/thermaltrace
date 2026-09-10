@@ -56,13 +56,29 @@ const healthTone: Record<string, string> = {
   at_risk: "text-[var(--color-danger)]",
   offline: "text-[var(--color-text-muted)]",
 };
+
+const healthRank: Record<string, number> = {
+  at_risk: 0,
+  offline: 1,
+  watch: 2,
+  healthy: 3,
+};
+
+const rankedDevices = [...devices].sort((a, b) => {
+  const ha = scoreDeviceHealth(a, latest);
+  const hb = scoreDeviceHealth(b, latest);
+  const rankDiff = (healthRank[ha.label] ?? 9) - (healthRank[hb.label] ?? 9);
+  if (rankDiff !== 0) return rankDiff;
+  if (ha.score !== hb.score) return ha.score - hb.score;
+  return a.name.localeCompare(b.name);
+});
 ---
 <section class="card" id="device-health">
   <h2 class="card-title">Device health</h2>
   <p class="card-subtitle mb-4">
-    Health score, last seen, battery ETA, and optional RSSI from ingest payloads.
+    Health score, last seen, battery ETA, and optional RSSI from ingest payloads. Worst first.
   </p>
-  {devices.length === 0 ? (
+  {rankedDevices.length === 0 ? (
     <p class="mb-0 text-sm text-[var(--color-text-muted)]">
       Health appears after you create a device.
       {" "}
@@ -71,7 +87,7 @@ const healthTone: Record<string, string> = {
   ) : (
     <>
       <div class="device-health-mobile space-y-3">
-        {devices.map((device) => {
+        {rankedDevices.map((device) => {
           const age = formatRelativeAge(device.last_seen_at);
           const battery = formatDeviceBattery(device.meta);
           const rssi = formatDeviceRssi(device.meta);
@@ -143,7 +159,7 @@ const healthTone: Record<string, string> = {
           </tr>
         </thead>
         <tbody>
-          {devices.map((device) => {
+          {rankedDevices.map((device) => {
             const age = formatRelativeAge(device.last_seen_at);
             const battery = formatDeviceBattery(device.meta);
             const rssi = formatDeviceRssi(device.meta);

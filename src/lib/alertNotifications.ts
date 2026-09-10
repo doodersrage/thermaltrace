@@ -82,7 +82,29 @@ export async function sendThresholdAlertsIfNeeded(
 ): Promise<void> {
   if (!settings.enabled || readings.length === 0) return;
 
-  const messages = evaluateAlerts(settings, readings);
+  let dwellSamplesBySensorId: Record<string, Array<{ at: string; tempF: number }>> =
+    {};
+  if (settings.freezeDwellMinutes > 0) {
+    const sinceIso = new Date(
+      Date.now() - Math.max(settings.freezeDwellMinutes, 1) * 60 * 1000 - 5 * 60 * 1000,
+    ).toISOString();
+    const sensorIds = [
+      ...new Set(
+        readings
+          .map((reading) => reading.sensorId)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
+    const pairs = await Promise.all(
+      sensorIds.map(async (sensorId) => {
+        const samples = await getRecentNumericReadingSamples(sensorId, sinceIso);
+        return [sensorId, samples] as const;
+      }),
+    );
+    dwellSamplesBySensorId = Object.fromEntries(pairs);
+  }
+
+  const messages = evaluateAlerts(settings, readings, { dwellSamplesBySensorId });
   if (messages.length > 0 && settings.escalationEnabled && settings.channelSms) {
     const lastAlert = settings.lastAlertSentAt
       ? Date.parse(settings.lastAlertSentAt)

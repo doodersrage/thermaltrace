@@ -18,15 +18,50 @@ const canAddMore = existingFeeds.length < MAX_TEMP_FEEDS;
     <h3 class="text-base font-semibold m-0">Feed URLs</h3>
     <p class="card-subtitle mb-0 mt-1">
       HTTPS JSON endpoints we pull on a schedule. Probe objects live under a root key
-      (default <code>temp</code>).      <a class="text-link" href="/about/json-probe-output-schema">schema docs</a>.
+      (default <code>temp</code>).{" "}
+      <a class="text-link" href="/about/json-probe-output-schema">schema docs</a>.
     </p>
   </div>
+
+  {existingFeeds.length > 0 && (
+    <form
+      id="bulk-pull-form"
+      action="/api/user/pull-setup/bulk"
+      method="post"
+      class="flex flex-wrap items-center gap-2 rounded-lg border border-[var(--color-border)] p-3"
+      data-bulk-pull-form
+    >
+      <input type="hidden" name="redirect" value="/dashboard/devices?tab=pull" />
+      <button type="button" class="btn-ghost btn-sm" data-bulk-pull-select-all>Select all</button>
+      <button type="submit" name="action" value="enable" class="btn-secondary btn-sm">Enable</button>
+      <button type="submit" name="action" value="disable" class="btn-secondary btn-sm">Disable</button>
+      <button
+        type="submit"
+        name="action"
+        value="delete"
+        class="btn-ghost btn-sm"
+        data-bulk-pull-delete
+      >
+        Delete selected
+      </button>
+    </form>
+  )}
 
   <div class="flex flex-col gap-3">
     {existingFeeds.map((feed, index) => (
       <div class="sensor-map-row">
         <input type="hidden" name={`feed_${index}_id`} value={feed.id} />
         <div class="sensor-map-primary">
+          <label class="checkbox-row mb-0 self-start mt-2">
+            <input
+              type="checkbox"
+              class="bulk-pull-id"
+              name="feed_id"
+              value={feed.id}
+              form="bulk-pull-form"
+            />
+            <span class="sr-only">Select {feed.name || feed.id}</span>
+          </label>
           <div class="form-field mb-0">
             <label class="form-label" for={`feed_${index}_name`}>Name</label>
             <input
@@ -152,3 +187,21 @@ const canAddMore = existingFeeds.length < MAX_TEMP_FEEDS;
     )}
   </div>
 </div>
+
+<script>
+  const form = document.querySelector<HTMLFormElement>("[data-bulk-pull-form]");
+  form?.querySelector("[data-bulk-pull-select-all]")?.addEventListener("click", () => {
+    document.querySelectorAll(".bulk-pull-id").forEach((el) => {
+      if (el instanceof HTMLInputElement) el.checked = true;
+    });
+  });
+  form?.addEventListener("submit", (event) => {
+    const submitter = (event as SubmitEvent).submitter;
+    if (!(submitter instanceof HTMLButtonElement) || submitter.value !== "delete") return;
+    const checked = document.querySelectorAll(".bulk-pull-id:checked").length;
+    if (checked === 0) return;
+    if (!confirm(`Delete ${checked} feed${checked === 1 ? "" : "s"}? This cannot be undone.`)) {
+      event.preventDefault();
+    }
+  });
+</script>

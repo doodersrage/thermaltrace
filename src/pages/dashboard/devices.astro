@@ -118,9 +118,11 @@ const deviceNotice =
   Astro.url.searchParams.get("device_deleted")
     ? "Device deleted."
     : bulkDeleted
-      ? `Deleted ${bulkDeleted} device${bulkDeleted === "1" ? "" : "s"}.`
+      ? `Deleted ${bulkDeleted} item${bulkDeleted === "1" ? "" : "s"}.`
       : bulkUpdated
-        ? `Updated ${bulkUpdated} device${bulkUpdated === "1" ? "" : "s"}.`
+        ? `Updated ${bulkUpdated} item${bulkUpdated === "1" ? "" : "s"}.`
+        : Astro.url.searchParams.get("bulk_error")
+          ? "Could not complete bulk action. Try again."
     : Astro.url.searchParams.get("device_renamed")
       ? "Device renamed."
       : Astro.url.searchParams.get("sensor_added")
@@ -157,7 +159,8 @@ const deviceNotice =
 const noticeIsError =
   Astro.url.searchParams.has("error") ||
   Boolean(Astro.url.searchParams.get("feeds_error")) ||
-  Boolean(Astro.url.searchParams.get("probes_error"));
+  Boolean(Astro.url.searchParams.get("probes_error")) ||
+  Boolean(Astro.url.searchParams.get("bulk_error"));
 
 const keyCalloutTitle = Astro.url.searchParams.get("key_rotated")
   ? "Save your new ingest key"
@@ -809,4 +812,49 @@ const firmwareSensors =
       void handleSensorForm(form, (formData) => actions.deleteSensor(formData), true);
     });
   });
+
+  const focusId = new URL(window.location.href).searchParams.get("focus_device");
+  if (focusId) {
+    const card = document.getElementById(`device-${focusId}`);
+    if (card) {
+      card.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }
+
+  const flashKeys = [
+    "device_deleted",
+    "device_renamed",
+    "device_created",
+    "bulk_deleted",
+    "bulk_updated",
+    "bulk_error",
+    "sensor_added",
+    "sensor_updated",
+    "sensor_deleted",
+    "feeds_saved",
+    "pull_saved",
+    "probes_discovered",
+    "probes_saved",
+    "sensors_renamed",
+    "feed_deleted",
+    "probe_deleted",
+    "feeds_error",
+    "probes_error",
+    "error",
+    "alert_saved",
+    "test_sent",
+    "test_error",
+  ];
+  const url = new URL(window.location.href);
+  let changed = false;
+  for (const key of flashKeys) {
+    if (url.searchParams.has(key)) {
+      url.searchParams.delete(key);
+      changed = true;
+    }
+  }
+  if (changed) {
+    // Keep focus_device / tab / rename_sensors for deep-links.
+    window.history.replaceState({}, "", url.pathname + (url.search || "") + url.hash);
+  }
 </script>

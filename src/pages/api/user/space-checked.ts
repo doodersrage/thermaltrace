@@ -16,6 +16,15 @@ function parseCheckedMap(raw: unknown): SpaceCheckedMap {
   return out;
 }
 
+export function spaceCheckedKey(
+  householdId: string | null | undefined,
+  space?: string | null,
+): string | null {
+  if (!householdId) return null;
+  const trimmed = space?.trim();
+  return trimmed ? `${householdId}::${trimmed}` : householdId;
+}
+
 export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   const { session, user } = await getAuthFromCookies(cookies);
   const wantsJson =
@@ -35,18 +44,23 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   let redirectTo = "/dashboard";
   let checkedAt = new Date().toISOString();
   let householdId: string | null = null;
+  let space: string | null = null;
 
   if (wantsJson) {
     try {
       const body = (await request.json()) as {
         checked_at?: string;
         household_id?: string;
+        space?: string;
       };
       if (body.checked_at && Number.isFinite(Date.parse(body.checked_at))) {
         checkedAt = new Date(body.checked_at).toISOString();
       }
       if (typeof body.household_id === "string" && body.household_id.trim()) {
         householdId = body.household_id.trim();
+      }
+      if (typeof body.space === "string" && body.space.trim()) {
+        space = body.space.trim();
       }
     } catch {
       return new Response(JSON.stringify({ error: "Invalid JSON" }), {
@@ -59,6 +73,8 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
     redirectTo = formRedirectPath(formData, "/dashboard");
     const rawHousehold = formData.get("household_id")?.toString()?.trim();
     if (rawHousehold) householdId = rawHousehold;
+    const rawSpace = formData.get("space")?.toString()?.trim();
+    if (rawSpace) space = rawSpace;
   }
 
   const accessToken = cookies.get("sb-access-token")!.value;
@@ -80,6 +96,11 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
 
   const existingMap = parseCheckedMap(user.user_metadata?.space_checked_by_household);
   const nextMap = { ...existingMap };
+  const key = spaceCheckedKey(householdId, space);
+  if (key) {
+    nextMap[key] = checkedAt;
+  }
+  // Always keep household-level stamp for Overview fallback / multi-space “any check”.
   if (householdId) {
     nextMap[householdId] = checkedAt;
   }
@@ -117,6 +138,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
         ok: true,
         checked_at: checkedAt,
         household_id: householdId,
+        space,
       }),
       {
         status: 200,

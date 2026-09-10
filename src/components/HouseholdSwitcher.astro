@@ -30,7 +30,12 @@ const active = households.find((h) => h.household_id === activeHouseholdId);
         )}
       </p>
     </div>
-    <form action="/api/household/switch" method="post" class="household-switcher-form">
+    <form
+      action="/api/household/switch"
+      method="post"
+      class="household-switcher-form"
+      data-household-switch-form
+    >
       <input type="hidden" name="redirect" value={redirectTo} />
       <label class="sr-only" for="household-switch">Switch household</label>
       <select class="form-input" id="household-switch" name="household_id" required>
@@ -40,7 +45,14 @@ const active = households.find((h) => h.household_id === activeHouseholdId);
           </option>
         ))}
       </select>
-      <button type="submit" class="btn-secondary">Switch</button>
     </form>
   </div>
 </DashboardCard>
+
+<script>
+  const form = document.querySelector<HTMLFormElement>("[data-household-switch-form]");
+  const select = form?.querySelector<HTMLSelectElement>("#household-switch");
+  select?.addEventListener("change", () => {
+    form?.requestSubmit();
+  });
+</script>

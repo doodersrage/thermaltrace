@@ -83,6 +83,39 @@ describe("evaluateAlerts", () => {
       "Garage is 38.0°F (at or below freeze threshold 40°F).",
     ]);
   });
+
+  it("waits for freeze dwell minutes before firing", () => {
+    const dwell: AlertSettings = { ...enabled, freezeDwellMinutes: 10 };
+    const now = Date.parse("2026-01-01T12:00:00.000Z");
+    const samples = {
+      "sensor-a": [
+        { at: "2026-01-01T11:55:00.000Z", tempF: 30 },
+        { at: "2026-01-01T12:00:00.000Z", tempF: 30 },
+      ],
+    };
+    expect(
+      evaluateAlerts(dwell, [reading({ tempf: 30, sensorId: "sensor-a" })], {
+        dwellSamplesBySensorId: samples,
+        nowMs: now,
+      }),
+    ).toEqual([]);
+
+    const longEnough = {
+      "sensor-a": [
+        { at: "2026-01-01T11:45:00.000Z", tempF: 30 },
+        { at: "2026-01-01T11:50:00.000Z", tempF: 30 },
+        { at: "2026-01-01T12:00:00.000Z", tempF: 30 },
+      ],
+    };
+    expect(
+      evaluateAlerts(dwell, [reading({ tempf: 30, sensorId: "sensor-a" })], {
+        dwellSamplesBySensorId: longEnough,
+        nowMs: now,
+      }),
+    ).toEqual([
+      "Garage is 30.0°F (at or below freeze threshold 34°F for 10+ min).",
+    ]);
+  });
 });
 
 describe("evaluateFloodAlerts", () => {

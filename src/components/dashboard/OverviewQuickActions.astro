@@ -5,14 +5,22 @@ interface Props {
   snoozeUntil: string | null;
   spaceCheckedAt: string | null;
   householdId?: string | null;
+  deviceSpaces?: string[];
 }
 
-const { canEdit, unackedCount, snoozeUntil, spaceCheckedAt, householdId = null } =
-  Astro.props;
+const {
+  canEdit,
+  unackedCount,
+  snoozeUntil,
+  spaceCheckedAt,
+  householdId = null,
+  deviceSpaces = [],
+} = Astro.props;
 const snoozeActive =
   snoozeUntil != null && Number.isFinite(Date.parse(snoozeUntil))
     ? Date.parse(snoozeUntil) > Date.now()
     : false;
+const spaces = deviceSpaces.filter(Boolean);
 ---
 
 {canEdit && (
@@ -20,7 +28,7 @@ const snoozeActive =
     <div class="overview-quick-actions-head">
       <h2 class="card-title mb-0" id="overview-quick-actions-title">Quick actions</h2>
       <p class="card-subtitle mb-0">
-        Acknowledge, snooze alerts, or mark that you checked this property.
+        Acknowledge, snooze alerts, or mark that you checked a space.
       </p>
     </div>
     <div class="overview-quick-actions-row">
@@ -34,7 +42,11 @@ const snoozeActive =
             </button>
           </form>
           {unackedCount > 1 && (
-            <form action="/api/user/alert-events/ack" method="post">
+            <form
+              action="/api/user/alert-events/ack"
+              method="post"
+              onsubmit={`return confirm('Mark all ${unackedCount} unhandled alerts as handled?');`}
+            >
               <input type="hidden" name="redirect" value="/dashboard" />
               <input type="hidden" name="action" value="ack_all" />
               <button type="submit" class="btn-ghost btn-sm">
@@ -50,24 +62,42 @@ const snoozeActive =
       {snoozeActive ? (
         <form action="/api/user/alert-snooze" method="post">
           <input type="hidden" name="redirect" value="/dashboard" />
-          <input type="hidden" name="action" value="clear" />
+          <input type="hidden" name="action" value="clear_snooze" />
           <button type="submit" class="btn-ghost btn-sm" id="overview-snooze-action">
             Clear snooze
           </button>
         </form>
       ) : (
-        <form action="/api/user/alert-snooze" method="post">
-          <input type="hidden" name="redirect" value="/dashboard" />
-          <input type="hidden" name="action" value="snooze_24" />
-          <button type="submit" class="btn-secondary btn-sm" id="overview-snooze-action">
-            Snooze 24h
-          </button>
-        </form>
+        <div class="overview-snooze-presets inline-flex flex-wrap items-center gap-1">
+          <span class="text-sm text-[var(--color-text-muted)]">Snooze</span>
+          {[1, 4, 24].map((hours) => (
+            <form action="/api/user/alert-snooze" method="post">
+              <input type="hidden" name="redirect" value="/dashboard" />
+              <input type="hidden" name="action" value="snooze" />
+              <input type="hidden" name="hours" value={String(hours)} />
+              <button
+                type="submit"
+                class="btn-secondary btn-sm"
+                id={hours === 24 ? "overview-snooze-action" : undefined}
+              >
+                {hours}h
+              </button>
+            </form>
+          ))}
+        </div>
       )}
 
-      <form action="/api/user/space-checked" method="post">
+      <form action="/api/user/space-checked" method="post" class="inline-flex flex-wrap items-center gap-2">
         <input type="hidden" name="redirect" value="/dashboard" />
         {householdId && <input type="hidden" name="household_id" value={householdId} />}
+        {spaces.length > 0 && (
+          <select class="form-input text-sm py-1" name="space" aria-label="Space checked">
+            <option value="">Whole property</option>
+            {spaces.map((space) => (
+              <option value={space}>{space}</option>
+            ))}
+          </select>
+        )}
         <button type="submit" class="btn-ghost btn-sm" id="overview-checked-space">
           I checked the space
         </button>
@@ -76,6 +106,7 @@ const snoozeActive =
         class="overview-checked-status text-sm text-[var(--color-text-muted)]"
         id="overview-checked-status"
         data-checked-at={spaceCheckedAt ?? ""}
+        data-overview-field="spaceCheckedAt"
         hidden={!spaceCheckedAt}
       ></span>
     </div>

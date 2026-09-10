@@ -366,3 +366,34 @@ const referralRewardDays = Number(
     </section>
   </div>
 </DashboardLayout>
+
+<script>
+  const flashKeys = [
+    "alert_saved",
+    "alert_error",
+    "channels_incomplete",
+    "test_sent",
+    "test_error",
+    "test_reason",
+    "sent",
+    "skipped",
+    "ack_ok",
+    "ack_error",
+    "ack_msg",
+    "snooze",
+    "snooze_cleared",
+    "vacation",
+    "vacation_cleared",
+  ];
+  const url = new URL(window.location.href);
+  let changed = false;
+  for (const key of flashKeys) {
+    if (url.searchParams.has(key)) {
+      url.searchParams.delete(key);
+      changed = true;
+    }
+  }
+  if (changed) {
+    window.history.replaceState({}, "", url.pathname + (url.search || "") + url.hash);
+  }
+</script>

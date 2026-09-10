@@ -88,6 +88,8 @@ export type AlertSettings = {
   enabled: boolean;
   digestEnabled: boolean;
   freezeThresholdF: number;
+  /** Minutes a probe must stay at/below freeze before alerting; 0 = immediate. */
+  freezeDwellMinutes: number;
   humidityThreshold: number;
   rateChangeF: number;
   outageHours: number;
@@ -184,6 +186,7 @@ export const DEFAULT_ALERT_SETTINGS: AlertSettings = {
   enabled: false,
   digestEnabled: false,
   freezeThresholdF: 34,
+  freezeDwellMinutes: 0,
   humidityThreshold: 75,
   rateChangeF: 15,
   outageHours: 2,
@@ -326,6 +329,10 @@ export function rowToAlertSettings(row: Record<string, unknown> | null | undefin
       typeof row.freeze_threshold_f === "number"
         ? row.freeze_threshold_f
         : DEFAULT_ALERT_SETTINGS.freezeThresholdF,
+    freezeDwellMinutes:
+      typeof row.freeze_dwell_minutes === "number" && Number.isFinite(row.freeze_dwell_minutes)
+        ? Math.max(0, Math.min(120, Math.round(row.freeze_dwell_minutes)))
+        : DEFAULT_ALERT_SETTINGS.freezeDwellMinutes,
     humidityThreshold:
       typeof row.humidity_threshold === "number"
         ? row.humidity_threshold
@@ -522,15 +529,60 @@ export type AlertReading = {
   space?: string | null;
 };
 
+/**
+ * True when the probe has been continuously at/below threshold long enough.
+ * dwellMinutes 0 = fire on the current reading alone.
+ */
+export function meetsFreezeDwell(
+  currentTempF: number,
+  freezeThresholdF: number,
+  samplesOldestToNewest: Array<{ at: string; tempF: number }>,
+  dwellMinutes: number,
+  nowMs = Date.now(),
+): boolean {
+  if (currentTempF > freezeThresholdF) return false;
+  if (!(dwellMinutes > 0)) return true;
+
+  const cutoffMs = nowMs - dwellMinutes * 60 * 1000;
+  const windowSamples = samplesOldestToNewest.filter((sample) => {
+    const ts = Date.parse(sample.at);
+    return Number.isFinite(ts) && ts >= cutoffMs && ts <= nowMs;
+  });
+
+  // Need evidence spanning the dwell window: at least one sample at/before cutoff.
+  const hasAnchor = samplesOldestToNewest.some((sample) => {
+    const ts = Date.parse(sample.at);
+    return Number.isFinite(ts) && ts <= cutoffMs && sample.tempF <= freezeThresholdF;
+  });
+  if (!hasAnchor) return false;
+
+  const relevant =
+    windowSamples.length > 0
+      ? windowSamples
+      : samplesOldestToNewest.filter((sample) => {
+          const ts = Date.parse(sample.at);
+          return Number.isFinite(ts) && ts <= nowMs;
+        });
+
+  if (relevant.length === 0) return false;
+  return relevant.every((sample) => sample.tempF <= freezeThresholdF);
+}
+
 export function evaluateAlerts(
   settings: AlertSettings,
   readings: AlertReading[],
+  options?: {
+    dwellSamplesBySensorId?: Record<string, Array<{ at: string; tempF: number }>>;
+    nowMs?: number;
+  },
 ): string[] {
   if (!settings.enabled) {
     return [];
   }
 
   const messages: string[] = [];
+  const nowMs = options?.nowMs ?? Date.now();
+  const dwellSamples = options?.dwellSamplesBySensorId ?? {};
 
   for (const reading of readings) {
     if (!readingIncludedInThresholdAlerts(settings.thresholdSensorScope, reading)) {
@@ -538,9 +590,25 @@ export function evaluateAlerts(
     }
 
     const freezeThreshold = freezeThresholdForReading(settings, reading);
-    if (reading.tempf <= freezeThreshold) {
+    const samples =
+      reading.sensorId && dwellSamples[reading.sensorId]
+        ? dwellSamples[reading.sensorId]!
+        : [];
+    if (
+      meetsFreezeDwell(
+        reading.tempf,
+        freezeThreshold,
+        samples,
+        settings.freezeDwellMinutes,
+        nowMs,
+      )
+    ) {
+      const dwellNote =
+        settings.freezeDwellMinutes > 0
+          ? ` for ${settings.freezeDwellMinutes}+ min`
+          : "";
       messages.push(
-        `${reading.label} is ${reading.tempf.toFixed(1)}°F (at or below freeze threshold ${freezeThreshold}°F).`,
+        `${reading.label} is ${reading.tempf.toFixed(1)}°F (at or below freeze threshold ${freezeThreshold}°F${dwellNote}).`,
       );
     }
 
@@ -664,6 +732,7 @@ export function serializeAlertSettings(settings: AlertSettings): Record<string, 
     enabled: settings.enabled,
     digest_enabled: settings.digestEnabled,
     freeze_threshold_f: settings.freezeThresholdF,
+    freeze_dwell_minutes: settings.freezeDwellMinutes,
     humidity_threshold: settings.humidityThreshold,
     rate_change_f: settings.rateChangeF,
     outage_hours: settings.outageHours,
