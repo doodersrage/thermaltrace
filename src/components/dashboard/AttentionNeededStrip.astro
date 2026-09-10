@@ -35,18 +35,20 @@ const quietLabel =
   <div class="attention-needed card" data-attention-root data-storage-key={storageKey}>
     <div class="attention-needed-row">
       {count > 0 ? (
-        <details
-          class="attention-needed-details"
-          data-attention-details
-          open={defaultOpen || undefined}
-        >
-          <summary class="attention-needed-summary">
-            {title} ({count})
-          </summary>
-          <div class="attention-needed-body" data-attention-slot>
-            <slot />
-          </div>
-        </details>
+        <div class="attention-needed-main">
+          <details
+            class="attention-needed-details"
+            data-attention-details
+            open={defaultOpen || undefined}
+          >
+            <summary class="attention-needed-summary">
+              {title} ({count})
+            </summary>
+            <div class="attention-needed-body" data-attention-slot>
+              <slot />
+            </div>
+          </details>
+        </div>
       ) : (
         <p class="mb-0 text-sm text-[var(--color-text-muted)]">
           Recommendations quieted. Critical alerts still show above.
@@ -84,6 +86,8 @@ const quietLabel =
 
 <script>
   document.querySelectorAll("[data-attention-root]").forEach((root) => {
+    if (!(root instanceof HTMLElement) || root.dataset.attentionBound === "1") return;
+    root.dataset.attentionBound = "1";
     const KEY = root.getAttribute("data-storage-key") || "tt-attention-collapsed";
     const details = root.querySelector("[data-attention-details]");
     if (!(details instanceof HTMLDetailsElement)) return;
@@ -113,19 +117,40 @@ const quietLabel =
     gap: 0.75rem;
   }
 
-  .attention-needed-details {
+  /* Keep <details> out of the flex row. Chromium will not paint open
+     contents when the disclosure itself is a flex/grid item. */
+  .attention-needed-main {
     flex: 1 1 16rem;
     min-width: 0;
+  }
+
+  .attention-needed-main:has(> .attention-needed-details[open]) {
+    flex-basis: 100%;
   }
 
   .attention-needed-summary {
     cursor: pointer;
     font-weight: 600;
+    display: list-item;
     list-style: none;
   }
 
-  .attention-needed-summary::-webkit-details-marker {
+  .attention-needed-summary::-webkit-details-marker,
+  .attention-needed-summary::marker {
     display: none;
+    content: "";
+  }
+
+  .attention-needed-summary::before {
+    content: "▸";
+    display: inline-block;
+    width: 0.85em;
+    margin-right: 0.2rem;
+    color: var(--color-text-muted);
+  }
+
+  .attention-needed-details[open] > .attention-needed-summary::before {
+    content: "▾";
   }
 
   .attention-needed-body {
