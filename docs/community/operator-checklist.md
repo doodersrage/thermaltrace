@@ -63,6 +63,8 @@ Check what's missing locally: `pnpm operator:check`
 ## Shipped in product (no operator action)
 
 - Overview **first-run focus**: Insights + full Status strip stay hidden until device + freeze email + a test alert
+- Signed-in **Live** at `/dashboard/live`; Overview stays risk/trends (product + architecture docs updated 2026-09-10)
+- Companion apps: no API sync needed for that dashboard UX pass — see [external-apps-sync.md](./external-apps-sync.md)
 - Android **time-to-freeze** clock on Home (consumes `time_to_freeze` from `/api/user/home-insights`)
 - Claims pack page includes adjuster talking points (`/claims-pack`)
 

@@ -15,10 +15,12 @@ Sensors / relays ──push or pull──► Cloudflare Worker (Astro)
 
 ## App shape
 
-- SSR by default; dashboard uses `DashboardLayout` (sidebar + topbar + main)
+- SSR by default; dashboard uses `DashboardLayout` (sidebar + topbar + main) plus shared **property chrome** from the dashboard shell (space switcher, plan, returning-user shortcuts)
 - Prefer Astro components; hydrate Preact only where needed (`client:visible` / `client:load`)
 - Shared chrome under `src/components/dashboard/`
-- **Overview** (`src/pages/dashboard.astro`) loads Simple or Insights mode (`dashboardOverviewMode`). Status metrics and Insights cards are derived in `src/lib/overviewExtras.ts`, `freezeHours.ts`, and `heatingInsights.ts`. A forecast-backed **time-to-freeze** clock (`src/lib/spaceThermalModel.ts`) models this unheated space's lag vs outdoor hourly forecast and can alert on remaining hours before the probe crosses freeze. Week/history charts (`HistoryChart.tsx`) optionally overlay humidity and dew point from `ChartPoint.humidity`.
+- **Live** (`src/pages/dashboard/live.astro`) — signed-in current readings (probe cards, optional outdoor weather, offline warnings). Companion apps and share links use the same readings APIs; this page is web-only chrome.
+- **Overview** (`src/pages/dashboard.astro`) — risk and trends, not live cards. Loads Simple or Insights mode (`dashboardOverviewMode`). Until essentials are done (device + freeze email + test alert), **first-run focus** hides the Status strip and Insights cards. Status metrics and Insights cards are derived in `src/lib/overviewExtras.ts`, `freezeHours.ts`, and `heatingInsights.ts`. A forecast-backed **time-to-freeze** clock (`src/lib/spaceThermalModel.ts`) models this unheated space's lag vs outdoor hourly forecast and can alert on remaining hours before the probe crosses freeze. Week/history charts (`HistoryChart.tsx`) optionally overlay humidity and dew point from `ChartPoint.humidity` (probe curves load on Simple and Insights; heavy weather/Open-Meteo stays Insights-only).
+- Dense pages split into panes: **Devices** Setup vs Status, **Alerts** Activity vs Settings, **Share** links / integrations / API, **History** chart vs exports.
 
 ## Mutations
 

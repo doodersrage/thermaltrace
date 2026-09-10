@@ -20,8 +20,10 @@ const hero = getAboutPhoto("desk-workspace");
 >
   <p>
     Creating an account unlocks personalization, devices, history, alerts, and optional paid features.
-    The dashboard groups tools so you can watch live sensors, manage hardware, invite household members,
-    and, when permitted: administer users or contact submissions.
+    The signed-in shell keeps property chrome (space switcher, plan, quick links) while pages stay focused:
+    <a class="text-link" href="/dashboard">Overview</a> for risk and trends,
+    <a class="text-link" href="/dashboard/live">Live</a> for current readings,
+    Devices / Alerts / History / Share for setup and ops.
   </p>
 
   <ProductScreenshot
@@ -38,13 +40,16 @@ const hero = getAboutPhoto("desk-workspace");
 
   <h2>Getting started checklist</h2>
   <p>
-    The overview dashboard shows a short checklist: create a device or feed, confirm live readings, then
-    optional steps for alerts and household invites. When core and optional steps are done, or you dismiss
-    it: the checklist hides; use <strong>Show checklist</strong> to bring it back.
+    Until you finish essentials (a device or feed, freeze email, and a test alert) — or dismiss the prompt —
+    Overview stays in a calm <strong>first-run</strong> focus: space status and setup CTAs, without the full
+    Status strip or Insights cards. A short checklist covers device connect, confirming readings on Live,
+    then optional alerts and household invites. When core and optional steps are done, or you dismiss it,
+    the checklist hides; use <strong>Show checklist</strong> to bring it back.
   </p>
 
   <h2>Overview (Simple vs Insights)</h2>
   <p>
+    After first-run,
     <a class="text-link" href="/dashboard">Overview</a> opens with garage/space risk status and a Status strip:
     last reading, sensors, feeds, alerts, freeze hours (with degree-hours), coldest margin above your freeze
     threshold, indoor−outdoor ΔT, probe spread, condensation hours, and feed health when pull feeds exist.
@@ -52,16 +57,26 @@ const hero = getAboutPhoto("desk-workspace");
     shop, or crawlspace is projected to hit your freeze threshold, using the space's lag vs the outdoor forecast.
     Toggle <strong>Insights</strong> for nights-at-risk, week compare, heating insights, door
     and power correlation, motion, battery/RSSI trends, air quality, energy, and flood/level. The 7-day probe
-    chart can show humidity % and dew point (°F) when readings include RH, same controls appear on History.
+    chart (Simple and Insights) can show humidity % and dew point (°F) when readings include RH; the same
+    controls appear on History. Live cards live on
+    <a class="text-link" href="/dashboard/live">Live</a>, not Overview.
   </p>
   <ProductScreenshot
     shot="overview-status"
     caption="Status strip: freeze margin, indoor−outdoor ΔT, probe spread, condensation, and feed health."
   />
 
+  <h2>Live readings</h2>
+  <p>
+    <a class="text-link" href="/dashboard/live">Live</a> is the signed-in home for current probe cards, outdoor
+    weather when enabled, and offline warnings. Prefer Live after ingest or a pull fetch; use Overview for
+    freeze risk and trends.
+  </p>
+
   <h2>Devices &amp; sensors</h2>
   <p>
-    Under <a class="text-link" href="/dashboard/devices">Devices</a> you can:
+    Under <a class="text-link" href="/dashboard/devices">Devices</a>, <strong>Setup</strong> is for connecting
+    hardware and <strong>Status</strong> is for health (last seen, battery, RSSI). You can:
   </p>
   <ul>
     <li><strong>Push devices</strong>. ESP/Arduino POSTs JSON to a unique ingest URL. Copy the key from the 30-minute callout; use <strong>Reveal ingest key</strong> or <strong>Rotate key</strong> later. Sensors auto-import on first POST; rename labels on Devices afterward.</li>
@@ -81,7 +96,8 @@ const hero = getAboutPhoto("desk-workspace");
   <h2>Display preferences</h2>
   <p>
     Choose whether Live shows probe sensors, outdoor weather, or both. Preferences live in your profile
-    metadata and apply immediately after saving.
+    metadata and apply immediately after saving under
+    <a class="text-link" href="/dashboard/settings">Settings</a>.
   </p>
 
   <h2>History</h2>
@@ -140,8 +156,9 @@ const hero = getAboutPhoto("desk-workspace");
   <h2>Suggested first path</h2>
   <ol>
     <li><a class="text-link" href="/register?next=/dashboard/devices">Create an account</a>.</li>
-    <li>One-click <strong>Create push device</strong> under <a class="text-link" href="/dashboard/devices">Devices</a> (named Workshop probe by default).</li>
-    <li>POST a reading: sensors auto-import, then set freeze °F + email on Devices or Essentials.</li>
-    <li>Confirm Overview space status and Status metrics, optionally invite household members, and share a family live link.</li>
+    <li>One-click <strong>Create push device</strong> under <a class="text-link" href="/dashboard/devices?view=setup">Devices → Setup</a> (named Workshop probe by default).</li>
+    <li>POST a reading: sensors auto-import, then set freeze °F + email on Devices or Essentials and send a test.</li>
+    <li>Confirm cards on <a class="text-link" href="/dashboard/live">Live</a>, then Overview space status (Status strip and Insights unlock after essentials).</li>
+    <li>Optionally invite household members and share a family live link.</li>
   </ol>
 </AboutArticle>
