@@ -20,7 +20,7 @@ interface Props {
   title?: string;
 }
 
-const LINE_COLOR = "#60a5fa";
+const LINE_COLOR = "#ff7a00";
 
 export default function IndoorOutdoorChart({
   points,

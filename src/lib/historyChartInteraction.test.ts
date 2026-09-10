@@ -84,7 +84,7 @@ describe("historyChartInteraction", () => {
     const hits = collectHoverHits({
       targetTs: 3_000,
       byProbe,
-      probeColors: ["#60a5fa", "#34d399"],
+      probeColors: ["#ff7a00", "#34d399"],
       visibleProbes: new Set(["Bay"]),
       dewPointF: () => 32,
     });
@@ -99,7 +99,7 @@ describe("historyChartInteraction", () => {
     const hits = collectHoverHits({
       targetTs: 3_000,
       byProbe,
-      probeColors: ["#60a5fa"],
+      probeColors: ["#ff7a00"],
       visibleProbes: new Set(["Bay"]),
       housePoints: [
         {

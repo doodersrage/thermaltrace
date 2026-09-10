@@ -12,8 +12,8 @@ const COLORS = {
   bgBottom: "#090b0f",
   surface: "#1a2230",
   surfaceRaised: "#222b3a",
-  accent: "#3b82f6",
-  accentBright: "#60a5fa",
+  accent: "#ff7a00",
+  accentBright: "#ffc107",
   text: "#f8fafc",
   textMuted: "#94a3b8",
   border: "rgba(255,255,255,0.12)",
@@ -185,7 +185,7 @@ export default function AboutProbeActivity() {
         sunY,
         radius,
       );
-      core.addColorStop(0, "#dbeafe");
+      core.addColorStop(0, "#ffe8c8");
       core.addColorStop(0.55, COLORS.accentBright);
       core.addColorStop(1, COLORS.accent);
       ctx!.fillStyle = core;
@@ -194,7 +194,7 @@ export default function AboutProbeActivity() {
       ctx!.fill();
 
       if (!reducedMotionRef.current) {
-        ctx!.strokeStyle = `rgba(191, 219, 254, ${0.25 + intensity * 0.004})`;
+        ctx!.strokeStyle = `rgba(255, 193, 7, ${0.25 + intensity * 0.004})`;
         ctx!.lineWidth = 2;
         for (let i = 0; i < 8; i++) {
           const angle = (elapsedRayAngle(start) + i * Math.PI) / 4;

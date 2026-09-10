@@ -60,7 +60,7 @@ interface Props {
   canShareChart?: boolean;
 }
 
-const PROBE_COLORS = ["#60a5fa", "#34d399", "#f472b6", "#fbbf24", "#a78bfa", "#fb7185"];
+const PROBE_COLORS = ["#ff7a00", "#34d399", "#f472b6", "#fbbf24", "#a78bfa", "#fb7185"];
 const HOUSE_COLOR = "#f59e0b";
 const COLOR_BELOW = "#38bdf8";
 const COLOR_ABOVE = "#fb923c";
@@ -712,7 +712,7 @@ export default function HistoryChart({
         if (clippedRight > clippedLeft) {
           g.fillStyle = "rgba(96, 165, 250, 0.18)";
           g.fillRect(clippedLeft, pad.top, clippedRight - clippedLeft, innerH);
-          g.strokeStyle = "rgba(147, 197, 253, 0.85)";
+          g.strokeStyle = "rgba(255, 122, 0, 0.85)";
           g.lineWidth = 1;
           g.strokeRect(clippedLeft, pad.top, clippedRight - clippedLeft, innerH);
         }
