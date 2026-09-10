@@ -24,7 +24,7 @@ test.describe("device ingest", () => {
     await page.getByRole("button", { name: /Create push device/i }).click();
 
     // Device creation stores the key in a flash cookie — not the URL.
-    await page.waitForURL(/device_created=1&focus_device=.+/, {
+    await page.waitForURL(/view=setup.*device_created=1.*focus_device=.+/, {
       timeout: 20_000,
     });
     const url = new URL(page.url());
@@ -50,12 +50,13 @@ test.describe("device ingest", () => {
         );
       }
 
-      await page.reload();
-      const deviceRow = page
-        .locator("li", { has: page.locator(`form input[name="device_id"][value="${deviceId}"]`) })
-        .first();
-      await expect(deviceRow).toBeVisible();
-      await expect(deviceRow.getByText("No POSTs yet")).toHaveCount(0);
+      // Stay on Setup: after the first POST the default Devices view can flip to Status.
+      await page.goto(
+        `/dashboard/devices?view=setup&tab=push&focus_device=${encodeURIComponent(deviceId!)}`,
+      );
+      const deviceRow = page.locator(`#device-${deviceId}`);
+      await expect(deviceRow).toBeVisible({ timeout: 15_000 });
+      await expect(deviceRow.getByText(/No POSTs yet/i)).toHaveCount(0);
     } finally {
       // Always remove the device this test created, even if an assertion above failed.
       page.once("dialog", (dialog) => dialog.accept());

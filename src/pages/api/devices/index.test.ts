@@ -72,9 +72,15 @@ vi.mock("../../../lib/householdActivity", () => ({
 }));
 
 const mockFormRedirectPath = vi.fn();
-vi.mock("../../../lib/siteUrl", () => ({
-  formRedirectPath: (...a: unknown[]) => mockFormRedirectPath(...a),
-}));
+vi.mock("../../../lib/siteUrl", async () => {
+  const actual = await vi.importActual<typeof import("../../../lib/siteUrl")>(
+    "../../../lib/siteUrl",
+  );
+  return {
+    ...actual,
+    formRedirectPath: (...a: unknown[]) => mockFormRedirectPath(...a),
+  };
+});
 
 const mockSetSecretFlash = vi.fn();
 vi.mock("../../../lib/secretFlash", () => ({
@@ -436,6 +442,22 @@ describe("POST /api/devices", () => {
     expect(mockSetSecretFlash).toHaveBeenCalledWith(context.cookies, "ingest_key", expect.any(String));
     expect(context.redirect).toHaveBeenCalledWith(
       "/dashboard/devices?device_created=1&focus_device=new-device",
+    );
+  });
+
+  it("preserves view=setup when creating a push device", async () => {
+    mockFormRedirectPath.mockReturnValue("/dashboard/devices?view=setup");
+    const { POST } = await import("./index");
+    const context = makeContext({
+      action: "create_push",
+      name: "New probe",
+      redirect: "/dashboard/devices?view=setup",
+    });
+
+    await POST(context);
+
+    expect(context.redirect).toHaveBeenCalledWith(
+      "/dashboard/devices?view=setup&device_created=1&focus_device=new-device",
     );
   });
 

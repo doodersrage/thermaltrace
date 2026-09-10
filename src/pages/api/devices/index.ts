@@ -24,7 +24,7 @@ import {
   requireHouseholdEditor,
 } from "../../../lib/householdAuth";
 import { recordHouseholdActivity } from "../../../lib/householdActivity";
-import { formRedirectPath } from "../../../lib/siteUrl";
+import { formRedirectPath, withQuery } from "../../../lib/siteUrl";
 import { FLASH_INGEST_KEY, setSecretFlash } from "../../../lib/secretFlash";
 import { persistEncryptedIngestKey } from "../../../lib/persistIngestKey";
 
@@ -61,7 +61,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   const household = await getOrCreateHouseholdForUser(user.id, user.email);
 
   if (!household.householdId) {
-    return redirect(`${redirectTo}?error=1`);
+    return redirect(withQuery(redirectTo, { error: "1" }));
   }
 
   const householdId = householdEditorCtx(editor).householdId;
@@ -70,15 +70,15 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
     const deviceId = formData.get("device_id")?.toString();
     const targetId = formData.get("target_household_id")?.toString();
     if (!deviceId || !targetId) {
-      return redirect(`${redirectTo}?error=1`);
+      return redirect(withQuery(redirectTo, { error: "1" }));
     }
     const canTarget = await isUserInHousehold(user.id, targetId);
     if (!canTarget) {
-      return redirect(`${redirectTo}?error=1`);
+      return redirect(withQuery(redirectTo, { error: "1" }));
     }
     const result = await transferDeviceToHousehold(deviceId, householdId, targetId);
     if (result.error) {
-      return redirect(`${redirectTo}?error=1`);
+      return redirect(withQuery(redirectTo, { error: "1" }));
     }
     await recordHouseholdActivity({
       householdId,
@@ -86,7 +86,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
       action: "device_transfer",
       detail: `${deviceId} → ${targetId}`,
     });
-    return redirect(`${redirectTo}?device_transferred=1`);
+    return redirect(withQuery(redirectTo, { device_transferred: "1" }));
   }
 
   if (action === "delete") {
@@ -99,7 +99,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
         .eq("id", deviceId)
         .eq("household_id", householdId);
     }
-    return redirect(`${redirectTo}?device_deleted=1`);
+    return redirect(withQuery(redirectTo, { device_deleted: "1" }));
   }
 
   if (action === "bulk") {
@@ -109,14 +109,14 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
       .map((v) => String(v).trim())
       .filter(Boolean);
     if (ids.length === 0 || !["enable", "disable", "delete", "set_space"].includes(bulkOp)) {
-      return redirect(`${redirectTo}?error=1`);
+      return redirect(withQuery(redirectTo, { error: "1" }));
     }
 
     const owned = await listHouseholdDevices(householdId);
     const ownedIds = new Set(owned.devices.map((d) => d.id));
     const targetIds = ids.filter((id) => ownedIds.has(id));
     if (targetIds.length === 0) {
-      return redirect(`${redirectTo}?error=1`);
+      return redirect(withQuery(redirectTo, { error: "1" }));
     }
 
     const supabase = createServerClient();
@@ -133,7 +133,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
         action: "device_bulk_delete",
         detail: `${targetIds.length} devices`,
       });
-      return redirect(`${redirectTo}?bulk_deleted=${targetIds.length}`);
+      return redirect(withQuery(redirectTo, { bulk_deleted: String(targetIds.length) }));
     }
 
     if (bulkOp === "enable" || bulkOp === "disable") {
@@ -148,7 +148,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
         action: `device_bulk_${bulkOp}`,
         detail: `${targetIds.length} devices`,
       });
-      return redirect(`${redirectTo}?bulk_updated=${targetIds.length}`);
+      return redirect(withQuery(redirectTo, { bulk_updated: String(targetIds.length) }));
     }
 
     if (bulkOp === "set_space") {
@@ -164,30 +164,30 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
         action: "device_bulk_set_space",
         detail: `${targetIds.length} → ${space || "(none)"}`,
       });
-      return redirect(`${redirectTo}?bulk_updated=${targetIds.length}`);
+      return redirect(withQuery(redirectTo, { bulk_updated: String(targetIds.length) }));
     }
 
-    return redirect(`${redirectTo}?error=1`);
+    return redirect(withQuery(redirectTo, { error: "1" }));
   }
 
   if (action === "rename") {
     const deviceId = formData.get("device_id")?.toString();
     const name = formData.get("name")?.toString() ?? "";
     if (!deviceId) {
-      return redirect(`${redirectTo}?error=1`);
+      return redirect(withQuery(redirectTo, { error: "1" }));
     }
     const result = await renamePushDevice(householdId, deviceId, name);
     if (result.error) {
-      return redirect(`${redirectTo}?error=1`);
+      return redirect(withQuery(redirectTo, { error: "1" }));
     }
-    return redirect(`${redirectTo}?device_renamed=1`);
+    return redirect(withQuery(redirectTo, { device_renamed: "1" }));
   }
 
   if (action === "set_space") {
     const deviceId = formData.get("device_id")?.toString();
     const space = formData.get("space")?.toString() ?? "";
     if (!deviceId) {
-      return redirect(`${redirectTo}?error=1`);
+      return redirect(withQuery(redirectTo, { error: "1" }));
     }
     const result = await updateDeviceSpace(
       householdId,
@@ -195,15 +195,15 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
       space,
     );
     if (result.error) {
-      return redirect(`${redirectTo}?error=1`);
+      return redirect(withQuery(redirectTo, { error: "1" }));
     }
-    return redirect(`${redirectTo}?device_renamed=1`);
+    return redirect(withQuery(redirectTo, { device_renamed: "1" }));
   }
 
   if (action === "rotate_key") {
     const deviceId = formData.get("device_id")?.toString();
     if (!deviceId) {
-      return redirect(`${redirectTo}?error=1`);
+      return redirect(withQuery(redirectTo, { error: "1" }));
     }
 
     const rawKey = randomKey();
@@ -217,12 +217,12 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
     );
 
     if (result.error) {
-      return redirect(`${redirectTo}?error=1`);
+      return redirect(withQuery(redirectTo, { error: "1" }));
     }
 
     setSecretFlash(cookies, FLASH_INGEST_KEY, rawKey);
     await persistEncryptedIngestKey(deviceId, rawKey);
-    return redirect(`${redirectTo}?key_rotated=1`);
+    return redirect(withQuery(redirectTo, { key_rotated: "1" }));
   }
 
   if (action === "add_sensor") {
@@ -234,13 +234,13 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
     const unit = formData.get("unit")?.toString().trim() || defaultUnitForKind(kind);
 
     if (!deviceId || !key || !label) {
-      return redirect(`${redirectTo}?error=1`);
+      return redirect(withQuery(redirectTo, { error: "1" }));
     }
 
     const supabase = createServerClient();
     const owned = await listHouseholdDevices(householdId);
     if (!owned.devices.some((d) => d.id === deviceId)) {
-      return redirect(`${redirectTo}?error=1`);
+      return redirect(withQuery(redirectTo, { error: "1" }));
     }
 
     await supabase.from("device_sensors").insert({
@@ -252,7 +252,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
       visible: true,
     });
 
-    return redirect(`${redirectTo}?sensor_added=1`);
+    return redirect(withQuery(redirectTo, { sensor_added: "1" }));
   }
 
   if (action === "add_sensor_pair") {
@@ -261,12 +261,12 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
     const label = formData.get("label")?.toString().trim() || "Probe";
 
     if (!deviceId || !key) {
-      return redirect(`${redirectTo}?error=1`);
+      return redirect(withQuery(redirectTo, { error: "1" }));
     }
 
     const owned = await listHouseholdDevices(householdId);
     if (!owned.devices.some((d) => d.id === deviceId)) {
-      return redirect(`${redirectTo}?error=1`);
+      return redirect(withQuery(redirectTo, { error: "1" }));
     }
 
     const supabase = createServerClient();
@@ -290,10 +290,10 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
     ]);
 
     if (error) {
-      return redirect(`${redirectTo}?error=1`);
+      return redirect(withQuery(redirectTo, { error: "1" }));
     }
 
-    return redirect(`${redirectTo}?sensor_added=1`);
+    return redirect(withQuery(redirectTo, { sensor_added: "1" }));
   }
 
   if (action === "update_sensor") {
@@ -310,12 +310,12 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
     const visible = formData.has("visible");
 
     if (!sensorId || !deviceId || !key || !label) {
-      return redirect(`${redirectTo}?error=1`);
+      return redirect(withQuery(redirectTo, { error: "1" }));
     }
 
     const owned = await listHouseholdDevices(householdId);
     if (!owned.devices.some((d) => d.id === deviceId)) {
-      return redirect(`${redirectTo}?error=1`);
+      return redirect(withQuery(redirectTo, { error: "1" }));
     }
 
     const result = await updateDeviceSensor(sensorId, deviceId, {
@@ -328,10 +328,10 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
     });
 
     if (result.error) {
-      return redirect(`${redirectTo}?error=1`);
+      return redirect(withQuery(redirectTo, { error: "1" }));
     }
 
-    return redirect(`${redirectTo}?sensor_updated=1`);
+    return redirect(withQuery(redirectTo, { sensor_updated: "1" }));
   }
 
   if (action === "delete_sensor") {
@@ -339,23 +339,23 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
     const deviceId = formData.get("device_id")?.toString();
 
     if (!sensorId || !deviceId) {
-      return redirect(`${redirectTo}?error=1`);
+      return redirect(withQuery(redirectTo, { error: "1" }));
     }
 
     const owned = await listHouseholdDevices(householdId);
     if (!owned.devices.some((d) => d.id === deviceId)) {
-      return redirect(`${redirectTo}?error=1`);
+      return redirect(withQuery(redirectTo, { error: "1" }));
     }
 
     await deleteDeviceSensor(sensorId, deviceId);
-    return redirect(`${redirectTo}?sensor_deleted=1`);
+    return redirect(withQuery(redirectTo, { sensor_deleted: "1" }));
   }
 
   // create_push only — enforce device limit here
   const existing = await listHouseholdDevices(householdId);
   const pushCount = existing.devices.filter((d) => d.source === "push").length;
   if (pushCount >= entitlements.maxDevices) {
-    return redirect(`${redirectTo}?error=device_limit`);
+    return redirect(withQuery(redirectTo, { error: "device_limit" }));
   }
 
   const name = formData.get("name")?.toString().trim() || "Workshop probe";
@@ -371,12 +371,15 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   );
 
   if (error || !device) {
-    return redirect(`${redirectTo}?error=1`);
+    return redirect(withQuery(redirectTo, { error: "1" }));
   }
 
   setSecretFlash(cookies, FLASH_INGEST_KEY, rawKey);
   await persistEncryptedIngestKey(device.id, rawKey);
   return redirect(
-    `${redirectTo}?device_created=1&focus_device=${encodeURIComponent(device.id)}`,
+    withQuery(redirectTo, {
+      device_created: "1",
+      focus_device: device.id,
+    }),
   );
 };

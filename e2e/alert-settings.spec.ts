@@ -2,6 +2,9 @@ import { test, expect } from "@playwright/test";
 import { getE2ECredentials, signIn } from "./helpers/auth";
 
 test.describe("alert settings", () => {
+  // Shared E2E account: keep mutating tests from racing across workers.
+  test.describe.configure({ mode: "serial" });
+
   test("alerts page requires sign-in", async ({ page }) => {
     await page.goto("/dashboard/alerts");
     await expect(page).toHaveURL(/signin/);
@@ -61,10 +64,12 @@ test.describe("alert settings", () => {
     });
 
     await page.getByRole("button", { name: /Send test now/i }).click();
-    await expect(page.getByRole("status")).toContainText(
-      /Test alert sent|Could not send test|No channels|No alert channels/i,
-      { timeout: 25_000 },
-    );
+    await expect(page).toHaveURL(/test_sent=1|test_error=1/, { timeout: 25_000 });
+    await expect(
+      page.getByRole("status").filter({
+        hasText: /Test alert sent|Could not send test|No channels|No alert channels/i,
+      }),
+    ).toBeVisible();
     await expect(page.getByRole("status")).toContainText(/Test alert sent/i);
   });
 });
