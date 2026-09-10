@@ -36,7 +36,9 @@ function tipForEvent(event: AlertEventRow): FalseAlarmHint | null {
 ---
 
 {events.length === 0 ? (
-  <p class="mb-0 text-sm text-[var(--color-text-muted)]">No alert events yet.</p>
+  <p class="mb-0 text-sm text-[var(--color-text-muted)]">
+    No alert events match this filter yet. After freeze, flood, or test delivery, rows appear here with Why details and false-alarm actions.
+  </p>
 ) : (
   <>
     <div class="alert-activity-mobile space-y-3">

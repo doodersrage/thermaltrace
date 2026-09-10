@@ -1,5 +1,6 @@
 ---
 import DashboardCard from "./dashboard/DashboardCard.astro";
+import { householdRoleLabel } from "../lib/householdRoleLabel";
 
 interface Props {
   households: Array<{ household_id: string; name: string; role: string }>;
@@ -22,7 +23,10 @@ const active = households.find((h) => h.household_id === activeHouseholdId);
       <p class="household-switcher-name mb-0">
         {active?.name ?? "Select a household"}
         {active && (
-          <span class="text-muted-foreground font-normal"> · {active.role}</span>
+          <span class="text-muted-foreground font-normal">
+            {" · "}
+            {householdRoleLabel(active.role)}
+          </span>
         )}
       </p>
     </div>
@@ -32,7 +36,7 @@ const active = households.find((h) => h.household_id === activeHouseholdId);
       <select class="form-input" id="household-switch" name="household_id" required>
         {households.map((h) => (
           <option value={h.household_id} selected={h.household_id === activeHouseholdId}>
-            {h.name} ({h.role})
+            {h.name} ({householdRoleLabel(h.role)})
           </option>
         ))}
       </select>

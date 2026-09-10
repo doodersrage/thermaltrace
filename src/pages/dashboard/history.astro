@@ -39,12 +39,28 @@ import { formatHistoryRetention, getUserEntitlements } from "../../lib/entitleme
 import { getAlertSettingsForUser } from "../../lib/notify";
 import { listAlertEventsInRange } from "../../lib/alertEvents";
 import { toChartAlertMarkers } from "../../lib/chartAlertMarkers";
-import { listHistorySavedViews } from "../../lib/historySavedViews";
+import { listHistorySavedViews, searchParamsFromView } from "../../lib/historySavedViews";
 
 const { session, user } = await getAuthFromCookies(Astro.cookies);
 
 if (!session || !user) {
   return Astro.redirect("/signin");
+}
+
+const defaultHistoryViewId =
+  typeof user.user_metadata?.default_history_view_id === "string"
+    ? user.user_metadata.default_history_view_id
+    : null;
+
+if (!Astro.url.search && defaultHistoryViewId) {
+  const defaultViews = await listHistorySavedViews(user.id);
+  const defaultView = defaultViews.find((view) => view.id === defaultHistoryViewId);
+  if (defaultView) {
+    const qs = searchParamsFromView(defaultView.params);
+    if (qs) {
+      return Astro.redirect(`/dashboard/history?${qs}`);
+    }
+  }
 }
 
 const pageParam = Number(Astro.url.searchParams.get("page") ?? "1");
@@ -509,6 +525,7 @@ const historyUpgradeFeature =
           viewMode={historyTab === "chart" ? "chart" : "table"}
           hideTitle
           savedViews={savedViews}
+          defaultViewId={defaultHistoryViewId}
           canShareChart={canDownloadCsv}
           alertMarkers={chartAlertMarkers}
           highlightAlertId={highlightAlertId}

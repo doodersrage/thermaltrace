@@ -14,7 +14,7 @@ const { show, alertsDone = false } = Astro.props;
     <ol class="waiting-ingest-checklist mb-4">
       <li class="waiting-ingest-done">First POST received</li>
       <li class:list={[alertsDone && "waiting-ingest-done", !alertsDone && "waiting-ingest-pending"]}>
-        {alertsDone ? "Freeze alert configured" : "Set freeze °F + email (below)"}
+        {alertsDone ? "Freeze alert configured" : "Set freeze °F + email, then send a test"}
       </li>
       <li class="waiting-ingest-pending">
         <a class="text-link" href="/dashboard/share/links">Share a live link with family</a>
@@ -22,22 +22,30 @@ const { show, alertsDone = false } = Astro.props;
       </li>
     </ol>
     <p class="mb-3 text-sm text-[var(--color-text-muted)]">
-      Sensor names look fine as-is. Rename anytime on the device card.      <a class="text-link" href="/dashboard/devices?rename_sensors=1">rename later</a>.
+      Sensor names look fine as-is.
+      {" "}
+      <a class="text-link" href="/dashboard/devices?rename_sensors=1">Rename later</a>
+      {" "}
+      on the device card if you want.
     </p>
-    <div class="flex flex-wrap gap-3">
+    <div class="flex flex-wrap gap-3 mb-3">
       {!alertsDone && (
         <a class="btn-primary" href="#first-alert-setup">Set freeze + email</a>
       )}
+      {alertsDone && (
+        <a class="btn-primary" href="/dashboard/alerts#send-test-alert">Send a test alert</a>
+      )}
       <a class="btn-secondary" href="/dashboard">Overview</a>
-      <a class="btn-ghost" href="/about/kit-qr-onboarding">Kit QR guide</a>
-      <a class="btn-ghost" href="/about/esp32-freeze-kit">ESP32 parts</a>
-      <a class="btn-ghost" href="/about/pico-w-ingest">Pico W</a>
-      <a class="btn-ghost" href="/about/stm32-zephyr-ingest">STM32 Zephyr</a>
-      <a class="btn-ghost" href="/about/ch32v-riscv-ingest">CH32V RISC-V</a>
-      <a class="btn-ghost" href="/about/avr-asm-ingest">AVR assembly</a>
-      <a class="btn-ghost" href="/about/teensy41-ingest">Teensy 4.1</a>
-      <a class="btn-ghost" href="/about/pic18-ethernet-ingest">PIC18 Ethernet</a>
-      <a class="btn-ghost" href="/about/cellular-ingest">Cellular</a>
     </div>
+    <details class="text-sm">
+      <summary class="cursor-pointer text-link">Hardware setup guides</summary>
+      <div class="mt-2 flex flex-wrap gap-2">
+        <a class="btn-ghost btn-sm" href="/about/kit-qr-onboarding">Kit QR</a>
+        <a class="btn-ghost btn-sm" href="/about/esp32-freeze-kit">ESP32</a>
+        <a class="btn-ghost btn-sm" href="/about/pico-w-ingest">Pico W</a>
+        <a class="btn-ghost btn-sm" href="/about/cellular-ingest">Cellular</a>
+        <a class="btn-ghost btn-sm" href="/about/esphome-shelly-recipes">ESPHome / Shelly</a>
+      </div>
+    </details>
   </section>
 )}

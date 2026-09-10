@@ -101,6 +101,7 @@ import {
   isDashboardQuietActive,
   shouldForceSimpleOverview,
   PINNABLE_OVERVIEW_METRICS,
+  PINNABLE_OVERVIEW_METRIC_LABELS,
   type PinnableOverviewMetric,
 } from "../lib/dashboardComfort";
 import { computeFreezeHours } from "../lib/freezeHours";
@@ -394,6 +395,23 @@ const hasHouseholdMembers = members.members.length > 1;
 
 const passwordUpdated = Astro.url.searchParams.get("password") === "updated";
 const prefsSaved = Astro.url.searchParams.get("prefs_saved");
+const checkedSaved = Astro.url.searchParams.get("checked_saved") === "1";
+const checkedError = Astro.url.searchParams.get("checked_error") === "1";
+const ackOk = Astro.url.searchParams.get("ack_ok") === "1";
+const ackMsg = Astro.url.searchParams.get("ack_msg");
+const spaceCheckedMap =
+  user.user_metadata?.space_checked_by_household &&
+  typeof user.user_metadata.space_checked_by_household === "object" &&
+  !Array.isArray(user.user_metadata.space_checked_by_household)
+    ? (user.user_metadata.space_checked_by_household as Record<string, unknown>)
+    : {};
+const spaceCheckedAtForHousehold =
+  household.householdId &&
+  typeof spaceCheckedMap[household.householdId] === "string"
+    ? (spaceCheckedMap[household.householdId] as string)
+    : typeof user.user_metadata?.space_checked_at === "string"
+      ? user.user_metadata.space_checked_at
+      : null;
 const prefsError = Astro.url.searchParams.get("prefs_error");
 
 const newestReading = latest
@@ -722,7 +740,7 @@ const garageRisk = computeGarageRiskStatus({
 <DashboardLayout title="Overview">
   <ProductAnalyticsTracker events={analyticsEvents} />
   <div class="dashboard-stack">
-    {(passwordUpdated || prefsSaved || prefsError) && (
+    {(passwordUpdated || prefsSaved || prefsError || checkedSaved || checkedError || ackOk) && (
       <div class="dashboard-flash">
         {passwordUpdated && (
           <p class="alert-success mt-0 mb-0" role="status">Password updated.</p>
@@ -739,6 +757,21 @@ const garageRisk = computeGarageRiskStatus({
             Could not save display preferences.
             {" "}
             <a class="text-link" href="/dashboard/settings">Try again in settings</a>
+          </p>
+        )}
+        {checkedSaved && (
+          <p class="alert-success mt-0 mb-0" role="status">
+            Marked this property as checked.
+          </p>
+        )}
+        {checkedError && (
+          <p class="alert-warning mt-0 mb-0" role="alert">
+            Could not save space-checked status. Try again.
+          </p>
+        )}
+        {ackOk && (
+          <p class="alert-success mt-0 mb-0" role="status">
+            {ackMsg ?? "Alert marked as handled."}
           </p>
         )}
       </div>
@@ -759,8 +792,14 @@ const garageRisk = computeGarageRiskStatus({
     />
 
     <GarageRiskStatusCard status={garageRisk} />
-    <div id="overview-offline-banner" class="alert-warning mb-0" role="status" hidden>
+  <div id="overview-offline-banner" class="alert-warning mb-0" role="status" hidden>
       Showing last-known dashboard status (offline or stale cache).
+    </div>
+    <div class="overview-refresh-row flex flex-wrap items-center gap-2 text-sm text-[var(--color-text-muted)]">
+      <span id="overview-refresh-label">Loaded just now</span>
+      <button type="button" class="btn-ghost btn-sm" id="overview-refresh-btn">
+        Refresh
+      </button>
     </div>
     {!firstRunFocus && (hasDevices || chartWeek.points.length > 0) && (
       <TimeToFreezeCard
@@ -781,17 +820,15 @@ const garageRisk = computeGarageRiskStatus({
     <UnackedAlertsBanner
       count={unackedAlertCount}
       showClaimsPackCta={unackedAlertCount > 0}
+      canAckAll={canEdit && unackedAlertCount > 0}
     />
 
     <OverviewQuickActions
       canEdit={canEdit}
       unackedCount={unackedAlertCount}
       snoozeUntil={alertSettings.snoozeUntil ?? null}
-      spaceCheckedAt={
-        typeof user.user_metadata?.space_checked_at === "string"
-          ? user.user_metadata.space_checked_at
-          : null
-      }
+      spaceCheckedAt={spaceCheckedAtForHousehold}
+      householdId={household.householdId}
     />
 
     <LowBatteryBanner message={primaryBannerIds.has("lowBattery") ? lowBatteryMessage : null} />
@@ -1175,7 +1212,7 @@ const garageRisk = computeGarageRiskStatus({
                   value={id}
                   checked={pinnedMetricSet.has(id)}
                 />
-                <span>{id.replace(/_/g, " ")}</span>
+                <span>{PINNABLE_OVERVIEW_METRIC_LABELS[id]}</span>
               </label>
             ))}
             <button type="submit" class="btn-secondary btn-sm">Save pins</button>
@@ -1298,17 +1335,41 @@ const garageRisk = computeGarageRiskStatus({
     </section>
   </div>
   <script>
-    fetch("/api/user/dashboard-snapshot", { headers: { Accept: "application/json" } })
-      .then(function (res) {
-        var banner = document.getElementById("overview-offline-banner");
-        if (!banner) return;
-        if (res.headers.get("X-ThermalTrace-Stale") === "1") {
-          banner.hidden = false;
-        }
-      })
-      .catch(function () {
-        var banner = document.getElementById("overview-offline-banner");
-        if (banner) banner.hidden = false;
+    (function () {
+      var loadedAt = Date.now();
+      var label = document.getElementById("overview-refresh-label");
+      var btn = document.getElementById("overview-refresh-btn");
+
+      function renderAge() {
+        if (!label) return;
+        var mins = Math.max(0, Math.round((Date.now() - loadedAt) / 60000));
+        label.textContent =
+          mins < 1 ? "Loaded just now" : mins === 1 ? "Loaded 1m ago" : "Loaded " + mins + "m ago";
+      }
+
+      btn?.addEventListener("click", function () {
+        location.reload();
       });
+
+      setInterval(renderAge, 30000);
+      setInterval(function () {
+        if (document.visibilityState !== "visible") return;
+        if (Date.now() - loadedAt < 2.5 * 60 * 1000) return;
+        location.reload();
+      }, 60000);
+
+      fetch("/api/user/dashboard-snapshot", { headers: { Accept: "application/json" } })
+        .then(function (res) {
+          var banner = document.getElementById("overview-offline-banner");
+          if (!banner) return;
+          if (res.headers.get("X-ThermalTrace-Stale") === "1") {
+            banner.hidden = false;
+          }
+        })
+        .catch(function () {
+          var banner = document.getElementById("overview-offline-banner");
+          if (banner) banner.hidden = false;
+        });
+    })();
   </script>
 </DashboardLayout>

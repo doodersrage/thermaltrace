@@ -18,6 +18,23 @@ export const PINNABLE_OVERVIEW_METRICS = [
 
 export type PinnableOverviewMetric = (typeof PINNABLE_OVERVIEW_METRICS)[number];
 
+export const PINNABLE_OVERVIEW_METRIC_LABELS: Record<
+  PinnableOverviewMetric,
+  string
+> = {
+  last_reading: "Last reading",
+  sensors: "Sensors",
+  feeds: "Feeds",
+  alerts: "Alerts",
+  house: "House",
+  freeze_hours: "Freeze hours (7d)",
+  coldest_margin: "Coldest margin",
+  indoor_outdoor: "Indoor − outdoor",
+  probe_spread: "Probe spread",
+  condensation: "Condensation (7d)",
+  feed_health: "Feed health",
+};
+
 export const DEFAULT_PINNED_OVERVIEW_METRICS: PinnableOverviewMetric[] = [
   "last_reading",
   "sensors",

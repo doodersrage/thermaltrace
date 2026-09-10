@@ -69,7 +69,65 @@ const healthTone: Record<string, string> = {
       <a class="text-link" href="#devices-first-run">Connect your first probe</a>
     </p>
   ) : (
-    <div class="overflow-x-auto">
+    <>
+      <div class="device-health-mobile space-y-3">
+        {devices.map((device) => {
+          const age = formatRelativeAge(device.last_seen_at);
+          const battery = formatDeviceBattery(device.meta);
+          const rssi = formatDeviceRssi(device.meta);
+          const sparkPath = batterySparklinePath(parseBatteryHistory(device.meta));
+          const pullHealth = feedHealth.statuses.find((f) => f.feedId === device.id);
+          const health = scoreDeviceHealth(device, latest);
+          return (
+            <article class="rounded-lg border border-[var(--color-border)] p-3 text-sm">
+              <div class="flex flex-wrap items-baseline justify-between gap-2">
+                <strong>{device.name}</strong>
+                <span class:list={["font-semibold", healthTone[health.label]]}>
+                  {health.score}
+                  <span class="font-normal text-[var(--color-text-muted)]">
+                    {" · "}
+                    {health.label.replace("_", " ")}
+                  </span>
+                </span>
+              </div>
+              <p class="m-0 mt-1 text-xs text-[var(--color-text-muted)]">
+                {device.space || "No space"}
+                {" · "}
+                {device.source === "push" ? "Push" : "Pull"}
+                {pullHealth ? ` · ${pullHealth.ok ? "Reachable" : pullHealth.message}` : ""}
+                {" · "}
+                {device.sensors.length} sensor{device.sensors.length === 1 ? "" : "s"}
+              </p>
+              <p class:list={["m-0 mt-2", age.lagging && "text-[var(--color-danger)]"]}>
+                <ReadingAgeBadge iso={device.last_seen_at} emptyLabel="Never" />
+                <span class="text-xs text-[var(--color-text-muted)]">
+                  {" · "}
+                  {device.last_seen_at ? freshnessDetail(age) : "No readings yet"}
+                </span>
+              </p>
+              <p class="m-0 mt-2 text-xs text-[var(--color-text-muted)]">
+                Battery {battery}
+                {" · "}
+                ETA {formatBatteryEta(health.daysRemaining)}
+                {" · "}
+                RSSI {rssi}
+              </p>
+              {sparkPath && (
+                <svg
+                  class="mt-2 text-[var(--color-accent)]"
+                  width="96"
+                  height="20"
+                  viewBox="0 0 64 20"
+                  aria-hidden="true"
+                >
+                  <path d={sparkPath} fill="none" stroke="currentColor" stroke-width="1.5" />
+                </svg>
+              )}
+            </article>
+          );
+        })}
+      </div>
+      <div class="device-health-desktop overflow-x-auto">
       <table class="w-full text-sm">
         <thead>
           <tr class="text-left text-[var(--color-text-muted)]">
@@ -147,9 +205,26 @@ const healthTone: Record<string, string> = {
           })}
         </tbody>
       </table>
-    </div>
+      </div>
+    </>
   )}
 </section>
+
+<style>
+  .device-health-desktop {
+    display: none;
+  }
+
+  @media (min-width: 768px) {
+    .device-health-mobile {
+      display: none;
+    }
+
+    .device-health-desktop {
+      display: block;
+    }
+  }
+</style>
 
 {latest.length > 0 && (
   <section class="card">

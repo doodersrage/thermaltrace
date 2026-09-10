@@ -16,8 +16,9 @@ import {
 } from "../../lib/notify";
 import { getRuntimeEnv } from "../../lib/runtimeEnv";
 import { getUserEntitlements } from "../../lib/entitlements";
-import { listRecentAlertEvents } from "../../lib/alertEvents";
+import { listRecentAlertEventsFiltered } from "../../lib/alertEvents";
 import { formatAlertChannelsCsv } from "../../lib/alertChannelLabels";
+import { formatRelativeAge } from "../../lib/relativeTime";
 import {
   getOrCreateHouseholdForUser,
   getUserHouseholdRole,
@@ -38,11 +39,22 @@ const householdRole = household.householdId
   : null;
 const canEdit = canEditHousehold(householdRole);
 
-const [alertSettingsLoaded, entitlements, recentEvents, devicesResult, tenantNotify] =
+const activityPage = Math.max(1, Number(Astro.url.searchParams.get("activity_page") ?? "1") || 1);
+const activityKind = Astro.url.searchParams.get("activity_kind")?.trim() ?? "";
+const activityUnacked = Astro.url.searchParams.get("activity_unacked") === "1";
+const activityPageSize = 20;
+const activityOffset = (activityPage - 1) * activityPageSize;
+
+const [alertSettingsLoaded, entitlements, activityPageResult, devicesResult, tenantNotify] =
   await Promise.all([
     getAlertSettingsForUser(user.id, user.user_metadata as Record<string, unknown>),
     getUserEntitlements(user.id),
-    listRecentAlertEvents(user.id, 15),
+    listRecentAlertEventsFiltered(user.id, {
+      limit: activityPageSize,
+      offset: activityOffset,
+      kind: activityKind || null,
+      unackedOnly: activityUnacked,
+    }),
     household.householdId
       ? listHouseholdDevices(household.householdId)
       : Promise.resolve({ devices: [] as Awaited<ReturnType<typeof listHouseholdDevices>>["devices"], error: null }),
@@ -50,6 +62,9 @@ const [alertSettingsLoaded, entitlements, recentEvents, devicesResult, tenantNot
       ? getTenantNotifySettings(household.householdId)
       : Promise.resolve({ email: null, name: null }),
   ]);
+
+const recentEvents = activityPageResult.events;
+const activityHasMore = activityPageResult.hasMore;
 
 const { settings: alertSettings } = await ensureAlertDeliveryEvidence(
   user.id,
@@ -298,13 +313,56 @@ const referralRewardDays = Number(
     <section class="card">
       <h2 class="card-title">Recent alert activity</h2>
       <p class="card-subtitle mb-4">Audit trail of delivered and skipped channels.</p>
-      <AlertActivityList
-        events={recentEvents}
-        canEdit={canEdit}
-        hasTenantRelay={hasTenantRelay}
-        hasOutboundWebhook={hasOutboundWebhook}
-        canUseOutboundWebhook={entitlements.canUseOutboundWebhook}
-      />
+      <form class="mb-4 flex flex-wrap items-end gap-3" method="get" action="/dashboard/alerts">
+        <div class="form-field mb-0">
+          <label class="form-label" for="activity_kind">Kind</label>
+          <select class="form-input" id="activity_kind" name="activity_kind">
+            <option value="" selected={!activityKind}>All</option>
+            <option value="freeze" selected={activityKind === "freeze"}>Freeze</option>
+            <option value="flood" selected={activityKind === "flood"}>Flood</option>
+            <option value="forecast" selected={activityKind === "forecast"}>Forecast</option>
+            <option value="threshold" selected={activityKind === "threshold"}>Threshold</option>
+            <option value="test" selected={activityKind === "test"}>Test</option>
+          </select>
+        </div>
+        <label class="checkbox-row mb-0">
+          <input type="checkbox" name="activity_unacked" value="1" checked={activityUnacked} />
+          <span>Unhandled only</span>
+        </label>
+        <button type="submit" class="btn-secondary btn-sm">Filter</button>
+        {(activityKind || activityUnacked || activityPage > 1) && (
+          <a class="btn-ghost btn-sm" href="/dashboard/alerts#recent-alert-activity">Clear</a>
+        )}
+      </form>
+      <div id="recent-alert-activity">
+        <AlertActivityList
+          events={recentEvents}
+          canEdit={canEdit}
+          hasTenantRelay={hasTenantRelay}
+          hasOutboundWebhook={hasOutboundWebhook}
+          canUseOutboundWebhook={entitlements.canUseOutboundWebhook}
+        />
+      </div>
+      {(activityPage > 1 || activityHasMore) && (
+        <div class="mt-4 flex flex-wrap gap-2">
+          {activityPage > 1 && (
+            <a
+              class="btn-ghost btn-sm"
+              href={`/dashboard/alerts?activity_page=${activityPage - 1}${activityKind ? `&activity_kind=${encodeURIComponent(activityKind)}` : ""}${activityUnacked ? "&activity_unacked=1" : ""}#recent-alert-activity`}
+            >
+              Newer
+            </a>
+          )}
+          {activityHasMore && (
+            <a
+              class="btn-secondary btn-sm"
+              href={`/dashboard/alerts?activity_page=${activityPage + 1}${activityKind ? `&activity_kind=${encodeURIComponent(activityKind)}` : ""}${activityUnacked ? "&activity_unacked=1" : ""}#recent-alert-activity`}
+            >
+              Older
+            </a>
+          )}
+        </div>
+      )}
     </section>
   </div>
 </DashboardLayout>

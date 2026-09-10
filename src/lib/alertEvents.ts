@@ -144,6 +144,73 @@ export async function acknowledgeLatestUnackedAlert(
   return { ok: true, eventId: data.id };
 }
 
+/** Acknowledge every delivered alert that is still unhandled (capped). */
+export async function acknowledgeAllUnackedAlerts(
+  userId: string,
+  limit = 50,
+): Promise<{ ok: boolean; count: number; error?: string }> {
+  const supabase = createServerClient();
+  const { data, error: fetchError } = await supabase
+    .from("alert_events")
+    .select("id")
+    .eq("user_id", userId)
+    .is("acknowledged_at", null)
+    .not("channels_sent", "eq", "{}")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (fetchError) return { ok: false, count: 0, error: fetchError.message };
+  const ids = (data ?? []).map((row) => row.id as number);
+  if (ids.length === 0) return { ok: false, count: 0, error: "No unhandled alerts." };
+
+  const acknowledgedAt = new Date().toISOString();
+  const { error } = await supabase
+    .from("alert_events")
+    .update({ acknowledged_at: acknowledgedAt })
+    .eq("user_id", userId)
+    .in("id", ids)
+    .is("acknowledged_at", null);
+
+  if (error) return { ok: false, count: 0, error: error.message };
+  return { ok: true, count: ids.length };
+}
+
+export async function listRecentAlertEventsFiltered(
+  userId: string,
+  options: {
+    limit?: number;
+    offset?: number;
+    kind?: string | null;
+    unackedOnly?: boolean;
+  } = {},
+): Promise<{ events: AlertEventRow[]; hasMore: boolean }> {
+  const limit = Math.min(Math.max(options.limit ?? 20, 1), 50);
+  const offset = Math.max(options.offset ?? 0, 0);
+  const supabase = createServerClient();
+  let query = supabase
+    .from("alert_events")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .range(offset, offset + limit);
+
+  if (options.kind?.trim()) {
+    query = query.ilike("kind", `%${options.kind.trim()}%`);
+  }
+  if (options.unackedOnly) {
+    query = query.is("acknowledged_at", null);
+  }
+
+  const { data, error } = await query;
+  if (error || !data) return { events: [], hasMore: false };
+  const rows = data.map((row) => ({
+    ...(row as AlertEventRow),
+    meta: parseAlertEventMeta((row as { meta?: unknown }).meta),
+  }));
+  const hasMore = rows.length > limit;
+  return { events: rows.slice(0, limit), hasMore };
+}
+
 export async function getAlertEventForUser(
   userId: string,
   eventId: number,

@@ -17,6 +17,7 @@ import { createAdminClient, createServerClient } from "../../lib/supabase";
 import { buildSiteUrl } from "../../lib/stripe";
 import { listHouseholdActivity } from "../../lib/householdActivity";
 import { formatHouseholdActivityAction } from "../../lib/householdActivityLabels";
+import { householdRoleLabel } from "../../lib/householdRoleLabel";
 import { uniqueWeatherCityPresets } from "../../lib/weatherCities";
 import DashboardCard from "../../components/dashboard/DashboardCard.astro";
 import UpgradeNudge from "../../components/UpgradeNudge.astro";
@@ -344,11 +345,7 @@ const digestError = Astro.url.searchParams.get("digest_error");
                 <strong>{h.name}</strong>
                 <span class="text-sm text-[var(--color-text-muted)]">
                   {" · "}
-                  {h.role === "member"
-                    ? "Editor"
-                    : h.role === "owner"
-                      ? "Owner"
-                      : h.role.replace("_", " ")}
+                  {householdRoleLabel(h.role)}
                 </span>
                 {h.household_id === active.householdId && (
                   <span class="feed-health-ok ml-2">Active</span>
@@ -461,11 +458,7 @@ const digestError = Astro.url.searchParams.get("digest_error");
               <strong>{member.email}</strong>
               <span class="text-sm text-[var(--color-text-muted)]">
                 {" · "}
-                {member.role === "member"
-                  ? "Editor"
-                  : member.role === "owner"
-                    ? "Owner"
-                    : member.role.replace("_", " ")}
+                {householdRoleLabel(member.role)}
               </span>
             </div>
             {member.role !== "owner" && ownedId === manageId && (

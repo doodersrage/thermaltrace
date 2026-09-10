@@ -112,9 +112,15 @@ const atDeviceLimit =
   devices.filter((d) => d.source === "push").length >= entitlements.maxDevices;
 
 const noticeParam = Astro.url.searchParams.get("error");
+const bulkDeleted = Astro.url.searchParams.get("bulk_deleted");
+const bulkUpdated = Astro.url.searchParams.get("bulk_updated");
 const deviceNotice =
   Astro.url.searchParams.get("device_deleted")
     ? "Device deleted."
+    : bulkDeleted
+      ? `Deleted ${bulkDeleted} device${bulkDeleted === "1" ? "" : "s"}.`
+      : bulkUpdated
+        ? `Updated ${bulkUpdated} device${bulkUpdated === "1" ? "" : "s"}.`
     : Astro.url.searchParams.get("device_renamed")
       ? "Device renamed."
       : Astro.url.searchParams.get("sensor_added")

@@ -41,6 +41,7 @@ interface Props {
   compareFrom?: string;
   compareTo?: string;
   savedViews?: import("../lib/historySavedViews").HistorySavedView[];
+  defaultViewId?: string | null;
   canShareChart?: boolean;
 }
 
@@ -74,6 +75,7 @@ const {
   compareFrom = "",
   compareTo = "",
   savedViews = [],
+  defaultViewId = null,
   canShareChart = false,
 } = Astro.props;
 const { readings, page, pageSize, totalCount, totalPages, error } = history;
@@ -117,7 +119,7 @@ const chartTitle =
 const hasActiveFilters = Boolean(
   feedFilter || probeFilter || fromDate || toDate || compareFrom || compareTo,
 );
-const clearFiltersHref = tab ? `${basePath}?tab=${tab}` : basePath;
+const clearFiltersHref = tab ? `${basePath}?tab=${encodeURIComponent(tab)}&reset=1` : `${basePath}?reset=1`;
 const currentParamsQs = (() => {
   const params = new URLSearchParams();
   if (tab) params.set("tab", tab);
@@ -164,8 +166,7 @@ function comparePresetHref(preset: "prior_week" | "prior_month"): string {
     )}
   </div>
 
-  {(savedViews.length > 0 || true) && (
-    <div class="mb-4 flex flex-wrap items-center gap-2">
+  <div class="mb-4 flex flex-wrap items-center gap-2">
       {savedViews.map((view) => {
         const qs = (() => {
           const sp = new URLSearchParams();
@@ -182,9 +183,26 @@ function comparePresetHref(preset: "prior_week" | "prior_month"): string {
           if (p.compare_to) sp.set("compare_to", p.compare_to);
           return sp.toString();
         })();
+        const isDefault = defaultViewId === view.id;
         return (
           <span class="inline-flex items-center gap-1 rounded border border-[var(--color-border)] px-2 py-1 text-sm">
             <a class="text-link" href={`${basePath}?${qs}`}>{view.name}</a>
+            {isDefault && (
+              <span class="text-xs text-[var(--color-text-muted)]">default</span>
+            )}
+            <form action="/api/user/history-views" method="post" class="inline">
+              <input type="hidden" name="action" value={isDefault ? "clear_default" : "set_default"} />
+              <input type="hidden" name="id" value={view.id} />
+              <input type="hidden" name="redirect" value={Astro.url.pathname + Astro.url.search} />
+              <button
+                type="submit"
+                class="btn-ghost text-xs px-1"
+                aria-label={isDefault ? `Clear default ${view.name}` : `Set ${view.name} as default`}
+                title={isDefault ? "Clear default" : "Open History on this view"}
+              >
+                {isDefault ? "★" : "☆"}
+              </button>
+            </form>
             <form action="/api/user/history-views" method="post" class="inline">
               <input type="hidden" name="action" value="delete" />
               <input type="hidden" name="id" value={view.id} />
@@ -209,7 +227,6 @@ function comparePresetHref(preset: "prior_week" | "prior_month"): string {
         <button type="submit" class="btn-ghost btn-sm">Save view</button>
       </form>
     </div>
-  )}
 
   {anomalies.length > 0 && (
     <div class="alert-warning mb-4">
@@ -255,19 +272,6 @@ function comparePresetHref(preset: "prior_week" | "prior_month"): string {
       <input class="form-input" type="date" id="to-date" name="to" value={toDate} />
     </div>
     <div class="form-field mb-0">
-      <label class="form-label" for="compare-from">Compare from</label>
-      <input class="form-input" type="date" id="compare-from" name="compare_from" value={compareFrom} />
-    </div>
-    <div class="form-field mb-0">
-      <label class="form-label" for="compare-to">Compare to</label>
-      <input class="form-input" type="date" id="compare-to" name="compare_to" value={compareTo} />
-      <p class="form-hint mb-1">Optional second window (disables YoY).</p>
-      <div class="flex flex-wrap gap-2 mt-1">
-        <a class="btn-ghost btn-sm" href={comparePresetHref("prior_week")}>Prior week</a>
-        <a class="btn-ghost btn-sm" href={comparePresetHref("prior_month")}>Prior month</a>
-      </div>
-    </div>
-    <div class="form-field mb-0">
       <label class="form-label" for="days-filter">Chart range</label>
       <select class="form-input" id="days-filter" name="days">
         <option value="7" selected={days === 7}>Last 7 days</option>
@@ -280,28 +284,62 @@ function comparePresetHref(preset: "prior_week" | "prior_month"): string {
       </select>
       <p class="form-hint">Used when From/To are empty. Plan window: {maxHistoryDays} days.</p>
     </div>
-    {canCompareYoy && (
-      <div class="form-field mb-0 flex flex-col gap-2 justify-end">
-        <label class="checkbox-row mb-0">
-          <input type="checkbox" name="yoy" value="1" checked={compareYoy && !overlayColdest} />
-          <span>Compare to last year (aligned window)</span>
-        </label>
-        <label class="checkbox-row mb-0">
-          <input
-            type="checkbox"
-            name="overlay"
-            value="coldest"
-            checked={overlayColdest}
-          />
-          <span>Overlay last year’s coldest day</span>
-        </label>
-      </div>
-    )}
     <button type="submit" class="btn-secondary self-end">Apply</button>
     {hasActiveFilters && (
       <a class="btn-ghost self-end" href={clearFiltersHref}>Clear filters</a>
     )}
   </form>
+
+  <details
+    class="history-compare-advanced mb-4"
+    open={Boolean(compareFrom || compareTo || compareYoy || overlayColdest)}
+  >
+    <summary class="cursor-pointer text-sm text-link">
+      Compare &amp; overlays
+      {(compareFrom || compareTo || compareYoy || overlayColdest) && (
+        <span class="text-[var(--color-text-muted)]"> · active</span>
+      )}
+    </summary>
+    <form class="history-filters mt-3" method="get" action={basePath}>
+      {tab && <input type="hidden" name="tab" value={tab} />}
+      {feedFilter && <input type="hidden" name="feed" value={feedFilter} />}
+      {probeFilter && <input type="hidden" name="probe" value={probeFilter} />}
+      {fromDate && <input type="hidden" name="from" value={fromDate} />}
+      {toDate && <input type="hidden" name="to" value={toDate} />}
+      {days !== 7 && <input type="hidden" name="days" value={String(days)} />}
+      <div class="form-field mb-0">
+        <label class="form-label" for="compare-from">Compare from</label>
+        <input class="form-input" type="date" id="compare-from" name="compare_from" value={compareFrom} />
+      </div>
+      <div class="form-field mb-0">
+        <label class="form-label" for="compare-to">Compare to</label>
+        <input class="form-input" type="date" id="compare-to" name="compare_to" value={compareTo} />
+        <p class="form-hint mb-1">Optional second window (disables YoY).</p>
+        <div class="flex flex-wrap gap-2 mt-1">
+          <a class="btn-ghost btn-sm" href={comparePresetHref("prior_week")}>Prior week</a>
+          <a class="btn-ghost btn-sm" href={comparePresetHref("prior_month")}>Prior month</a>
+        </div>
+      </div>
+      {canCompareYoy && (
+        <div class="form-field mb-0 flex flex-col gap-2 justify-end">
+          <label class="checkbox-row mb-0">
+            <input type="checkbox" name="yoy" value="1" checked={compareYoy && !overlayColdest} />
+            <span>Compare to last year (aligned window)</span>
+          </label>
+          <label class="checkbox-row mb-0">
+            <input
+              type="checkbox"
+              name="overlay"
+              value="coldest"
+              checked={overlayColdest}
+            />
+            <span>Overlay last year’s coldest day</span>
+          </label>
+        </div>
+      )}
+      <button type="submit" class="btn-secondary self-end">Apply compare</button>
+    </form>
+  </details>
 
   {viewMode !== "table" && (
     <HistoryChart

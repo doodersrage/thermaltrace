@@ -1,6 +1,6 @@
 /**
  * Dashboard keyboard shortcuts:
- *   g then o/d/a/h/p/s — navigate
+ *   g then o/d/a/h/f/l/p/s — navigate
  *   s — focus snooze action
  *   ? — cheat sheet
  */
@@ -39,6 +39,9 @@
         "<li><kbd>g</kbd> then <kbd>d</kbd> Devices</li>" +
         "<li><kbd>g</kbd> then <kbd>a</kbd> Alerts</li>" +
         "<li><kbd>g</kbd> then <kbd>h</kbd> History</li>" +
+        "<li><kbd>g</kbd> then <kbd>f</kbd> Household</li>" +
+        "<li><kbd>g</kbd> then <kbd>l</kbd> Share links</li>" +
+        "<li><kbd>g</kbd> then <kbd>n</kbd> Plans</li>" +
         "<li><kbd>g</kbd> then <kbd>p</kbd> Portfolio</li>" +
         "<li><kbd>g</kbd> then <kbd>s</kbd> Settings</li>" +
         "<li><kbd>s</kbd> Focus snooze</li>" +
@@ -89,6 +92,9 @@
         d: "/dashboard/devices",
         a: "/dashboard/alerts",
         h: "/dashboard/history",
+        f: "/dashboard/household",
+        l: "/dashboard/share/links",
+        n: "/dashboard/plans",
         p: "/dashboard/portfolio",
         s: "/dashboard/settings",
       };

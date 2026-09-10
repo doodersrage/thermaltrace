@@ -903,14 +903,42 @@ const rulesJson = JSON.stringify(settings.alertRules ?? []);
     </details>
   </AlertSettingsPanel>
 
-  <section class="card alert-settings-save">
-    <button type="submit" class="btn-primary" id="alert-settings-submit" hidden={!canEdit}>Save alert settings</button>
-    <p class="form-hint mt-2 mb-0" id="channel-incomplete-hint" hidden>
-      A checked channel needs its destination filled in, or it will be skipped when alerts fire.
-    </p>
+  <section class="card alert-settings-save sticky-alert-save" hidden={!canEdit}>
+    <div class="sticky-alert-save-inner">
+      <button type="submit" class="btn-primary" id="alert-settings-submit">
+        Save alert settings
+      </button>
+      <p class="form-hint mt-0 mb-0" id="channel-incomplete-hint" hidden>
+        A checked channel needs its destination filled in, or it will be skipped when alerts fire.
+      </p>
+      <p class="form-hint mt-0 mb-0 text-[var(--color-text-muted)] sticky-alert-save-hint">
+        Changes are not applied until you save.
+      </p>
+    </div>
   </section>
   </fieldset>
 </form>
+
+<style>
+  .sticky-alert-save {
+    position: sticky;
+    bottom: 0.75rem;
+    z-index: 30;
+    margin-top: 1rem;
+    box-shadow: 0 -8px 24px color-mix(in srgb, var(--color-bg, #0b0b0b) 70%, transparent);
+  }
+
+  .sticky-alert-save-inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1rem;
+  }
+
+  .sticky-alert-save-hint {
+    flex: 1 1 12rem;
+  }
+</style>
 
 <AlertSettingsFormSubmit />
 <AlertSettingsRulesScript initialRules={settings.alertRules} />

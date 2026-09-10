@@ -4,9 +4,11 @@ interface Props {
   unackedCount: number;
   snoozeUntil: string | null;
   spaceCheckedAt: string | null;
+  householdId?: string | null;
 }
 
-const { canEdit, unackedCount, snoozeUntil, spaceCheckedAt } = Astro.props;
+const { canEdit, unackedCount, snoozeUntil, spaceCheckedAt, householdId = null } =
+  Astro.props;
 const snoozeActive =
   snoozeUntil != null && Number.isFinite(Date.parse(snoozeUntil))
     ? Date.parse(snoozeUntil) > Date.now()
@@ -18,18 +20,29 @@ const snoozeActive =
     <div class="overview-quick-actions-head">
       <h2 class="card-title mb-0" id="overview-quick-actions-title">Quick actions</h2>
       <p class="card-subtitle mb-0">
-        Acknowledge, snooze alerts, or mark that you checked the space.
+        Acknowledge, snooze alerts, or mark that you checked this property.
       </p>
     </div>
     <div class="overview-quick-actions-row">
       {unackedCount > 0 ? (
-        <form action="/api/user/alert-events/ack" method="post">
-          <input type="hidden" name="redirect" value="/dashboard" />
-          <input type="hidden" name="action" value="ack_latest" />
-          <button type="submit" class="btn-secondary btn-sm">
-            Acknowledge latest ({unackedCount})
-          </button>
-        </form>
+        <>
+          <form action="/api/user/alert-events/ack" method="post">
+            <input type="hidden" name="redirect" value="/dashboard" />
+            <input type="hidden" name="action" value="ack_latest" />
+            <button type="submit" class="btn-secondary btn-sm">
+              Acknowledge latest
+            </button>
+          </form>
+          {unackedCount > 1 && (
+            <form action="/api/user/alert-events/ack" method="post">
+              <input type="hidden" name="redirect" value="/dashboard" />
+              <input type="hidden" name="action" value="ack_all" />
+              <button type="submit" class="btn-ghost btn-sm">
+                Handle remaining ({unackedCount})
+              </button>
+            </form>
+          )}
+        </>
       ) : (
         <a class="btn-ghost btn-sm" href="/dashboard/alerts">Alerts clear</a>
       )}
@@ -54,6 +67,7 @@ const snoozeActive =
 
       <form action="/api/user/space-checked" method="post">
         <input type="hidden" name="redirect" value="/dashboard" />
+        {householdId && <input type="hidden" name="household_id" value={householdId} />}
         <button type="submit" class="btn-ghost btn-sm" id="overview-checked-space">
           I checked the space
         </button>
