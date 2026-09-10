@@ -109,14 +109,13 @@ const latest = shellLatest
     ? await fetchLatestSensorValues(household.householdId)
     : [];
 
-const redirectTo = "/dashboard/devices";
+const ingestKey = peekSecretFlash(Astro.cookies, FLASH_INGEST_KEY);
 const activeTab =
   Astro.url.searchParams.get("tab") === "pull"
     ? "pull"
     : Astro.url.searchParams.get("tab") === "push"
       ? "push"
       : "push";
-const ingestKey = peekSecretFlash(Astro.cookies, FLASH_INGEST_KEY);
 const focusDevice = Astro.url.searchParams.get("focus_device") ?? "";
 const atDeviceLimit =
   devices.filter((d) => d.source === "push").length >= entitlements.maxDevices;
@@ -280,6 +279,8 @@ const devicesView =
         : "setup";
 const devicesSetupHref =
   activeTab === "pull" ? "/dashboard/devices?view=setup&tab=pull" : "/dashboard/devices?view=setup";
+const redirectTo =
+  devicesView === "ops" ? "/dashboard/devices?view=ops" : devicesSetupHref;
 ---
 <DashboardLayout
   title="Devices"

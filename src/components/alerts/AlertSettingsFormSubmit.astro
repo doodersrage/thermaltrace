@@ -50,7 +50,7 @@
 
     showStatus(data?.message ?? "Alert settings saved.");
     window.setTimeout(() => {
-      const params = new URLSearchParams({ alert_saved: "1" });
+      const params = new URLSearchParams({ tab: "settings", alert_saved: "1" });
       if (data?.channelsIncomplete) params.set("channels_incomplete", "1");
       window.location.href = `/dashboard/alerts?${params.toString()}`;
     }, 400);

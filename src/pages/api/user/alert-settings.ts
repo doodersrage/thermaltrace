@@ -15,7 +15,7 @@ import {
 } from "../../../lib/householdAuth";
 import { recordHouseholdActivity } from "../../../lib/householdActivity";
 import { getUserHouseholdId } from "../../../lib/households";
-import { formRedirectPath } from "../../../lib/siteUrl";
+import { formRedirectPath, withQuery } from "../../../lib/siteUrl";
 
 export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   const { session, user } = await getAuthFromRequest(request, cookies);
@@ -42,11 +42,11 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   );
 
   if (findInvalidAlertWebhookUrl(settings)) {
-    return redirect(`${redirectTo}?alert_error=invalid_webhook_url`);
+    return redirect(withQuery(redirectTo, { alert_error: "invalid_webhook_url" }));
   }
 
   if (isWeakTelegramSecret(settings.telegramCommandSecret)) {
-    return redirect(`${redirectTo}?alert_error=weak_telegram_secret`);
+    return redirect(withQuery(redirectTo, { alert_error: "weak_telegram_secret" }));
   }
 
   const { error } = await updateUserAlertSettings(
@@ -57,7 +57,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   );
 
   if (error) {
-    return redirect(`${redirectTo}?alert_error=1`);
+    return redirect(withQuery(redirectTo, { alert_error: "1" }));
   }
 
   const householdId = await getUserHouseholdId(user.id);
@@ -70,7 +70,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
     });
   }
 
-  const params = new URLSearchParams({ alert_saved: "1" });
-  if (alertChannelsIncomplete(settings)) params.set("channels_incomplete", "1");
-  return redirect(`${redirectTo}?${params.toString()}`);
+  const params: Record<string, string> = { alert_saved: "1" };
+  if (alertChannelsIncomplete(settings)) params.channels_incomplete = "1";
+  return redirect(withQuery(redirectTo, params));
 };

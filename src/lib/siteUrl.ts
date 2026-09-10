@@ -57,6 +57,16 @@ export function formRedirectPath(
   );
 }
 
+/** Merge query params onto a relative path that may already have a query or hash. */
+export function withQuery(path: string, params: Record<string, string>): string {
+  const url = new URL(path, "https://thermaltrace.local");
+  for (const [key, value] of Object.entries(params)) {
+    url.searchParams.set(key, value);
+  }
+  const search = url.searchParams.toString();
+  return `${url.pathname}${search ? `?${search}` : ""}${url.hash}`;
+}
+
 export const OAUTH_NEXT_COOKIE = "oauth_next";
 export const OAUTH_REF_COOKIE = "oauth_ref";
 export const GITHUB_OAUTH_STATE_COOKIE = "github_oauth_state";

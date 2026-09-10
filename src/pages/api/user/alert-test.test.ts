@@ -30,9 +30,13 @@ vi.mock("../../../lib/householdAuth", () => ({
 }));
 
 const mockFormRedirectPath = vi.fn();
-vi.mock("../../../lib/siteUrl", () => ({
-  formRedirectPath: (...a: unknown[]) => mockFormRedirectPath(...a),
-}));
+vi.mock("../../../lib/siteUrl", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../../lib/siteUrl")>();
+  return {
+    ...actual,
+    formRedirectPath: (...a: unknown[]) => mockFormRedirectPath(...a),
+  };
+});
 
 function fakeRedirect(path: string): Response {
   return new Response(null, { status: 302, headers: { Location: path } });

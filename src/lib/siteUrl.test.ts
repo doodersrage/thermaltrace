@@ -5,6 +5,7 @@ import {
   buildSiteUrl,
   formRedirectPath,
   sanitizeNextPath,
+  withQuery,
 } from "./siteUrl";
 
 // import.meta.env is a Proxy that stringifies assigned values, so setting a
@@ -142,5 +143,25 @@ describe("formRedirectPath", () => {
     const formData = new FormData();
     formData.set("redirect", "not-a-path");
     expect(formRedirectPath(formData, "also-not-a-path")).toBe("/dashboard");
+  });
+});
+
+describe("withQuery", () => {
+  it("appends params to a bare path", () => {
+    expect(withQuery("/dashboard/alerts", { alert_saved: "1" })).toBe(
+      "/dashboard/alerts?alert_saved=1",
+    );
+  });
+
+  it("keeps an existing tab query instead of producing a second ?", () => {
+    expect(
+      withQuery("/dashboard/alerts?tab=settings", { alert_saved: "1" }),
+    ).toBe("/dashboard/alerts?tab=settings&alert_saved=1");
+  });
+
+  it("preserves a hash", () => {
+    expect(
+      withQuery("/dashboard/alerts?tab=settings#send-test-alert", { test_sent: "1" }),
+    ).toBe("/dashboard/alerts?tab=settings&test_sent=1#send-test-alert");
   });
 });

@@ -31,12 +31,17 @@ test.describe("alert settings", () => {
 
     await threshold.fill(trial);
     await page.locator("#alert-settings-submit").click();
-    await expect(page).toHaveURL(/alert_saved=1/, { timeout: 20_000 });
+    await expect(page.getByRole("status").filter({ hasText: /Alert settings saved/i })).toBeVisible({
+      timeout: 20_000,
+    });
+    await expect(page).toHaveURL(/tab=settings/);
     await expect(page.locator("#freeze_threshold_f")).toHaveValue(trial);
 
     await threshold.fill(original);
     await page.locator("#alert-settings-submit").click();
-    await expect(page).toHaveURL(/alert_saved=1/, { timeout: 20_000 });
+    await expect(page.getByRole("status").filter({ hasText: /Alert settings saved/i })).toBeVisible({
+      timeout: 20_000,
+    });
     await expect(page.locator("#freeze_threshold_f")).toHaveValue(original);
   });
 
@@ -51,11 +56,16 @@ test.describe("alert settings", () => {
     if (!(await emailChannel.isChecked())) await emailChannel.check();
 
     await page.locator("#alert-settings-submit").click();
-    await expect(page).toHaveURL(/alert_saved=1/, { timeout: 20_000 });
+    await expect(page.getByRole("status").filter({ hasText: /Alert settings saved/i })).toBeVisible({
+      timeout: 20_000,
+    });
 
     await page.getByRole("button", { name: /Send test now/i }).click();
-    await expect(page).toHaveURL(/test_sent=1|test_error=1/, { timeout: 25_000 });
-    await expect(page).toHaveURL(/test_sent=1/);
+    await expect(page.getByRole("status")).toContainText(
+      /Test alert sent|Could not send test|No channels|No alert channels/i,
+      { timeout: 25_000 },
+    );
+    await expect(page.getByRole("status")).toContainText(/Test alert sent/i);
   });
 });
 

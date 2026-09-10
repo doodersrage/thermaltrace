@@ -11,7 +11,7 @@ import {
   redirectUnlessEditor,
   requireHouseholdEditor,
 } from "../../../lib/householdAuth";
-import { formRedirectPath } from "../../../lib/siteUrl";
+import { formRedirectPath, withQuery } from "../../../lib/siteUrl";
 
 function wantsJson(request: Request): boolean {
   const accept = request.headers.get("accept") ?? "";
@@ -86,7 +86,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
           { status: 400, headers: { "Content-Type": "application/json" } },
         );
       }
-      return redirect(`${redirectTo}?test_error=1&test_reason=${reason}`);
+      return redirect(withQuery(redirectTo, { test_error: "1", test_reason: reason }));
     }
 
     await markCooldown(user.id, "last_alert_sent_at");
@@ -98,9 +98,9 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
       });
     }
 
-    const params = new URLSearchParams({ test_sent: "1", sent: sent.join(",") });
-    if (skipped.length > 0) params.set("skipped", skipped.join(","));
-    return redirect(`${redirectTo}?${params.toString()}`);
+    const params: Record<string, string> = { test_sent: "1", sent: sent.join(",") };
+    if (skipped.length > 0) params.skipped = skipped.join(",");
+    return redirect(withQuery(redirectTo, params));
   } catch (error) {
     console.error("Test alert failed:", error);
     if (json) {
@@ -109,6 +109,6 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
         headers: { "Content-Type": "application/json" },
       });
     }
-    return redirect(`${redirectTo}?test_error=1`);
+    return redirect(withQuery(redirectTo, { test_error: "1" }));
   }
 };

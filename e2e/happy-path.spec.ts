@@ -36,9 +36,7 @@ test.describe("happy path essentials", () => {
     test.skip(!getE2ECredentials(), "Set E2E_TEST_EMAIL and E2E_TEST_PASSWORD");
 
     await signIn(page, "/dashboard/share/links");
-    await expect(
-      page.getByRole("heading", { name: /Share with family/i }),
-    ).toBeVisible();
+    await expect(page.getByRole("heading", { name: /^Share$/i }).first()).toBeVisible();
     await expect(
       page.getByRole("button", { name: /Create family live link/i }),
     ).toBeVisible();
