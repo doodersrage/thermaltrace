@@ -4,7 +4,6 @@ import DoorEventHistory from "../DoorEventHistory.astro";
 import BatteryDeclineCard from "./BatteryDeclineCard.astro";
 import DoorTempInsightCard from "./DoorTempInsightCard.astro";
 import EnergyOverviewCard from "./EnergyOverviewCard.astro";
-import FloodLevelCard from "./FloodLevelCard.astro";
 import AirQualityCard from "./AirQualityCard.astro";
 import InsightCalloutCard from "./InsightCalloutCard.astro";
 import RssiOverviewCard from "./RssiOverviewCard.astro";
@@ -16,7 +15,6 @@ import type {
   AirQualityOverview,
   BatteryOverviewRow,
   EnergyOverview,
-  FloodLevelOverview,
   RssiOverviewRow,
 } from "../../lib/overviewExtras";
 
@@ -38,7 +36,6 @@ interface Props {
   airQualityOverview: AirQualityOverview;
   energyOverview: EnergyOverview | null;
   coolingRateFPerHour: number | null;
-  floodLevelOverview: FloodLevelOverview;
   canUseClaimsPack: boolean;
   tier: PlanTier;
   showClaimsPackPrompt: boolean;
@@ -56,7 +53,6 @@ const {
   airQualityOverview,
   energyOverview,
   coolingRateFPerHour,
-  floodLevelOverview,
   canUseClaimsPack,
   tier,
   showClaimsPackPrompt,
@@ -108,7 +104,6 @@ function calloutTone(tone?: string): "warning" | "info" {
         coolingRateFPerHour={coolingRateFPerHour}
       />
     )}
-    <FloodLevelCard overview={floodLevelOverview} />
     <ClaimsPackPromptCard
       canUseClaimsPack={canUseClaimsPack}
       tier={tier}

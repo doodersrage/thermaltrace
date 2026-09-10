@@ -11,6 +11,7 @@ const { overview } = Astro.props;
 const hasWet =
   overview.floodOpen.length > 0 || overview.recentFlood.length > 0;
 const hasLevels = overview.levels.length > 0;
+if (!hasWet && !hasLevels) return null;
 ---
 <DashboardCard id="flood-level">
   <h2 class="card-title">Flood &amp; level</h2>
@@ -33,8 +34,6 @@ const hasLevels = overview.levels.length > 0;
   ) : (
     <p class="text-sm text-[var(--color-text-muted)] mb-3">
       No wet flood events right now.
-      Want this alert? Add a wet/dry contact on your heater pan, laundry, or sump.
-      Wet contacts will notify automatically once alerts are enabled.
     </p>
   )}
 
@@ -49,7 +48,7 @@ const hasLevels = overview.levels.length > 0;
     </ul>
   )}
 
-  {hasLevels ? (
+  {hasLevels && (
     <ul class="space-y-2 mb-0">
       {overview.levels.map((row) => {
         const age = formatRelativeAge(row.at);
@@ -72,9 +71,5 @@ const hasLevels = overview.levels.length > 0;
         );
       })}
     </ul>
-  ) : (
-    <p class="text-sm text-[var(--color-text-muted)] mb-0">
-      No level/sump readings detected. Add a numeric <code>level</code> sensor if you want early warning.
-    </p>
   )}
 </DashboardCard>

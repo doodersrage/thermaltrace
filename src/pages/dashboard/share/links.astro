@@ -30,20 +30,18 @@ const analyticsEvents = Astro.url.searchParams.get("created")
   <ProductAnalyticsTracker events={analyticsEvents} />
   <ShareNav active="links">
     <div class="space-y-6">
-      <section class="card">
-        <h2 class="card-title">Share with family</h2>
-        <p class="card-subtitle">
-          One-click live view, no household invite required. Anyone with the link can see live sensors.
-        </p>
-        {notice && (
-          <p class:list={[noticeIsError ? "alert-warning" : "alert-success", "mt-4"]}>{notice}</p>
-        )}
-        {!canManage && (
-          <p class="alert-warning mt-4 mb-0" role="status">
-            View-only: you cannot create or revoke share links.
-          </p>
-        )}
-      </section>
+      {(notice || !canManage) && (
+        <div class="dashboard-flash">
+          {notice && (
+            <p class:list={[noticeIsError ? "alert-warning" : "alert-success", "mt-0 mb-0"]}>{notice}</p>
+          )}
+          {!canManage && (
+            <p class="alert-warning mt-0 mb-0" role="status">
+              View-only: you cannot create or revoke share links.
+            </p>
+          )}
+        </div>
+      )}
 
       {newHref && (
         <section class="card ingest-key-callout" id="new-share-link">
@@ -84,7 +82,7 @@ const analyticsEvents = Astro.url.searchParams.get("created")
         </section>
       )}
 
-      {canManage && (entitlements.canCreateShareLinks || entitlements.canCreateFamilyShareLink) ? (
+      {canManage && (entitlements.canCreateShareLinks || entitlements.canCreateFamilyShareLink) && (
         <>
           <form action="/api/share/manage" method="post" class="card">
             <input type="hidden" name="action" value="create" />
@@ -142,13 +140,7 @@ const analyticsEvents = Astro.url.searchParams.get("created")
             <UpgradeNudge feature="share_links" tier={entitlements.tier} compact />
           )}
         </>
-      ) : !canManage ? (
-        <section class="card">
-          <p class="mb-0 text-sm text-[var(--color-text-muted)]">
-            Share link creation requires editor access.
-          </p>
-        </section>
-      ) : null}
+      )}
 
       <section class="card">
         <h2 class="card-title">Your links</h2>

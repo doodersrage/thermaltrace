@@ -29,15 +29,11 @@ const {
 <DashboardLayout title="Share" subtitle="Grafana, Home Assistant, Zapier, and webhook delivery.">
   <ShareNav active="integrations">
     <div class="space-y-6">
-      <section class="card">
-        <h2 class="card-title">Integrations</h2>
-        <p class="card-subtitle mb-0">
-          Grafana, Home Assistant, Zapier setup guides, webhook delivery logs, and household activity.
-        </p>
-        {notice && (
-          <p class:list={[noticeIsError ? "alert-warning" : "alert-success", "mt-4"]}>{notice}</p>
-        )}
-      </section>
+      {notice && (
+        <div class="dashboard-flash">
+          <p class:list={[noticeIsError ? "alert-warning" : "alert-success", "mt-0 mb-0"]}>{notice}</p>
+        </div>
+      )}
 
       <GrafanaWizard
         siteUrl={siteUrl}

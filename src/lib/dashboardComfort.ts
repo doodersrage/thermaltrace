@@ -51,7 +51,6 @@ const CRITICAL_BANNER_IDS = new Set(["lowBattery", "stale"]);
 export const OPS_ATTENTION_BANNER_IDS = new Set([
   "lowBattery",
   "stale",
-  "coldSnap",
   "testAlert",
   "alertSetup",
   "freezeReadiness",

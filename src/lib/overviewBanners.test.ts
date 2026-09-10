@@ -5,7 +5,6 @@ const base = {
   lowBattery: false,
   stale: false,
   quietActive: false,
-  showColdSnapChecklist: false,
   prioritizeFirstRun: false,
   showTestAlertNudge: false,
   showAlertSetupNudge: false,
@@ -37,5 +36,11 @@ describe("overviewBanners", () => {
     expect([...partitioned.primaryBannerIds]).toEqual(["stale"]);
     expect(partitioned.secondaryTipBannerIds).not.toContain("youreLive");
     expect(partitioned.secondaryTipBannerIds).not.toContain("upgrade");
+  });
+
+  it("does not count cold-snap as an Attention strip item", () => {
+    const queue = buildOverviewBannerQueue(base);
+    expect(queue.map((b) => b.id)).not.toContain("coldSnap");
+    expect(partitionOverviewBanners(queue).secondaryOpsBannerIds).not.toContain("coldSnap");
   });
 });

@@ -62,8 +62,8 @@ export function computeGarageRiskStatus(input: {
       level: "risk",
       title: wetCount === 1 ? "Flood / leak wet now" : "Flood / leak sensors wet",
       detail: wetFloodDetail(wetCount),
-      actionLabel: "Open flood card",
-      actionHref: "#flood-level",
+      actionLabel: "Open Live",
+      actionHref: "/dashboard/live",
     };
   }
 
@@ -117,7 +117,7 @@ export function computeGarageRiskStatus(input: {
     }
   }
 
-  if (input.showColdSnapChecklist || input.nightsRiskCount > 0) {
+  if (input.showColdSnapChecklist) {
     return {
       level: "watch",
       title:
@@ -127,6 +127,16 @@ export function computeGarageRiskStatus(input: {
       detail: "Outdoor conditions look cold: run the checklist and confirm forecast alerts are on.",
       actionLabel: "Cold-snap checklist",
       actionHref: "#cold-snap",
+    };
+  }
+
+  if (input.nightsRiskCount > 0) {
+    return {
+      level: "watch",
+      title: `${input.nightsRiskCount} night${input.nightsRiskCount === 1 ? "" : "s"} at freeze risk`,
+      detail: "Outdoor conditions look cold: confirm probes on Live and that forecast alerts are on.",
+      actionLabel: "Open Live",
+      actionHref: "/dashboard/live",
     };
   }
 

@@ -122,17 +122,18 @@ const digestError = Astro.url.searchParams.get("digest_error");
   subtitle="Share devices and history. Invite by email — recipients don’t need an account yet."
 >
   <div class="space-y-6">
-    <DashboardCard>
-      <h2 class="card-title">Household sharing</h2>
-      {notice && <p class="alert-success mt-4">{notice}</p>}
-      {errorMessage && <p class="alert-warning mt-4" role="alert">{errorMessage}</p>}
-      {digestSaved && (
-        <p class="alert-success mt-4" role="status">Digest preference saved.</p>
-      )}
-      {digestError && (
-        <p class="alert-warning mt-4" role="alert">Could not save digest preference.</p>
-      )}
-    </DashboardCard>
+    {(notice || errorMessage || digestSaved || digestError) && (
+      <div class="dashboard-flash">
+        {notice && <p class="alert-success mt-0 mb-0">{notice}</p>}
+        {errorMessage && <p class="alert-warning mt-0 mb-0" role="alert">{errorMessage}</p>}
+        {digestSaved && (
+          <p class="alert-success mt-0 mb-0" role="status">Digest preference saved.</p>
+        )}
+        {digestError && (
+          <p class="alert-warning mt-0 mb-0" role="alert">Could not save digest preference.</p>
+        )}
+      </div>
+    )}
 
     {active.householdId && (
       <DashboardCard>

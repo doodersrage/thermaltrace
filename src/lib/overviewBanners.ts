@@ -6,7 +6,6 @@ export type OverviewBannerFlags = {
   lowBattery: boolean;
   stale: boolean;
   quietActive: boolean;
-  showColdSnapChecklist: boolean;
   prioritizeFirstRun: boolean;
   showTestAlertNudge: boolean;
   showAlertSetupNudge: boolean;
@@ -21,11 +20,6 @@ export function buildOverviewBannerQueue(flags: OverviewBannerFlags): OverviewBa
   return [
     { id: "lowBattery", priority: 2, show: flags.lowBattery },
     { id: "stale", priority: 3, show: flags.stale },
-    {
-      id: "coldSnap",
-      priority: 4,
-      show: !flags.quietActive && flags.showColdSnapChecklist && !flags.prioritizeFirstRun,
-    },
     { id: "testAlert", priority: 5, show: !flags.quietActive && flags.showTestAlertNudge },
     { id: "alertSetup", priority: 6, show: !flags.quietActive && flags.showAlertSetupNudge },
     { id: "youreLive", priority: 7, show: !flags.quietActive && flags.showYoureLive },

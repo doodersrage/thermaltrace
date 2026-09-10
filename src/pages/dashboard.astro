@@ -380,7 +380,7 @@ const [
       .slice(0, 4)
       .map((row) => ({
         label: row.sensor.label,
-        at: row.recorded_at,
+        since: row.recorded_at,
       }));
 
     const levels = latest
@@ -393,8 +393,8 @@ const [
       }));
 
     return Promise.resolve({
-      floodOpen: [],
-      recentFlood: wetFlood,
+      floodOpen: wetFlood,
+      recentFlood: [],
       levels,
     });
   })(),
@@ -704,7 +704,6 @@ const overviewBannerQueue = buildOverviewBannerQueue({
   lowBattery: Boolean(lowBatteryMessage),
   stale: staleSensorCount > 0,
   quietActive,
-  showColdSnapChecklist,
   prioritizeFirstRun,
   showTestAlertNudge,
   showAlertSetupNudge,
@@ -1115,13 +1114,21 @@ const garageRisk = computeGarageRiskStatus({
     <DemoPullNudge show={showDemoPullNudge} />
     <ProbeSimulatorNudge show={showProbeSimulatorNudge} />
 
-    {!firstRunFocus && (hasDevices || chartWeek.points.length > 0) && (
+    {(hasDevices || chartWeek.points.length > 0) && (
       <TimeToFreezeCard
         projection={timeToFreeze}
         freezeThresholdF={alertSettings.freezeThresholdF}
         useCelsius={useCelsius}
       />
     )}
+
+    <FloodLevelCard overview={floodLevelOverview} />
+
+    <ColdSnapChecklistCard
+      show={showColdSnapChecklist}
+      coldSnapEnabled={alertSettings.forecastFreezeEnabled}
+      canUseForecast={entitlements.canUseForecastAlerts}
+    />
 
     <AttentionNeededStrip
       count={attentionOpsCount}
@@ -1140,11 +1147,6 @@ const garageRisk = computeGarageRiskStatus({
           <TestAlertNudge
             canEdit={canEdit}
             show={secondaryBannerIds.has("testAlert")}
-          />
-          <ColdSnapChecklistCard
-            show={secondaryBannerIds.has("coldSnap")}
-            coldSnapEnabled={alertSettings.forecastFreezeEnabled}
-            canUseForecast={entitlements.canUseForecastAlerts}
           />
           {secondaryBannerIds.has("freezeReadiness") && (
             <FreezeReadinessCard readiness={freezeReadiness} />
@@ -1267,7 +1269,6 @@ const garageRisk = computeGarageRiskStatus({
               airQualityOverview={airQualityOverview}
               energyOverview={energyOverview}
               coolingRateFPerHour={coolingRateFPerHour}
-              floodLevelOverview={floodLevelOverview}
               canUseClaimsPack={entitlements.canUseClaimsPack}
               tier={entitlements.tier}
               showClaimsPackPrompt={showClaimsPackPrompt}
@@ -1276,12 +1277,9 @@ const garageRisk = computeGarageRiskStatus({
         )}
       </div>
       {!showInsights && (
-        <>
-          <FloodLevelCard overview={floodLevelOverview} />
-          <p class="mt-4 mb-0 text-sm text-[var(--color-text-muted)]">
-            <a class="text-link" href="/dashboard/history">Open History</a> for full charts, CSV export, and claims pack.
-          </p>
-        </>
+        <p class="mt-4 mb-0 text-sm text-[var(--color-text-muted)]">
+          <a class="text-link" href="/dashboard/history">Open History</a> for full charts, CSV export, and claims pack.
+        </p>
       )}
     </section>
   </div>

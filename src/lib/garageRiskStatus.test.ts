@@ -37,6 +37,7 @@ describe("computeGarageRiskStatus", () => {
     });
     expect(status.level).toBe("risk");
     expect(status.detail).toMatch(/4:12 AM/);
+    expect(status.actionHref).toBe("#time-to-freeze");
   });
 
   it("returns ok when readings and alerts are healthy", () => {
@@ -62,7 +63,30 @@ describe("computeGarageRiskStatus", () => {
     const status = computeGarageRiskStatus({ ...base, wetFloodCount: 1 });
     expect(status.level).toBe("risk");
     expect(status.title).toMatch(/flood|leak|wet/i);
-    expect(status.actionHref).toBe("#flood-level");
+    expect(status.actionHref).toBe("/dashboard/live");
+  });
+
+  it("sends nights-at-risk to Live when the checklist is off the page", () => {
+    const status = computeGarageRiskStatus({ ...base, nightsRiskCount: 2 });
+    expect(status.level).toBe("watch");
+    expect(status.actionHref).toBe("/dashboard/live");
+  });
+
+  it("links cold-snap checklist only when that card is shown", () => {
+    const status = computeGarageRiskStatus({
+      ...base,
+      showColdSnapChecklist: true,
+    });
+    expect(status.actionHref).toBe("#cold-snap");
+  });
+
+  it("prefers the checklist hash when nights-at-risk and the card is on the page", () => {
+    const status = computeGarageRiskStatus({
+      ...base,
+      nightsRiskCount: 2,
+      showColdSnapChecklist: true,
+    });
+    expect(status.actionHref).toBe("#cold-snap");
   });
 
   it("nudges alert setup when space is otherwise fine", () => {
