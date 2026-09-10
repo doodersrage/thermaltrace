@@ -237,7 +237,8 @@ const showInsightsEarly =
   !firstRunFocusEarly;
 
 const loadHeavyWeather = showInsightsEarly;
-const loadChart = showInsightsEarly;
+// Probe curves render on Simple and Insights; only skip during first-run focus.
+const loadChart = !firstRunFocusEarly;
 
 const weatherPromise = loadHeavyWeather
   ? fetchWeatherSnapshotForConfig(weatherConfig)
