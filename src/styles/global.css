@@ -2786,6 +2786,33 @@
     gap: 0.5rem;
   }
 
+  .dashboard-shortcut-hint {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.25rem;
+    padding: 0.35rem 0.55rem;
+  }
+
+  .dashboard-shortcut-hint kbd,
+  .dashboard-shortcut-help kbd {
+    font-size: 0.75rem;
+    font-weight: 600;
+    border: 1px solid var(--color-border);
+    border-radius: 0.25rem;
+    padding: 0.05rem 0.35rem;
+    background: transparent;
+  }
+
+  .dashboard-shortcut-help {
+    width: 100%;
+    justify-content: space-between;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    text-align: left;
+  }
+
   .dashboard-topbar-home {
     @apply px-3 py-2 text-sm;
   }
@@ -2814,7 +2841,8 @@
   }
 
   body.is-kiosk .dashboard-topbar-meta,
-  body.is-kiosk .plan-badge {
+  body.is-kiosk .plan-badge,
+  body.is-kiosk .dashboard-shortcut-hint {
     display: none;
   }
 

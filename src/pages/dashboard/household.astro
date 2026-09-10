@@ -22,7 +22,10 @@ import { uniqueWeatherCityPresets } from "../../lib/weatherCities";
 import DashboardCard from "../../components/dashboard/DashboardCard.astro";
 import UpgradeNudge from "../../components/UpgradeNudge.astro";
 
-const { session, user } = await getAuthFromCookies(Astro.cookies);
+const shell = Astro.locals.dashboardShell ?? null;
+const { session, user } = shell
+  ? { session: shell.session, user: shell.user }
+  : await getAuthFromCookies(Astro.cookies);
 if (!session || !user) {
   return Astro.redirect("/signin");
 }
@@ -34,7 +37,9 @@ const manageId = ownedId ?? active.householdId;
 const [membersResult, householdsResult, invitesResult, householdRow, entitlements, ownedCount] =
   await Promise.all([
     manageId ? listHouseholdMembers(manageId) : Promise.resolve({ members: [], error: null }),
-    listUserHouseholds(user.id),
+    shell
+      ? Promise.resolve({ households: shell.households, error: null as string | null })
+      : listUserHouseholds(user.id),
     manageId ? listPendingInvites(manageId) : Promise.resolve({ invites: [], error: null }),
     manageId
       ? createServerClient()
@@ -45,7 +50,7 @@ const [membersResult, householdsResult, invitesResult, householdRow, entitlement
           .eq("id", manageId)
           .maybeSingle()
       : Promise.resolve({ data: null }),
-    getUserEntitlements(user.id),
+    shell ? Promise.resolve(shell.entitlements) : getUserEntitlements(user.id),
     countOwnedHouseholds(user.id),
   ]);
 

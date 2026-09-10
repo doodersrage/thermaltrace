@@ -8,6 +8,7 @@ import { getUserPreferences } from "../../lib/userPreferences";
 import { getUserDevicesAsTempConfig, listHouseholdDevices } from "../../lib/devices";
 import { getOrCreateHouseholdForUser, getUserHouseholdRole, canEditHousehold } from "../../lib/households";
 import { fetchLatestSensorValues } from "../../lib/sensorReadings";
+import { latestFromShell } from "../../lib/dashboardShell";
 import { getAlertSettingsForUser } from "../../lib/notify";
 import { hasConfiguredAlertChannel } from "../../lib/freezeReadiness";
 
@@ -36,9 +37,12 @@ const canEdit = canEditHousehold(householdRole);
 const devices = household.householdId
   ? (await listHouseholdDevices(household.householdId)).devices
   : [];
-const latest = household.householdId
-  ? await fetchLatestSensorValues(household.householdId)
-  : [];
+const shellLatest = latestFromShell(shell, household.householdId);
+const latest = shellLatest
+  ? shellLatest
+  : household.householdId
+    ? await fetchLatestSensorValues(household.householdId)
+    : [];
 
 const hasDevices = devices.length > 0 || deviceConfig.devices.length > 0;
 const hasLive = latest.length > 0;

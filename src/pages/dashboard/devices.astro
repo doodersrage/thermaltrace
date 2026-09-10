@@ -21,6 +21,7 @@ import { fetchThermostatContextWithStatus } from "../../lib/thermostatCorrelatio
 import { listConfiguredThermostatProviders } from "../../lib/thermostatOAuth";
 import { getUserEntitlements } from "../../lib/entitlements";
 import { fetchLatestSensorValues } from "../../lib/sensorReadings";
+import { latestFromShell } from "../../lib/dashboardShell";
 import UpgradeNudge from "../../components/UpgradeNudge.astro";
 import { renderIngestQrSvg } from "../../lib/qrSvg";
 import {
@@ -32,7 +33,10 @@ import { FLASH_INGEST_KEY, peekSecretFlash } from "../../lib/secretFlash";
 import { ingestKeyVaultConfigured } from "../../lib/ingestKeyVault";
 import { getAlertSettingsForUser } from "../../lib/notify";
 
-const { session, user } = await getAuthFromCookies(Astro.cookies);
+const shell = Astro.locals.dashboardShell ?? null;
+const { session, user } = shell
+  ? { session: shell.session, user: shell.user }
+  : await getAuthFromCookies(Astro.cookies);
 
 if (!session || !user) {
   return Astro.redirect("/signin");
@@ -42,9 +46,11 @@ const [preferences, feedHealth, deviceConfig, entitlements, household, userHouse
   getUserPreferences(user),
   checkFeedHealth(user.id),
   getUserDevicesAsTempConfig(user.id, user.email),
-  getUserEntitlements(user.id),
+  shell ? Promise.resolve(shell.entitlements) : getUserEntitlements(user.id),
   getOrCreateHouseholdForUser(user.id, user.email),
-  listUserHouseholds(user.id),
+  shell
+    ? Promise.resolve({ households: shell.households, error: null as string | null })
+    : listUserHouseholds(user.id),
   getAlertSettingsForUser(user.id, user.user_metadata as Record<string, unknown>),
 ]);
 
@@ -96,9 +102,12 @@ const indoorRefError =
         ? "No household found."
         : null;
 
-const latest = household.householdId
-  ? await fetchLatestSensorValues(household.householdId)
-  : [];
+const shellLatest = latestFromShell(shell, household.householdId);
+const latest = shellLatest
+  ? shellLatest
+  : household.householdId
+    ? await fetchLatestSensorValues(household.householdId)
+    : [];
 
 const redirectTo = "/dashboard/devices";
 const activeTab =

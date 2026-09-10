@@ -51,6 +51,15 @@ const lag = typeof liveLagging === "boolean" ? liveLagging : shell.liveLagging;
           <h1 class="dashboard-topbar-title">{title}</h1>
         </div>
         <div class="dashboard-topbar-actions">
+          <button
+            type="button"
+            class="dashboard-shortcut-hint btn-secondary btn-sm"
+            data-tt-shortcut-help
+            title="Keyboard shortcuts"
+            aria-label="Show keyboard shortcuts"
+          >
+            <kbd>?</kbd>
+          </button>
           <KioskModeToggle client:idle />
         </div>
       </header>

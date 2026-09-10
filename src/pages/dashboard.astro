@@ -16,6 +16,7 @@ import { getAuthFromCookies } from "../lib/auth";
 import { getUserPreferences } from "../lib/userPreferences";
 import { fetchUserTempConfig } from "../lib/userTempConfig";
 import { getUserEntitlements } from "../lib/entitlements";
+import { latestFromShell } from "../lib/dashboardShell";
 import { getUserDevicesAsTempConfig, listHouseholdDevices } from "../lib/devices";
 import { ensureAlertDeliveryEvidence, getAlertSettingsForUser } from "../lib/notify";
 import {
@@ -183,7 +184,7 @@ const [
 const weatherConfig = personalWeatherConfigFromPreferences(preferences);
 const chartWindowDays = Math.min(30, Math.max(7, entitlements.historyDays));
 
-const [{ settings: alertSettings }, members, householdDevicesResult, latest, householdRole] =
+const [{ settings: alertSettings }, members, householdDevicesResult, householdRole] =
   await Promise.all([
     ensureAlertDeliveryEvidence(user.id, alertSettingsLoaded),
     household.householdId
@@ -192,13 +193,17 @@ const [{ settings: alertSettings }, members, householdDevicesResult, latest, hou
     household.householdId
       ? listHouseholdDevices(household.householdId)
       : Promise.resolve({ devices: deviceConfig.devices }),
-    household.householdId
-      ? fetchLatestSensorValues(household.householdId)
-      : Promise.resolve([]),
     activeHouseholdId
       ? getUserHouseholdRole(user.id, activeHouseholdId)
       : Promise.resolve(null),
   ]);
+
+const shellLatest = latestFromShell(shell, household.householdId);
+const latest = shellLatest
+  ? shellLatest
+  : household.householdId
+    ? await fetchLatestSensorValues(household.householdId)
+    : [];
 
 const devicesEarly = householdDevicesResult.devices;
 const canEditEarly = canEditHousehold(householdRole);
@@ -233,8 +238,8 @@ const showInsightsEarly =
   getDashboardOverviewMode(user) === "insights" &&
   !firstRunFocusEarly;
 
-const loadHeavyWeather = showInsightsEarly || !firstRunFocusEarly;
-const loadChart = !firstRunFocusEarly;
+const loadHeavyWeather = showInsightsEarly;
+const loadChart = showInsightsEarly;
 
 const [weatherSnapshot, nightsAtRisk, chartWeek] = await Promise.all([
   loadHeavyWeather
@@ -399,8 +404,8 @@ const [
   showInsights ? loadEnergyOverview(devices) : Promise.resolve(null),
   showInsights ? loadPowerOffSessions24h(devices) : Promise.resolve([]),
   showInsights ? loadMotionSessions24h(devices) : Promise.resolve([]),
-  // Time-to-freeze UI is hidden during first-run — skip OpenMeteo until then.
-  !firstRunFocus && weatherHasCoords && weatherSnapshot
+  // Time-to-freeze / OpenMeteo only on Insights (not Simple or first-run).
+  showInsights && weatherHasCoords && weatherSnapshot
     ? fetchOpenMeteoHourlyWindow(weatherSnapshot.lat!, weatherSnapshot.lon!).catch(() => [])
     : Promise.resolve([]),
 ]);

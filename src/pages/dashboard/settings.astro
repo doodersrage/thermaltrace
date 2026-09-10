@@ -24,7 +24,10 @@ import {
   shouldForceSimpleOverview,
 } from "../../lib/dashboardComfort";
 
-const { session, user } = await getAuthFromCookies(Astro.cookies);
+const shell = Astro.locals.dashboardShell ?? null;
+const { session, user } = shell
+  ? { session: shell.session, user: shell.user }
+  : await getAuthFromCookies(Astro.cookies);
 if (!session || !user) {
   return Astro.redirect("/signin");
 }
@@ -37,7 +40,7 @@ const canEdit = canEditHousehold(householdRole);
 
 const [preferences, entitlements, alertSettings, tenantNotify] = await Promise.all([
   getUserPreferences(user),
-  getUserEntitlements(user.id),
+  shell ? Promise.resolve(shell.entitlements) : getUserEntitlements(user.id),
   getAlertSettingsForUser(user.id, user.user_metadata),
   household.householdId
     ? getTenantNotifySettings(household.householdId)

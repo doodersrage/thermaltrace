@@ -14,12 +14,17 @@ import {
   portfolioListQueryString,
 } from "../../lib/portfolioList";
 
-const { session, user } = await getAuthFromCookies(Astro.cookies);
+const shell = Astro.locals.dashboardShell ?? null;
+const { session, user } = shell
+  ? { session: shell.session, user: shell.user }
+  : await getAuthFromCookies(Astro.cookies);
 if (!session || !user) {
   return Astro.redirect("/signin");
 }
 
-const entitlements = await getUserEntitlements(user.id);
+const entitlements = shell
+  ? shell.entitlements
+  : await getUserEntitlements(user.id);
 const { properties, error } = entitlements.canUsePortfolio
   ? await fetchCrossPropertySnapshots(user.id)
   : { properties: [], error: null as string | null };

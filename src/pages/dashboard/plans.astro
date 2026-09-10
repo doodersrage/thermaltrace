@@ -12,15 +12,20 @@ import { normalizeComparisonTier, nextUpgradeTier } from "../../lib/planComparis
 import { getSiteUrl } from "../../lib/stripe";
 import { resolveStripePriceId } from "../../lib/planTier";
 
-const { session, user } = await getAuthFromCookies(Astro.cookies);
+const shell = Astro.locals.dashboardShell ?? null;
+const { session, user } = shell
+  ? { session: shell.session, user: shell.user }
+  : await getAuthFromCookies(Astro.cookies);
 if (!session || !user) {
   return Astro.redirect("/signin");
 }
 
 const [entitlements, subscription, canDownloadCsv] = await Promise.all([
-  getUserEntitlements(user.id),
+  shell ? Promise.resolve(shell.entitlements) : getUserEntitlements(user.id),
   getUserSubscription(user.id),
-  canDownloadHistoryCsv(user.id),
+  shell
+    ? Promise.resolve(shell.entitlements.canDownloadCsv)
+    : canDownloadHistoryCsv(user.id),
 ]);
 
 const currentTier = normalizeComparisonTier(entitlements.tier);

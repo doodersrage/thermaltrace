@@ -124,4 +124,13 @@
       }
     }
   });
+
+  document.addEventListener("click", function (event) {
+    var target = event.target;
+    if (!(target instanceof Element)) return;
+    if (target.closest("[data-tt-shortcut-help]")) {
+      event.preventDefault();
+      showSheet();
+    }
+  });
 })();

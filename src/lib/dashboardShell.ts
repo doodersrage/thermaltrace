@@ -9,7 +9,10 @@ import {
   listUserHouseholds,
   type UserHousehold,
 } from "./households";
-import { fetchLatestSensorValues } from "./sensorReadings";
+import {
+  fetchLatestSensorValues,
+  type LatestSensorRow,
+} from "./sensorReadings";
 import { formatRelativeAge } from "./relativeTime";
 
 export type DashboardShell = {
@@ -23,27 +26,31 @@ export type DashboardShell = {
   showPortfolioInMonitor: boolean;
   liveLagging: boolean;
   activeHouseholdId: string | null;
+  /** Present when live-lag was computed; reuse to avoid a second latest fetch. */
+  latest: LatestSensorRow[] | null;
+};
+
+export type DashboardShellOptions = {
+  includeLiveLag?: boolean;
 };
 
 /**
  * Shared dashboard chrome data. Prefer Astro.locals.dashboardShell from middleware
- * so Overview/Devices/etc. do not re-fetch entitlements/unacked/households.
+ * so Overview/Devices/etc. do not re-fetch entitlements/unacked/households/latest.
  */
 export async function loadDashboardShell(
   cookies: AstroCookies,
-  opts?: { includeLiveLag?: boolean },
+  opts?: DashboardShellOptions,
 ): Promise<DashboardShell | null> {
   const { session, user } = await getAuthFromCookies(cookies);
   if (!session || !user) return null;
-  return loadDashboardShellForUser(user, session, {
-    includeLiveLag: opts?.includeLiveLag ?? true,
-  });
+  return loadDashboardShellForUser(user, session, opts);
 }
 
 export async function loadDashboardShellForUser(
   user: User,
   session: Session,
-  opts?: { includeLiveLag?: boolean },
+  opts?: DashboardShellOptions,
 ): Promise<DashboardShell> {
   const includeLiveLag = opts?.includeLiveLag ?? true;
 
@@ -63,8 +70,9 @@ export async function loadDashboardShellForUser(
   const activeHouseholdId = household.householdId;
 
   let liveLagging = false;
+  let latest: LatestSensorRow[] | null = null;
   if (includeLiveLag && activeHouseholdId) {
-    const latest = await fetchLatestSensorValues(activeHouseholdId);
+    latest = await fetchLatestSensorValues(activeHouseholdId);
     liveLagging =
       latest.length === 0 ||
       latest.some((row) => {
@@ -84,10 +92,29 @@ export async function loadDashboardShellForUser(
     showPortfolioInMonitor,
     liveLagging,
     activeHouseholdId,
+    latest,
   };
 }
 
 export function planLabelForEntitlements(entitlements: Entitlements): string {
   if (entitlements.tier === "admin") return "Admin";
   return entitlements.tier.charAt(0).toUpperCase() + entitlements.tier.slice(1);
+}
+
+/** Prefer shell.latest when it matches this household. */
+export function latestFromShell(
+  shell: DashboardShell | null | undefined,
+  householdId: string | null | undefined,
+): LatestSensorRow[] | null {
+  if (!shell?.latest || !householdId) return null;
+  if (shell.activeHouseholdId !== householdId) return null;
+  return shell.latest;
+}
+
+export function computeLiveLagging(latest: LatestSensorRow[]): boolean {
+  if (latest.length === 0) return true;
+  return latest.some((row) => {
+    if (!row.recorded_at) return true;
+    return formatRelativeAge(row.recorded_at).lagging;
+  });
 }
