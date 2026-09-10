@@ -3340,9 +3340,9 @@
       bottom: 0;
       z-index: 40;
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 0.15rem;
-      padding: 0.35rem 0.4rem calc(0.35rem + env(safe-area-inset-bottom, 0px));
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 0.1rem;
+      padding: 0.3rem 0.25rem calc(0.3rem + env(safe-area-inset-bottom, 0px));
       background: var(--color-surface, #111);
       border-top: 1px solid var(--color-border);
       box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.18);
@@ -3358,7 +3358,7 @@
       min-height: 2.75rem;
       padding: 0.25rem 0.15rem;
       border-radius: var(--radius-md);
-      font-size: 0.65rem;
+      font-size: 0.6rem;
       font-weight: 600;
       color: var(--color-text-muted);
       text-decoration: none;

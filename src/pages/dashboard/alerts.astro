@@ -7,6 +7,7 @@ import ProductAnalyticsTracker from "../../components/ProductAnalyticsTracker.as
 import ReferralCard from "../../components/ReferralCard.astro";
 import FalseAlarmTipsCard from "../../components/dashboard/FalseAlarmTipsCard.astro";
 import AlertActivityList from "../../components/dashboard/AlertActivityList.astro";
+import DashboardFreshnessBar from "../../components/dashboard/DashboardFreshnessBar.astro";
 import { getAuthFromCookies } from "../../lib/auth";
 import { resolveSiteUrl } from "../../lib/schemaMarkup";
 import {
@@ -27,11 +28,21 @@ import {
 import { listHouseholdDevices } from "../../lib/devices";
 import { getTenantNotifySettings } from "../../lib/tenantRelay";
 
-const { session, user } = await getAuthFromCookies(Astro.cookies);
+const shell = Astro.locals.dashboardShell ?? null;
+const { session, user } = shell
+  ? { session: shell.session, user: shell.user }
+  : await getAuthFromCookies(Astro.cookies);
 
 if (!session || !user) {
   return Astro.redirect("/signin");
 }
+const unackedAlertCount = shell?.unackedAlerts ?? 0;
+const activityPage = Math.max(1, Number(Astro.url.searchParams.get("activity_page") ?? "1") || 1);
+const activityKind = Astro.url.searchParams.get("activity_kind")?.trim() ?? "";
+const activityUnacked = Astro.url.searchParams.has("activity_unacked")
+  ? Astro.url.searchParams.get("activity_unacked") === "1"
+  : unackedAlertCount > 0;
+const handleAlertsFirst = unackedAlertCount > 0 || activityUnacked;
 
 const household = await getOrCreateHouseholdForUser(user.id, user.email);
 const householdRole = household.householdId
@@ -39,16 +50,13 @@ const householdRole = household.householdId
   : null;
 const canEdit = canEditHousehold(householdRole);
 
-const activityPage = Math.max(1, Number(Astro.url.searchParams.get("activity_page") ?? "1") || 1);
-const activityKind = Astro.url.searchParams.get("activity_kind")?.trim() ?? "";
-const activityUnacked = Astro.url.searchParams.get("activity_unacked") === "1";
 const activityPageSize = 20;
 const activityOffset = (activityPage - 1) * activityPageSize;
 
 const [alertSettingsLoaded, entitlements, activityPageResult, devicesResult, tenantNotify] =
   await Promise.all([
     getAlertSettingsForUser(user.id, user.user_metadata as Record<string, unknown>),
-    getUserEntitlements(user.id),
+    shell ? Promise.resolve(shell.entitlements) : getUserEntitlements(user.id),
     listRecentAlertEventsFiltered(user.id, {
       limit: activityPageSize,
       offset: activityOffset,
@@ -241,75 +249,9 @@ const referralRewardDays = Number(
     {showReferralCard && (
       <ReferralCard siteUrl={siteUrl} rewardDays={referralRewardDays} />
     )}
-    {canEdit && recentEvents.length > 0 && (
-      <FalseAlarmTipsCard />
-    )}
+    <DashboardFreshnessBar hint={handleAlertsFirst ? "Unhandled alerts first" : null} />
 
-    {canEdit && (
-      <section class="card" id="send-test-alert">
-        <h2 class="card-title">Send a test alert</h2>
-        <p class="card-subtitle mb-4">
-          {lastAlertAt || testSent
-            ? "Fires a sample message to every channel you currently have enabled. Save settings first if you just changed them."
-            : "Confirm delivery once before you rely on freeze warnings. Enable at least one channel below, save, then send."}
-        </p>
-        <form action="/api/user/alert-test" method="post">
-          <input type="hidden" name="redirect" value="/dashboard/alerts" />
-          <button
-            class:list={lastAlertAt || testSent ? "btn-secondary" : "btn-primary"}
-            type="submit"
-          >
-            Send test now
-          </button>
-        </form>
-      </section>
-    )}
-
-    <AlertSettings
-      userEmail={user.email ?? ""}
-      settings={alertSettings}
-      entitlements={entitlements}
-      vapidPublicKey={getRuntimeEnv("VAPID_PUBLIC_KEY") ?? ""}
-      twilioConfigured={isTwilioConfigured()}
-      redirectTo="/dashboard/alerts"
-      canEdit={canEdit}
-      essentialsFirst={!Boolean(
-        alertSettings.lastAlertSentAt ||
-          alertSettings.lastOutageAlertAt ||
-          alertSettings.lastRateAlertAt,
-      )}
-      deviceSpaces={deviceSpaces}
-      thresholdSensors={thresholdSensors}
-    />
-
-    <section class="card">
-      <h2 class="card-title">Door + cold</h2>
-      <p class="card-subtitle mb-0">
-        Door contact on Shelly or ESPHome?
-        <a class="text-link" href="/about/garage-door-cold-playbook">Set up a combined alert rule</a>
-        (door open while temperature drops) ·
-        <a class="text-link" href="/about/esphome-shelly-recipes">ESPHome &amp; Shelly ingest recipes</a>
-      </p>
-    </section>
-
-    <PwaInstallCard />
-
-    {recentEvents.some((event) =>
-      ["threshold", "freeze", "forecast", "nws", "flood", "humidity"].some((kind) =>
-        event.kind?.toLowerCase().includes(kind),
-      ),
-    ) && (
-      <section class="card">
-        <h2 class="card-title">Need evidence for a claim?</h2>
-        <p class="card-subtitle mb-4">
-          After a real freeze or leak event, export a dated summary with matching readings from History.
-        </p>
-        <a class="btn-secondary" href="/dashboard/history#claims-pack">
-          {entitlements.canUseClaimsPack ? "Open claims pack" : "See claims pack (Pro)"}
-        </a>
-      </section>
-    )}
-
+    {handleAlertsFirst && (
     <section class="card">
       <h2 class="card-title">Recent alert activity</h2>
       <p class="card-subtitle mb-4">Audit trail of delivered and skipped channels.</p>
@@ -364,6 +306,135 @@ const referralRewardDays = Number(
         </div>
       )}
     </section>
+    )}
+
+    {canEdit && recentEvents.length > 0 && (
+      <FalseAlarmTipsCard />
+    )}
+
+    {canEdit && (
+      <section class="card" id="send-test-alert">
+        <h2 class="card-title">Send a test alert</h2>
+        <p class="card-subtitle mb-4">
+          {lastAlertAt || testSent
+            ? "Fires a sample message to every channel you currently have enabled. Save settings first if you just changed them."
+            : "Confirm delivery once before you rely on freeze warnings. Enable at least one channel below, save, then send."}
+        </p>
+        <form action="/api/user/alert-test" method="post">
+          <input type="hidden" name="redirect" value="/dashboard/alerts" />
+          <button
+            class:list={lastAlertAt || testSent ? "btn-secondary" : "btn-primary"}
+            type="submit"
+          >
+            Send test now
+          </button>
+        </form>
+      </section>
+    )}
+
+    <AlertSettings
+      userEmail={user.email ?? ""}
+      settings={alertSettings}
+      entitlements={entitlements}
+      vapidPublicKey={getRuntimeEnv("VAPID_PUBLIC_KEY") ?? ""}
+      twilioConfigured={isTwilioConfigured()}
+      redirectTo="/dashboard/alerts"
+      canEdit={canEdit}
+      essentialsFirst={!Boolean(
+        alertSettings.lastAlertSentAt ||
+          alertSettings.lastOutageAlertAt ||
+          alertSettings.lastRateAlertAt,
+      )}
+      deviceSpaces={deviceSpaces}
+      thresholdSensors={thresholdSensors}
+    />
+
+{!handleAlertsFirst && (
+    <section class="card">
+      <h2 class="card-title">Recent alert activity</h2>
+      <p class="card-subtitle mb-4">Audit trail of delivered and skipped channels.</p>
+      <form class="mb-4 flex flex-wrap items-end gap-3" method="get" action="/dashboard/alerts">
+        <div class="form-field mb-0">
+          <label class="form-label" for="activity_kind">Kind</label>
+          <select class="form-input" id="activity_kind" name="activity_kind">
+            <option value="" selected={!activityKind}>All</option>
+            <option value="freeze" selected={activityKind === "freeze"}>Freeze</option>
+            <option value="flood" selected={activityKind === "flood"}>Flood</option>
+            <option value="forecast" selected={activityKind === "forecast"}>Forecast</option>
+            <option value="threshold" selected={activityKind === "threshold"}>Threshold</option>
+            <option value="test" selected={activityKind === "test"}>Test</option>
+          </select>
+        </div>
+        <label class="checkbox-row mb-0">
+          <input type="checkbox" name="activity_unacked" value="1" checked={activityUnacked} />
+          <span>Unhandled only</span>
+        </label>
+        <button type="submit" class="btn-secondary btn-sm">Filter</button>
+        {(activityKind || activityUnacked || activityPage > 1) && (
+          <a class="btn-ghost btn-sm" href="/dashboard/alerts#recent-alert-activity">Clear</a>
+        )}
+      </form>
+      <div id="recent-alert-activity">
+        <AlertActivityList
+          events={recentEvents}
+          canEdit={canEdit}
+          hasTenantRelay={hasTenantRelay}
+          hasOutboundWebhook={hasOutboundWebhook}
+          canUseOutboundWebhook={entitlements.canUseOutboundWebhook}
+        />
+      </div>
+      {(activityPage > 1 || activityHasMore) && (
+        <div class="mt-4 flex flex-wrap gap-2">
+          {activityPage > 1 && (
+            <a
+              class="btn-ghost btn-sm"
+              href={`/dashboard/alerts?activity_page=${activityPage - 1}${activityKind ? `&activity_kind=${encodeURIComponent(activityKind)}` : ""}${activityUnacked ? "&activity_unacked=1" : ""}#recent-alert-activity`}
+            >
+              Newer
+            </a>
+          )}
+          {activityHasMore && (
+            <a
+              class="btn-secondary btn-sm"
+              href={`/dashboard/alerts?activity_page=${activityPage + 1}${activityKind ? `&activity_kind=${encodeURIComponent(activityKind)}` : ""}${activityUnacked ? "&activity_unacked=1" : ""}#recent-alert-activity`}
+            >
+              Older
+            </a>
+          )}
+        </div>
+      )}
+    </section>
+    )}
+
+    <section class="card">
+      <h2 class="card-title">Door + cold</h2>
+      <p class="card-subtitle mb-0">
+        Door contact on Shelly or ESPHome?
+        <a class="text-link" href="/about/garage-door-cold-playbook">Set up a combined alert rule</a>
+        (door open while temperature drops) ·
+        <a class="text-link" href="/about/esphome-shelly-recipes">ESPHome &amp; Shelly ingest recipes</a>
+      </p>
+    </section>
+
+    <PwaInstallCard />
+
+    {recentEvents.some((event) =>
+      ["threshold", "freeze", "forecast", "nws", "flood", "humidity"].some((kind) =>
+        event.kind?.toLowerCase().includes(kind),
+      ),
+    ) && (
+      <section class="card">
+        <h2 class="card-title">Need evidence for a claim?</h2>
+        <p class="card-subtitle mb-4">
+          After a real freeze or leak event, export a dated summary with matching readings from History.
+        </p>
+        <a class="btn-secondary" href="/dashboard/history#claims-pack">
+          {entitlements.canUseClaimsPack ? "Open claims pack" : "See claims pack (Pro)"}
+        </a>
+      </section>
+    )}
+
+
   </div>
 </DashboardLayout>
 

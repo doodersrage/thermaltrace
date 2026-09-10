@@ -8,11 +8,13 @@ import { getUserPreferences } from "../../lib/userPreferences";
 import { getUserDevicesAsTempConfig, listHouseholdDevices } from "../../lib/devices";
 import { getOrCreateHouseholdForUser, getUserHouseholdRole, canEditHousehold } from "../../lib/households";
 import { fetchLatestSensorValues } from "../../lib/sensorReadings";
-import { formatRelativeAge } from "../../lib/relativeTime";
 import { getAlertSettingsForUser } from "../../lib/notify";
 import { hasConfiguredAlertChannel } from "../../lib/freezeReadiness";
 
-const { session, user } = await getAuthFromCookies(Astro.cookies);
+const shell = Astro.locals.dashboardShell ?? null;
+const { session, user } = shell
+  ? { session: shell.session, user: shell.user }
+  : await getAuthFromCookies(Astro.cookies);
 if (!session || !user) {
   return Astro.redirect("/signin?next=/dashboard/live");
 }
@@ -48,7 +50,7 @@ const hasEmailAlerts =
   alertSettings.enabled && hasConfiguredAlertChannel(alertSettings);
 const panelsHidden = !showGarageTemps && !showWeather;
 ---
-<DashboardLayout title="Live" liveLagging={!hasLive || latest.some((row) => !row.recorded_at || formatRelativeAge(row.recorded_at).lagging)}>
+<DashboardLayout title="Live">
   <div class="space-y-6">
     <section class="card" aria-labelledby="live-intro-title">
       <h2 class="card-title" id="live-intro-title">Live readings</h2>

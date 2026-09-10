@@ -89,6 +89,22 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
       userId = user?.id ?? null;
 
+      context.locals.session = session;
+      context.locals.user = user ?? null;
+
+      if (
+        user &&
+        pathname.startsWith("/dashboard") &&
+        !pathname.startsWith("/api/")
+      ) {
+        const { loadDashboardShellForUser } = await import("./lib/dashboardShell");
+        context.locals.dashboardShell = await loadDashboardShellForUser(
+          user,
+          session,
+          { includeLiveLag: true },
+        );
+      }
+
       if (!isMfaExemptPath(pathname)) {
         const aal = getAalClaim(session.access_token);
         let needsMfa = false;

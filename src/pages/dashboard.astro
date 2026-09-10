@@ -137,7 +137,10 @@ import MetricCard from "../components/dashboard/MetricCard.astro";
 import DashboardWeekChart from "../components/dashboard/DashboardWeekChart.astro";
 import NightsAtRiskCard from "../components/dashboard/NightsAtRiskCard.astro";
 
-const { session, user } = await getAuthFromCookies(Astro.cookies);
+const shell = Astro.locals.dashboardShell ?? null;
+const { session, user } = shell
+  ? { session: shell.session, user: shell.user }
+  : await getAuthFromCookies(Astro.cookies);
 
 if (!session || !user) {
   return Astro.redirect("/signin");
@@ -163,52 +166,92 @@ const [
 ] = await Promise.all([
   getUserPreferences(user),
   fetchUserTempConfig(user.id),
-  getUserEntitlements(user.id),
+  shell ? Promise.resolve(shell.entitlements) : getUserEntitlements(user.id),
   getUserDevicesAsTempConfig(user.id, user.email),
   getAlertSettingsForUser(user.id, user.user_metadata as Record<string, unknown>),
   getOrCreateHouseholdForUser(user.id, user.email),
   checkFeedHealth(user.id),
-  listUserHouseholds(user.id),
-  getUserHouseholdId(user.id),
-  countUnacknowledgedAlerts(user.id),
+  shell
+    ? Promise.resolve({ households: shell.households, error: null as string | null })
+    : listUserHouseholds(user.id),
+  shell?.activeHouseholdId
+    ? Promise.resolve(shell.activeHouseholdId)
+    : getUserHouseholdId(user.id),
+  shell ? Promise.resolve(shell.unackedAlerts) : countUnacknowledgedAlerts(user.id),
 ]);
 
 const weatherConfig = personalWeatherConfigFromPreferences(preferences);
-
-// Heal alert evidence and resolve weather in parallel (weather only needs preferences).
-const [{ settings: alertSettings }, weatherSnapshot] = await Promise.all([
-  ensureAlertDeliveryEvidence(user.id, alertSettingsLoaded),
-  fetchWeatherSnapshotForConfig(weatherConfig),
-]);
-
 const chartWindowDays = Math.min(30, Math.max(7, entitlements.historyDays));
 
-const [
-  members,
-  householdDevicesResult,
-  latest,
-  nightsAtRisk,
-  householdRole,
-  chartWeek,
-] = await Promise.all([
-  household.householdId
-    ? listHouseholdMembers(household.householdId)
-    : Promise.resolve({ members: [] as Awaited<ReturnType<typeof listHouseholdMembers>>["members"] }),
-  household.householdId
-    ? listHouseholdDevices(household.householdId)
-    : Promise.resolve({ devices: deviceConfig.devices }),
-  household.householdId
-    ? fetchLatestSensorValues(household.householdId)
-    : Promise.resolve([]),
-  fetchNightsAtRiskForConfig(
-    weatherConfig,
-    alertSettings.freezeThresholdF,
-    weatherSnapshot,
-  ),
-  activeHouseholdId
-    ? getUserHouseholdRole(user.id, activeHouseholdId)
+const [{ settings: alertSettings }, members, householdDevicesResult, latest, householdRole] =
+  await Promise.all([
+    ensureAlertDeliveryEvidence(user.id, alertSettingsLoaded),
+    household.householdId
+      ? listHouseholdMembers(household.householdId)
+      : Promise.resolve({ members: [] as Awaited<ReturnType<typeof listHouseholdMembers>>["members"] }),
+    household.householdId
+      ? listHouseholdDevices(household.householdId)
+      : Promise.resolve({ devices: deviceConfig.devices }),
+    household.householdId
+      ? fetchLatestSensorValues(household.householdId)
+      : Promise.resolve([]),
+    activeHouseholdId
+      ? getUserHouseholdRole(user.id, activeHouseholdId)
+      : Promise.resolve(null),
+  ]);
+
+const devicesEarly = householdDevicesResult.devices;
+const canEditEarly = canEditHousehold(householdRole);
+const forceSimpleEarly = shouldForceSimpleOverview(householdRole);
+const onboardingDismissedEarly =
+  (user.user_metadata as Record<string, unknown> | undefined)?.onboarding_dismissed === true;
+const hasDevicesEarly =
+  tempConfig.hasCustomConfig ||
+  deviceConfig.devices.some((d) => d.source === "push");
+const hasAlertsEnabledEarly = alertSettings.enabled;
+const hasEmailAlertsEarly =
+  alertSettings.enabled && hasConfiguredAlertChannel(alertSettings, user.email);
+const lastAlertCandidatesEarlyGate = [
+  alertSettings.lastAlertSentAt,
+  alertSettings.lastOutageAlertAt,
+  alertSettings.lastRateAlertAt,
+  alertSettings.lastForecastAlertAt,
+  alertSettings.lastRunwayAlertAt,
+  alertSettings.lastFloodAlertAt,
+  alertSettings.lastNwsAlertAt,
+].filter(Boolean) as string[];
+const hasTestAlertEarly = lastAlertCandidatesEarlyGate.length > 0;
+const essentialDoneEarly =
+  (hasDevicesEarly || latest.length > 0) &&
+  hasAlertsEnabledEarly &&
+  hasTestAlertEarly &&
+  (hasEmailAlertsEarly || hasConfiguredAlertChannel(alertSettings, user.email));
+const firstRunFocusEarly =
+  canEditEarly && !onboardingDismissedEarly && !essentialDoneEarly;
+const showInsightsEarly =
+  !forceSimpleEarly &&
+  getDashboardOverviewMode(user) === "insights" &&
+  !firstRunFocusEarly;
+
+const loadHeavyWeather = showInsightsEarly || !firstRunFocusEarly;
+const loadChart = !firstRunFocusEarly;
+
+const [weatherSnapshot, nightsAtRisk, chartWeek] = await Promise.all([
+  loadHeavyWeather
+    ? fetchWeatherSnapshotForConfig(weatherConfig)
     : Promise.resolve(null),
-  fetchGarageTempChartData(user.id, chartWindowDays),
+  showInsightsEarly
+    ? fetchNightsAtRiskForConfig(
+        weatherConfig,
+        alertSettings.freezeThresholdF,
+      )
+    : Promise.resolve([] as Awaited<ReturnType<typeof fetchNightsAtRiskForConfig>>),
+  loadChart
+    ? fetchGarageTempChartData(user.id, chartWindowDays)
+    : Promise.resolve({
+        points: [] as Awaited<ReturnType<typeof fetchGarageTempChartData>>["points"],
+        error: null as string | null,
+      }),
 ]);
 
 const devices = householdDevicesResult.devices;
@@ -301,9 +344,8 @@ const [
         lon: null,
         label: null,
       }),
-  weatherHasCoords && weatherSnapshot && (showInsights || !firstRunFocus)
-    ? // Cold-snap still wants NWS on Simple; skip only during unfinished first-run.
-      fetchNwsAlerts(weatherSnapshot.lat!, weatherSnapshot.lon!).catch(() => null)
+  weatherHasCoords && weatherSnapshot && showInsights
+    ? fetchNwsAlerts(weatherSnapshot.lat!, weatherSnapshot.lon!).catch(() => null)
     : Promise.resolve(null),
   showInsights
     ? fetchWeekCompare(user.id, user, chartWeek.points)
@@ -370,7 +412,7 @@ const [thermostatOverview, houseChartOverlay] = await Promise.all([
         thermostatConnections[0].provider,
       )
     : Promise.resolve(null),
-  !firstRunFocus && household.householdId
+  !firstRunFocus && !forceSimple && household.householdId
     ? fetchHouseChartOverlay({
         householdId: household.householdId,
         days: chartWindowDays,

@@ -41,7 +41,10 @@ import { listAlertEventsInRange } from "../../lib/alertEvents";
 import { toChartAlertMarkers } from "../../lib/chartAlertMarkers";
 import { listHistorySavedViews, searchParamsFromView } from "../../lib/historySavedViews";
 
-const { session, user } = await getAuthFromCookies(Astro.cookies);
+const shell = Astro.locals.dashboardShell ?? null;
+const { session, user } = shell
+  ? { session: shell.session, user: shell.user }
+  : await getAuthFromCookies(Astro.cookies);
 
 if (!session || !user) {
   return Astro.redirect("/signin");
@@ -74,7 +77,7 @@ if (pageParam < 1 || Number.isNaN(pageParam)) {
   return Astro.redirect("/dashboard/history?page=1");
 }
 
-const entitlements = await getUserEntitlements(user.id);
+const entitlements = shell?.entitlements ?? (await getUserEntitlements(user.id));
 const historyDays = entitlements.historyDays;
 const cutoffDate = historyCutoffIso(historyDays).slice(0, 10);
 const fromDate =
@@ -162,51 +165,59 @@ const chartWindowDays =
       )
     : chartDays;
 
-const [
-  history,
-  chartData,
-  priorYearBundle,
-  comparePeriodData,
-  filterOptions,
-  canDownloadCsv,
-  subscription,
-  insights,
-  alertSettings,
-  savedViews,
-] = await Promise.all([
-  fetchGarageTempHistory(user.id, pageParam, undefined, filters),
-  fetchGarageTempChartData(user.id, chartWindowDays, chartFilters),
-  needPriorYear
-    ? fetchPriorYearCompareBundle(
-        user.id,
-        overlayColdest ? Math.max(chartWindowDays, 30) : chartWindowDays,
-        chartFilters,
-        user,
-      )
-    : Promise.resolve({
+const [history, chartData, filterOptions, canDownloadCsv, alertSettings, savedViews] =
+  await Promise.all([
+    fetchGarageTempHistory(user.id, pageParam, undefined, filters),
+    fetchGarageTempChartData(user.id, chartWindowDays, chartFilters),
+    fetchHistoryFilterOptions(user.id),
+    canDownloadHistoryCsv(user.id),
+    getAlertSettingsForUser(user.id, user.user_metadata as Record<string, unknown>),
+    listHistorySavedViews(user.id),
+  ]);
+
+const historyEmpty =
+  !history.error && history.totalCount === 0 && !feedFilter && !probeFilter && !fromDate && !toDate;
+
+const [priorYearBundle, comparePeriodData, subscription, insights] = historyEmpty
+  ? [
+      {
         points: [],
         source: "none" as const,
         outdoorLocationLabel: null,
         earliestLocalReadingAt: null,
-      }),
-  hasCustomCompare
-    ? fetchGarageTempChartData(user.id, historyDays, {
-        feedName: feedFilter || undefined,
-        probeKey: probeFilter || undefined,
-        from: clampIsoToHistoryWindow(
-          new Date(`${compareFromParam}T00:00:00`).toISOString(),
-          historyDays,
-        ),
-        to: new Date(`${compareToParam}T23:59:59`).toISOString(),
-      })
-    : Promise.resolve({ points: [], error: null }),
-  fetchHistoryFilterOptions(user.id),
-  canDownloadHistoryCsv(user.id),
-  getUserSubscription(user.id),
-  computeSeasonalInsights(user.id, Math.min(30, historyDays), user),
-  getAlertSettingsForUser(user.id, user.user_metadata as Record<string, unknown>),
-  listHistorySavedViews(user.id),
-]);
+      },
+      { points: [] as Awaited<ReturnType<typeof fetchGarageTempChartData>>["points"], error: null },
+      await getUserSubscription(user.id),
+      [] as Awaited<ReturnType<typeof computeSeasonalInsights>>,
+    ]
+  : await Promise.all([
+      needPriorYear
+        ? fetchPriorYearCompareBundle(
+            user.id,
+            overlayColdest ? Math.max(chartWindowDays, 30) : chartWindowDays,
+            chartFilters,
+            user,
+          )
+        : Promise.resolve({
+            points: [],
+            source: "none" as const,
+            outdoorLocationLabel: null,
+            earliestLocalReadingAt: null,
+          }),
+      hasCustomCompare
+        ? fetchGarageTempChartData(user.id, historyDays, {
+            feedName: feedFilter || undefined,
+            probeKey: probeFilter || undefined,
+            from: clampIsoToHistoryWindow(
+              new Date(`${compareFromParam}T00:00:00`).toISOString(),
+              historyDays,
+            ),
+            to: new Date(`${compareToParam}T23:59:59`).toISOString(),
+          })
+        : Promise.resolve({ points: [], error: null }),
+      getUserSubscription(user.id),
+      computeSeasonalInsights(user.id, Math.min(30, historyDays), user),
+    ]);
 
 const priorYearData = { points: priorYearBundle.points, error: null };
 
@@ -225,7 +236,9 @@ const chartAlertMarkers =
       )
     : [];
 
-const outdoorDelta = await fetchIndoorOutdoorDelta(
+const outdoorDelta = historyEmpty
+  ? null
+  : await fetchIndoorOutdoorDelta(
   chartData.points,
   preferences.weatherCityId,
   user,
@@ -368,6 +381,21 @@ const historyUpgradeFeature =
         : null;
 ---
 <DashboardLayout title="Reading History">
+  {historyEmpty && (
+    <section class="card mb-6" aria-labelledby="history-empty-title">
+      <h2 class="card-title" id="history-empty-title">No history yet</h2>
+      <p class="card-subtitle mb-4">
+        Charts and CSV fill in after the first collection (~15 minutes) or a live POST.
+        Confirm probe cards on Live, or wire a device first.
+      </p>
+      <div class="flex flex-wrap gap-3">
+        <a class="btn-primary" href="/dashboard/live">Open Live</a>
+        <a class="btn-secondary" href="/dashboard/devices">Open Devices</a>
+        <a class="btn-ghost" href="/dashboard">Overview</a>
+      </div>
+    </section>
+  )}
+
   {subscriptionNotice === "success" && (
     <ProductAnalyticsTracker
       events={[

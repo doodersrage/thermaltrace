@@ -2,74 +2,56 @@
 import Layout from "./Layout.astro";
 import DashboardSidebar from "../components/DashboardSidebar.astro";
 import KioskModeToggle from "../components/KioskModeToggle";
-import { getAuthFromCookies } from "../lib/auth";
-import { isUserAdmin } from "../lib/adminAccess";
-import { getUserEntitlements } from "../lib/entitlements";
-import { countUnacknowledgedAlerts } from "../lib/alertEvents";
-import { listUserHouseholds } from "../lib/households";
+import {
+  loadDashboardShell,
+  planLabelForEntitlements,
+  type DashboardShell,
+} from "../lib/dashboardShell";
 
 interface Props {
   title?: string;
   requireAdmin?: boolean;
-  /** Optional lag hint for Live nav (Overview/Live can pass). */
+  /** Override shell live-lag when the page already computed it. */
   liveLagging?: boolean;
 }
 
-const { title = "Dashboard", requireAdmin = false, liveLagging = false } = Astro.props;
+const { title = "Dashboard", requireAdmin = false, liveLagging } = Astro.props;
 
-const { session, user } = await getAuthFromCookies(Astro.cookies);
+let shell: DashboardShell | null = Astro.locals.dashboardShell ?? null;
+if (!shell) {
+  shell = await loadDashboardShell(Astro.cookies, { includeLiveLag: true });
+}
 
-if (!session || !user) {
+if (!shell) {
   return Astro.redirect("/signin");
 }
 
-const admin = await isUserAdmin(user.id);
-
-if (requireAdmin && !admin) {
+if (requireAdmin && !shell.isAdmin) {
   return Astro.redirect("/dashboard");
 }
 
-const entitlements = await getUserEntitlements(user.id);
+const planLabel = planLabelForEntitlements(shell.entitlements);
 const currentPath = Astro.url.pathname;
-const planLabel =
-  entitlements.tier === "admin"
-    ? "Admin"
-    : entitlements.tier.charAt(0).toUpperCase() + entitlements.tier.slice(1);
-
-const [unackedAlerts, userHouseholds] = await Promise.all([
-  countUnacknowledgedAlerts(user.id),
-  listUserHouseholds(user.id),
-]);
-
-const householdCount = userHouseholds.households.length;
-const showPortfolioInMonitor =
-  entitlements.canUsePortfolio || householdCount >= 2;
+const lag = typeof liveLagging === "boolean" ? liveLagging : shell.liveLagging;
 ---
 <Layout title={title}>
   <div class="dashboard-shell">
     <DashboardSidebar
       currentPath={currentPath}
-      isAdmin={admin}
-      email={user.email}
+      isAdmin={shell.isAdmin}
+      email={shell.user.email}
       planLabel={planLabel}
-      unackedAlerts={unackedAlerts}
-      liveLagging={liveLagging}
-      showPortfolioInMonitor={showPortfolioInMonitor}
+      unackedAlerts={shell.unackedAlerts}
+      liveLagging={lag}
+      showPortfolioInMonitor={shell.showPortfolioInMonitor}
     />
     <div class="dashboard-main">
       <header class="dashboard-topbar">
         <div class="dashboard-topbar-text">
           <h1 class="dashboard-topbar-title">{title}</h1>
-          {user.email && (
-            <p class="dashboard-topbar-meta">{user.email}</p>
-          )}
         </div>
         <div class="dashboard-topbar-actions">
-          <span class:list={["plan-badge", `plan-badge--${entitlements.tier}`]}>
-            {planLabel}
-          </span>
           <KioskModeToggle client:idle />
-          <a class="btn-ghost dashboard-topbar-home" href="/dashboard/live">Live</a>
         </div>
       </header>
       <slot />

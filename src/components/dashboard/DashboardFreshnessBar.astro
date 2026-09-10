@@ -1,0 +1,39 @@
+---
+interface Props {
+  /** Optional hint shown beside the age label. */
+  hint?: string | null;
+}
+
+const { hint = null } = Astro.props;
+---
+<div class="dashboard-freshness-row flex flex-wrap items-center gap-2 text-sm text-[var(--color-text-muted)]">
+  <span data-freshness-label>Updated just now</span>
+  {hint && <span aria-hidden="true">·</span>}
+  {hint && <span>{hint}</span>}
+  <button type="button" class="btn-ghost btn-sm" data-freshness-reload>
+    Refresh
+  </button>
+</div>
+
+<script>
+  (() => {
+    const label = document.querySelector("[data-freshness-label]");
+    const btn = document.querySelector("[data-freshness-reload]");
+    const loadedAt = Date.now();
+
+    function renderAge() {
+      if (!(label instanceof HTMLElement)) return;
+      const mins = Math.max(0, Math.round((Date.now() - loadedAt) / 60000));
+      label.textContent =
+        mins < 1 ? "Updated just now" : mins === 1 ? "Updated 1m ago" : `Updated ${mins}m ago`;
+    }
+
+    btn?.addEventListener("click", () => {
+      if (btn instanceof HTMLButtonElement) btn.disabled = true;
+      location.reload();
+    });
+
+    renderAge();
+    setInterval(renderAge, 30000);
+  })();
+</script>
