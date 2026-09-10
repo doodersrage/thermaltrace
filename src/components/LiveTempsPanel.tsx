@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "preact/hooks";
 import { formatLiveTempDetail, formatLiveTempF } from "../lib/temperatureFormat";
+import { formatRelativeAge } from "../lib/relativeTime";
+import { freshnessDetailForSource } from "../lib/sensorFreshness";
+import { formatBoolSensorValue, SENSOR_KIND_LABELS } from "../lib/sensorKinds";
+import {
+  LIVE_READINGS_EVENT,
+  LIVE_REFRESH_EVENT,
+  newestLiveReadingAt,
+} from "../lib/liveDashboardChrome";
 
 type ProbeReading = {
   key: string;
@@ -34,10 +42,6 @@ type LiveSensor = {
 interface Props {
   intervalMs?: number;
 }
-
-import { formatRelativeAge } from "../lib/relativeTime";
-import { freshnessDetailForSource } from "../lib/sensorFreshness";
-import { formatBoolSensorValue, SENSOR_KIND_LABELS } from "../lib/sensorKinds";
 
 function formatSensorValue(sensor: LiveSensor): { primary: string; detail: string } {
   switch (sensor.kind) {
@@ -258,6 +262,31 @@ export default function LiveTempsPanel({ intervalMs = 30000 }: Props) {
 
     return () => window.clearInterval(tick);
   }, [intervalMs, loadReadings]);
+
+  useEffect(() => {
+    const onRefresh = () => void loadReadings();
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") void loadReadings();
+    };
+    window.addEventListener(LIVE_REFRESH_EVENT, onRefresh);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener(LIVE_REFRESH_EVENT, onRefresh);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [loadReadings]);
+
+  useEffect(() => {
+    const groupCount = groups.reduce((n, group) => n + (group.probes?.length ?? 0), 0);
+    window.dispatchEvent(
+      new CustomEvent(LIVE_READINGS_EVENT, {
+        detail: {
+          lastReadingAt: newestLiveReadingAt(sensors, updatedAt),
+          sensorCount: sensors.length + groupCount,
+        },
+      }),
+    );
+  }, [sensors, groups, updatedAt]);
 
   const nonTempSensors = useMemo(
     () => sensors.filter((s) => s.kind !== "temperature" && s.kind !== "humidity"),

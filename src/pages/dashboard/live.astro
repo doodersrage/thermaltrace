@@ -88,7 +88,7 @@ const panelsHidden = !showGarageTemps && !showWeather;
     )}
 
     {!panelsHidden && !hasLive && (
-      <section class="card" aria-labelledby="live-first-run-title">
+      <section class="card" aria-labelledby="live-first-run-title" data-live-waiting>
         <h2 class="card-title" id="live-first-run-title">Waiting for a reading</h2>
         <p class="card-subtitle mb-4">
           {hasDevices
@@ -96,12 +96,12 @@ const panelsHidden = !showGarageTemps && !showWeather;
             : "Create a push device, try the demo feed, or open Devices to wire ingest — then confirm cards here."}
         </p>
         <div class="flex flex-wrap gap-3">
-          <a class="btn-primary" href="/dashboard/devices">Open Devices</a>
+          <a class="btn-primary" href="/dashboard/devices?view=setup">Open Devices</a>
           {showDemoPullNudge && (
-            <a class="btn-secondary" href="/dashboard/devices#demo-pull-nudge">Try demo feed</a>
+            <a class="btn-secondary" href="#demo-pull-nudge">Try demo feed</a>
           )}
           {!hasEmailAlerts && (
-            <a class="btn-secondary" href="/dashboard/alerts#alert-section-essentials">
+            <a class="btn-secondary" href="/dashboard/alerts?tab=settings#alert-section-essentials">
               Alert essentials
             </a>
           )}

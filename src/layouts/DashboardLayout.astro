@@ -77,20 +77,23 @@ const householdError = Astro.url.searchParams.get("household_error") === "1";
               type="button"
               class="btn-ghost btn-sm"
               id="dashboard-refresh-btn"
+              data-dashboard-refresh
             >
               Refresh
             </button>
           </div>
-          <button
-            type="button"
-            class="dashboard-shortcut-hint btn-secondary btn-sm"
-            data-tt-shortcut-help
-            title="Search dashboard"
-            aria-label="Search dashboard"
-          >
-            <kbd>/</kbd>
-          </button>
-          <KioskModeToggle client:idle />
+          <div class="dashboard-topbar-tools">
+            <button
+              type="button"
+              class="dashboard-shortcut-hint btn-secondary btn-sm"
+              data-tt-shortcut-help
+              title="Search dashboard"
+              aria-label="Search dashboard"
+            >
+              <kbd>/</kbd>
+            </button>
+            <KioskModeToggle client:idle />
+          </div>
         </div>
       </header>
       {householdSwitched && (
@@ -117,12 +120,69 @@ const householdError = Astro.url.searchParams.get("household_error") === "1";
   <script src="/reading-age-tick.js" defer is:inline />
   <script is:inline>
     (() => {
-      const btn = document.getElementById("dashboard-refresh-btn");
-      btn?.addEventListener("click", () => {
-        if (btn instanceof HTMLButtonElement) btn.disabled = true;
-        if (location.pathname === "/dashboard") return;
-        location.reload();
+      const refreshButtons = document.querySelectorAll("[data-dashboard-refresh]");
+      refreshButtons.forEach((el) => {
+        el.addEventListener("click", () => {
+          const path = location.pathname;
+          if (path === "/dashboard") {
+            window.dispatchEvent(new CustomEvent("overview:soft-refresh"));
+            return;
+          }
+          if (path === "/dashboard/live") {
+            if (el instanceof HTMLButtonElement) el.disabled = true;
+            window.dispatchEvent(new CustomEvent("tt:live-refresh"));
+            window.setTimeout(() => {
+              if (el instanceof HTMLButtonElement) el.disabled = false;
+            }, 800);
+            return;
+          }
+          if (el instanceof HTMLButtonElement) el.disabled = true;
+          location.reload();
+        });
       });
+
+      window.addEventListener("tt:live-readings", (event) => {
+        const detail = event instanceof CustomEvent ? event.detail : null;
+        const count = typeof detail?.sensorCount === "number" ? detail.sensorCount : 0;
+        document.querySelectorAll("[data-live-waiting]").forEach((node) => {
+          if (node instanceof HTMLElement) node.hidden = count > 0;
+        });
+      });
+
+      const bindKioskProxy = (real) => {
+        const proxies = document.querySelectorAll("[data-tt-kiosk-proxy]");
+        if (!proxies.length) return;
+        const sync = () => {
+          const pressed = real.getAttribute("aria-pressed") === "true";
+          const label = pressed ? "Exit kiosk" : "Kiosk mode";
+          proxies.forEach((proxy) => {
+            proxy.textContent = label;
+            proxy.setAttribute("aria-pressed", pressed ? "true" : "false");
+          });
+        };
+        proxies.forEach((proxy) => {
+          proxy.addEventListener("click", () => real.click());
+        });
+        sync();
+        new MutationObserver(sync).observe(real, {
+          attributes: true,
+          attributeFilter: ["aria-pressed"],
+        });
+      };
+      const existing = document.querySelector(".dashboard-kiosk-toggle");
+      if (existing) {
+        bindKioskProxy(existing);
+      } else {
+        const mo = new MutationObserver(() => {
+          const found = document.querySelector(".dashboard-kiosk-toggle");
+          if (!found) return;
+          mo.disconnect();
+          bindKioskProxy(found);
+        });
+        mo.observe(document.body, { childList: true, subtree: true });
+        window.setTimeout(() => mo.disconnect(), 8000);
+      }
+
       const url = new URL(window.location.href);
       let changed = false;
       ["household_switched", "household_error"].forEach((key) => {

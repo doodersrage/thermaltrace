@@ -872,6 +872,7 @@ const garageRisk = computeGarageRiskStatus({
       hasHousehold={Boolean(household.householdId)}
       hasFloodSensor={devices.some((d) => d.sensors.some((s) => s.kind === "flood"))}
       dismissed={onboardingDismissed}
+      showDemoFeed={showDemoPullNudge}
     />
 
     <GarageRiskStatusCard status={garageRisk} />
@@ -911,76 +912,6 @@ const garageRisk = computeGarageRiskStatus({
         {" · "}
         <a href="/about/debugging-stale-readings" class="text-link">Debug guide</a>
       </div>
-    )}
-
-    {firstRunFocus && canEdit && (
-      <section class="card" aria-labelledby="first-run-focus-title">
-        <h2 class="card-title" id="first-run-focus-title">
-          {latest.length === 0
-            ? "Get a reading on Live"
-            : "Finish the alert path"}
-        </h2>
-        <p class="card-subtitle mb-4">
-          {latest.length === 0
-            ? hasDevices
-              ? "You have a device. POST JSON once (or fetch a pull feed) so sensors appear on Live, then set freeze + email and send a test."
-              : "Create a push device for ESP/Arduino, or try the demo feed, then set freeze + email and send a test."
-            : !hasEmailAlerts
-              ? "Live probes are in. Set freeze threshold + email under Alerts, then send a test so you trust delivery before a real freeze night."
-              : "Send a test alert once. Insights and the full status strip unlock after that."}
-        </p>
-        <div class="flex flex-wrap gap-3">
-          {latest.length === 0 ? (
-            <>
-              <a class="btn-primary" href="/dashboard/devices">Open Devices</a>
-              {showDemoPullNudge && (
-                <a class="btn-secondary" href="#demo-pull-nudge">Try demo feed</a>
-              )}
-              <a class="btn-secondary" href="/dashboard/live">Open Live</a>
-              {!hasDevices && (
-                <a class="btn-secondary" href="/about/esp32-freeze-kit">ESP32 parts list</a>
-              )}
-              <a class="btn-ghost" href="/about/probe-demo">Probe simulator</a>
-            </>
-          ) : !hasEmailAlerts ? (
-            <a class="btn-primary" href="/dashboard/alerts?tab=settings#alert-section-essentials">
-              Alert essentials
-            </a>
-          ) : (
-            <a class="btn-primary" href="/dashboard/alerts?tab=settings#send-test-alert">Send test alert</a>
-          )}
-          {latest.length > 0 && hasEmailAlerts && (
-            <a class="btn-ghost" href="/dashboard/alerts?tab=settings#alert-section-essentials">
-              Review freeze + email
-            </a>
-          )}
-          {latest.length === 0 && (
-            <a class="btn-ghost" href="/dashboard/alerts?tab=settings#alert-section-essentials">Alert essentials</a>
-          )}
-        </div>
-      </section>
-    )}
-
-    {prioritizeEmptyOverview && canEdit && !firstRunFocus && (
-      <section class="card" aria-labelledby="empty-overview-cta-title">
-        <h2 class="card-title" id="empty-overview-cta-title">Get a reading on Live</h2>
-        <p class="card-subtitle mb-4">
-          {hasDevices
-            ? "You have a device. POST JSON once (or fetch a pull feed) so sensors appear on Live, then set freeze + email."
-            : "Create a push device for ESP/Arduino, or try the demo feed, then set freeze + email under Alerts."}
-        </p>
-        <div class="flex flex-wrap gap-3">
-          <a class="btn-primary" href="/dashboard/devices">Open Devices</a>
-          {showDemoPullNudge && (
-            <a class="btn-secondary" href="#demo-pull-nudge">Try demo feed</a>
-          )}
-          {!hasDevices && (
-            <a class="btn-secondary" href="/about/esp32-freeze-kit">ESP32 parts list</a>
-          )}
-          <a class="btn-ghost" href="/about/probe-demo">Probe simulator</a>
-          <a class="btn-ghost" href="/dashboard/alerts?tab=settings#alert-section-essentials">Alert essentials</a>
-        </div>
-      </section>
     )}
 
     {!canEdit && (
@@ -1458,7 +1389,9 @@ const garageRisk = computeGarageRiskStatus({
     (function () {
       var loadedAt = Date.now();
       var label = document.getElementById("overview-refresh-label");
-      var btn = document.getElementById("dashboard-refresh-btn") || document.getElementById("overview-refresh-btn");
+      var refreshButtons = function () {
+        return document.querySelectorAll("[data-dashboard-refresh]");
+      };
       var flashKeys = [
         "checked_saved",
         "checked_error",
@@ -1648,6 +1581,14 @@ const garageRisk = computeGarageRiskStatus({
             '[data-snapshot-field="last_reading"] [data-metric-value]',
           );
           if (lastValue) lastValue.setAttribute("data-live-age-iso", data.lastReadingAt);
+          window.dispatchEvent(
+            new CustomEvent("tt:live-readings", {
+              detail: {
+                lastReadingAt: data.lastReadingAt,
+                sensorCount: typeof data.sensorCount === "number" ? data.sensorCount : undefined,
+              },
+            }),
+          );
         } else {
           setMetric("last_reading", "None yet", null, "warning");
         }
@@ -1702,8 +1643,14 @@ const garageRisk = computeGarageRiskStatus({
         if (banner) banner.hidden = true;
       }
 
+      function setRefreshDisabled(disabled: boolean) {
+        refreshButtons().forEach(function (el) {
+          if (el instanceof HTMLButtonElement) el.disabled = disabled;
+        });
+      }
+
       function softRefresh() {
-        if (btn) btn.disabled = true;
+        setRefreshDisabled(true);
         fetch("/api/user/dashboard-snapshot", { headers: { Accept: "application/json" } })
           .then(function (res) {
             var banner = document.getElementById("overview-offline-banner");
@@ -1719,11 +1666,10 @@ const garageRisk = computeGarageRiskStatus({
             if (banner) banner.hidden = false;
           })
           .finally(function () {
-            if (btn) btn.disabled = false;
+            setRefreshDisabled(false);
           });
       }
 
-      btn?.addEventListener("click", softRefresh);
       window.addEventListener("overview:soft-refresh", softRefresh);
       stripFlashParams();
       setInterval(renderAge, 30000);

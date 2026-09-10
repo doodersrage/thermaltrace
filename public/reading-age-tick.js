@@ -77,4 +77,15 @@
   document.addEventListener("visibilitychange", function () {
     if (document.visibilityState === "visible") tick();
   });
+  window.addEventListener("tt:live-readings", function (event) {
+    var detail = event && event.detail;
+    var iso = detail && detail.lastReadingAt;
+    if (iso) {
+      document.querySelectorAll(".dashboard-topbar-freshness .reading-age-badge").forEach(function (el) {
+        el.setAttribute("data-iso", iso);
+        el.setAttribute("title", new Date(iso).toLocaleString());
+      });
+    }
+    tick();
+  });
 })();

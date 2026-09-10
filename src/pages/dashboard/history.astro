@@ -252,6 +252,10 @@ const dailyFreezeHours = computeDailyFreezeHours(
   alertSettings.freezeThresholdF,
 );
 const probeSpreadSeries = buildProbeSpreadSeries(chartData.points);
+const showHistoryCompare =
+  Boolean(outdoorDelta) ||
+  probeSpreadSeries.length >= 2 ||
+  chartData.points.length >= 2;
 
 const coldestOverlay = overlayColdest
   ? buildColdestDayOverlay(priorYearData.points, chartData.points)
@@ -442,89 +446,6 @@ const historyUpgradeFeature =
 
     {(historyTab === "chart" || historyTab === "table") && (
       <>
-        {historyTab === "chart" && outdoorDelta && (
-          <details class="card">
-            <summary class="dashboard-recommendations-summary">Indoor vs outdoor</summary>
-            <div class="dashboard-recommendations-body">
-              <p class="card-subtitle">
-                Chart-window probe average compared with current outdoor weather
-                {outdoorDelta.cityName ? ` in ${outdoorDelta.cityName}` : ""}.
-              </p>
-              <div class="stat-grid">
-                <article class="stat-item">
-                  <span class="stat-label">Indoor avg</span>
-                  <p class="stat-value">{outdoorDelta.indoorAvgF.toFixed(1)}°F</p>
-                </article>
-                <article class="stat-item">
-                  <span class="stat-label">Outdoor now</span>
-                  <p class="stat-value">{outdoorDelta.outdoorF.toFixed(1)}°F</p>
-                  <p class="stat-detail">{outdoorDelta.outdoorDescription}</p>
-                </article>
-                <article class="stat-item">
-                  <span class="stat-label">Delta</span>
-                  <p class="stat-value">
-                    {outdoorDelta.deltaF > 0 ? "+" : ""}
-                    {outdoorDelta.deltaF.toFixed(1)}°F
-                  </p>
-                </article>
-              </div>
-              {indoorOutdoorSeries.length >= 2 && (
-                <div class="mt-4">
-                  <IndoorOutdoorChart client:visible points={indoorOutdoorSeries} />
-                </div>
-              )}
-            </div>
-          </details>
-        )}
-
-        {historyTab === "chart" && probeSpreadSeries.length >= 2 && (
-          <details class="card" open>
-            <summary class="dashboard-recommendations-summary">Probe spread</summary>
-            <div class="dashboard-recommendations-body">
-              <p class="card-subtitle mb-4">
-                Hourly gap between the warmest and coldest probe in this window.
-              </p>
-              <ProbeSpreadChart client:visible points={probeSpreadSeries} />
-            </div>
-          </details>
-        )}
-
-        {historyTab === "chart" && chartData.points.length >= 2 && (
-          <details class="card" open={dailyFreezeHours.some((d) => d.hoursBelow > 0)}>
-            <summary class="dashboard-recommendations-summary">Season freeze exposure</summary>
-            <div class="dashboard-recommendations-body">
-              <p class="card-subtitle mb-4">
-                Estimated time at or below {alertSettings.freezeThresholdF}°F in the selected chart window.
-              </p>
-              <div class="stat-grid">
-                <article class="stat-item">
-                  <span class="stat-label">Hours ≤ {alertSettings.freezeThresholdF}°F</span>
-                  <p class="stat-value">{freezeHours.hoursBelow34.toFixed(1)}</p>
-                </article>
-                <article class="stat-item">
-                  <span class="stat-label">Readings ≤ {alertSettings.freezeThresholdF}°F</span>
-                  <p class="stat-value">{freezeHours.readingsBelow34}</p>
-                </article>
-                <article class="stat-item">
-                  <span class="stat-label">Coldest</span>
-                  <p class="stat-value">
-                    {freezeHours.coldestF != null ? `${freezeHours.coldestF.toFixed(1)}°F` : "—"}
-                  </p>
-                </article>
-              </div>
-              {dailyFreezeHours.length >= 2 && (
-                <div class="mt-4">
-                  <FreezeHoursChart
-                    client:visible
-                    days={dailyFreezeHours}
-                    thresholdF={alertSettings.freezeThresholdF}
-                  />
-                </div>
-              )}
-            </div>
-          </details>
-        )}
-
         <GarageTempHistory
           history={history}
           chartPoints={chartData.points}
@@ -558,6 +479,90 @@ const historyUpgradeFeature =
           highlightAlertId={highlightAlertId}
           canUseClaimsPack={entitlements.canUseClaimsPack}
         />
+
+        {historyTab === "chart" && showHistoryCompare && (
+          <details class="card">
+            <summary class="dashboard-recommendations-summary">Compare</summary>
+            <div class="dashboard-recommendations-body">
+              {outdoorDelta && (
+                <section class="history-compare-section" aria-labelledby="history-compare-outdoor">
+                  <h3 class="card-title" id="history-compare-outdoor">Indoor vs outdoor</h3>
+                  <p class="card-subtitle">
+                    Chart-window probe average compared with current outdoor weather
+                    {outdoorDelta.cityName ? ` in ${outdoorDelta.cityName}` : ""}.
+                  </p>
+                  <div class="stat-grid">
+                    <article class="stat-item">
+                      <span class="stat-label">Indoor avg</span>
+                      <p class="stat-value">{outdoorDelta.indoorAvgF.toFixed(1)}°F</p>
+                    </article>
+                    <article class="stat-item">
+                      <span class="stat-label">Outdoor now</span>
+                      <p class="stat-value">{outdoorDelta.outdoorF.toFixed(1)}°F</p>
+                      <p class="stat-detail">{outdoorDelta.outdoorDescription}</p>
+                    </article>
+                    <article class="stat-item">
+                      <span class="stat-label">Delta</span>
+                      <p class="stat-value">
+                        {outdoorDelta.deltaF > 0 ? "+" : ""}
+                        {outdoorDelta.deltaF.toFixed(1)}°F
+                      </p>
+                    </article>
+                  </div>
+                  {indoorOutdoorSeries.length >= 2 && (
+                    <div class="mt-4">
+                      <IndoorOutdoorChart client:visible points={indoorOutdoorSeries} />
+                    </div>
+                  )}
+                </section>
+              )}
+
+              {probeSpreadSeries.length >= 2 && (
+                <section class="history-compare-section" aria-labelledby="history-compare-spread">
+                  <h3 class="card-title" id="history-compare-spread">Probe spread</h3>
+                  <p class="card-subtitle mb-4">
+                    Hourly gap between the warmest and coldest probe in this window.
+                  </p>
+                  <ProbeSpreadChart client:visible points={probeSpreadSeries} />
+                </section>
+              )}
+
+              {chartData.points.length >= 2 && (
+                <section class="history-compare-section" aria-labelledby="history-compare-freeze">
+                  <h3 class="card-title" id="history-compare-freeze">Season freeze exposure</h3>
+                  <p class="card-subtitle mb-4">
+                    Estimated time at or below {alertSettings.freezeThresholdF}°F in the selected chart window.
+                  </p>
+                  <div class="stat-grid">
+                    <article class="stat-item">
+                      <span class="stat-label">Hours ≤ {alertSettings.freezeThresholdF}°F</span>
+                      <p class="stat-value">{freezeHours.hoursBelow34.toFixed(1)}</p>
+                    </article>
+                    <article class="stat-item">
+                      <span class="stat-label">Readings ≤ {alertSettings.freezeThresholdF}°F</span>
+                      <p class="stat-value">{freezeHours.readingsBelow34}</p>
+                    </article>
+                    <article class="stat-item">
+                      <span class="stat-label">Coldest</span>
+                      <p class="stat-value">
+                        {freezeHours.coldestF != null ? `${freezeHours.coldestF.toFixed(1)}°F` : "—"}
+                      </p>
+                    </article>
+                  </div>
+                  {dailyFreezeHours.length >= 2 && (
+                    <div class="mt-4">
+                      <FreezeHoursChart
+                        client:visible
+                        days={dailyFreezeHours}
+                        thresholdF={alertSettings.freezeThresholdF}
+                      />
+                    </div>
+                  )}
+                </section>
+              )}
+            </div>
+          </details>
+        )}
       </>
     )}
 

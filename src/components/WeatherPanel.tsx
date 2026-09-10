@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "preact/hooks";
 import type { WeatherSnapshot } from "../lib/FetchWeather";
+import { LIVE_REFRESH_EVENT } from "../lib/liveDashboardChrome";
 import WeatherMap from "./WeatherMap";
 
 interface Props {
@@ -58,7 +59,12 @@ export default function WeatherPanel({
       if (document.visibilityState === "hidden") return;
       void load();
     }, intervalMs);
-    return () => window.clearInterval(timer);
+    const onRefresh = () => void load();
+    window.addEventListener(LIVE_REFRESH_EVENT, onRefresh);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener(LIVE_REFRESH_EVENT, onRefresh);
+    };
   }, [intervalMs, load]);
 
   if (loading && !weather) {

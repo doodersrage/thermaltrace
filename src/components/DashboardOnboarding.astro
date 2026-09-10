@@ -13,6 +13,7 @@ interface Props {
   hasHousehold?: boolean;
   hasFloodSensor?: boolean;
   dismissed?: boolean;
+  showDemoFeed?: boolean;
 }
 
 const {
@@ -27,6 +28,7 @@ const {
   hasHousehold = false,
   hasFloodSensor = false,
   dismissed = false,
+  showDemoFeed = false,
 } = Astro.props;
 
 const showFreezeMapCta = hasLiveSensors && hasHousehold;
@@ -36,19 +38,19 @@ const ingestVerified = hasLiveSensors || hasHistory;
 const essentialSteps = [
   {
     done: hasDevices,
-    href: "/dashboard/devices",
+    href: "/dashboard/devices?view=setup",
     title: "Connect a push device",
     detail: "Step 1 of 3: create a push ingest URL for ESP/Arduino (or open Devices for demo/HA paths).",
   },
   {
     done: hasAlertsEnabled && hasEmailAlerts,
-    href: "/dashboard/alerts#alert-section-essentials",
+    href: "/dashboard/alerts?tab=settings#alert-section-essentials",
     title: "Set freeze °F + email",
     detail: "Step 2 of 3: freeze threshold, email, and optional sensor-dead alerts, then save.",
   },
   {
     done: hasTestAlert,
-    href: "/dashboard/alerts#send-test-alert",
+    href: "/dashboard/alerts?tab=settings#send-test-alert",
     title: "Send a test alert",
     detail: "Step 3 of 3: confirm delivery once so you trust the path before a real freeze night.",
   },
@@ -57,7 +59,7 @@ const essentialSteps = [
 const kitSteps = [
   {
     done: hasLiveSensors || hasSensors,
-    href: "/dashboard/devices?tab=push",
+    href: "/dashboard/devices?view=setup",
     title: "Verify first POST",
     detail: "Create a push device, POST JSON once, and confirm sensors auto-import on the Devices page.",
   },
@@ -190,6 +192,32 @@ if (dismissed || fullyDone) {
       </a>
     ))}
   </div>
+  {!essentialDone && (
+    <div class="mt-4 flex flex-wrap gap-2">
+      {!hasLiveSensors && (
+        <>
+          <a class="btn-secondary btn-sm" href="/dashboard/devices?view=setup">Open Devices</a>
+          {showDemoFeed && (
+            <a class="btn-secondary btn-sm" href="#demo-pull-nudge">Try demo feed</a>
+          )}
+          {!hasDevices && (
+            <a class="btn-ghost btn-sm" href="/about/esp32-freeze-kit">ESP32 parts list</a>
+          )}
+          <a class="btn-ghost btn-sm" href="/about/probe-demo">Probe simulator</a>
+        </>
+      )}
+      {hasLiveSensors && !hasEmailAlerts && (
+        <a class="btn-secondary btn-sm" href="/dashboard/alerts?tab=settings#alert-section-essentials">
+          Alert essentials
+        </a>
+      )}
+      {hasLiveSensors && hasEmailAlerts && !hasTestAlert && (
+        <a class="btn-secondary btn-sm" href="/dashboard/alerts?tab=settings#send-test-alert">
+          Send test alert
+        </a>
+      )}
+    </div>
+  )}
   {essentialDone && (
     <p class="mt-4 mb-0 text-sm text-[var(--color-text-muted)]">
       Guides:
