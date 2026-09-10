@@ -499,3 +499,23 @@ const viewMode = Astro.url.searchParams.get("view") === "heatmap" ? "heatmap" : 
     }
   }
 </style>
+
+<script>
+  const flashKeys = [
+    "portfolio_vacation",
+    "portfolio_vacation_cleared",
+    "days",
+    "properties",
+  ];
+  const url = new URL(window.location.href);
+  let changed = false;
+  for (const key of flashKeys) {
+    if (url.searchParams.has(key)) {
+      url.searchParams.delete(key);
+      changed = true;
+    }
+  }
+  if (changed) {
+    window.history.replaceState({}, "", url.pathname + (url.search || "") + url.hash);
+  }
+</script>

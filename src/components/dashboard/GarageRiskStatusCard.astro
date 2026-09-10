@@ -26,7 +26,13 @@ const { status } = Astro.props;
     {status.title}
   </h2>
   <p class="card-subtitle mb-4" data-overview-field="riskDetail">{status.detail}</p>
-  <a class="btn-primary" href={status.actionHref}>{status.actionLabel}</a>
+  <a
+    class="btn-primary"
+    href={status.actionHref}
+    data-overview-field="riskAction"
+  >
+    {status.actionLabel}
+  </a>
 </section>
 
 <style>

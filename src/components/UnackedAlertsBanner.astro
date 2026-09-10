@@ -1,42 +1,39 @@
 ---
 interface Props {
   count: number;
-  showClaimsPackCta?: boolean;
-  canAckAll?: boolean;
+  canEdit?: boolean;
 }
 
-const { count, showClaimsPackCta = false, canAckAll = false } = Astro.props;
+const { count, canEdit = false } = Astro.props;
 ---
-{count > 0 && (
-  <div class="alert-warning mb-4" role="status" data-overview-field="unackedBanner">
-    <strong data-overview-field="unackedCount">{count}</strong> unhandled alert{count === 1 ? "" : "s"}.
-    <a href="/dashboard/alerts" class="text-link ml-1">Review</a>
-    {canAckAll && (
-      <>
-        {" · "}
-        <form
-          action="/api/user/alert-events/ack"
-          method="post"
-          class="inline"
-          onsubmit={`return confirm('Mark all ${count} unhandled alerts as handled?');`}
-        >
-          <input type="hidden" name="redirect" value="/dashboard" />
-          <input type="hidden" name="action" value="ack_all" />
-          <button type="submit" class="text-link bg-transparent border-0 p-0 cursor-pointer">
-            Handle all
-          </button>
-        </form>
-      </>
-    )}
-    {showClaimsPackCta && (
-      <>
-        {" · "}
-        <a href="/dashboard/history#claims-pack" class="text-link">
-          Download claims evidence pack
-        </a>
-        {" "}
-        <span class="text-[var(--color-text-muted)]">(Pro)</span>
-      </>
-    )}
-  </div>
-)}
+<div
+  class:list={["alert-warning mb-4", count <= 0 && "hidden"]}
+  role="status"
+  data-unacked-banner
+  data-unacked-count={String(count)}
+  data-can-edit={canEdit ? "1" : "0"}
+  hidden={count <= 0}
+>
+  <strong data-overview-field="unackedCount">{count}</strong>
+  <span data-unacked-label> unhandled alert{count === 1 ? "" : "s"}.</span>
+  <a href="/dashboard/alerts" class="text-link ml-1">Review</a>
+  <span data-unacked-ack-all class:list={[(!canEdit || count <= 0) && "hidden"]}>
+    {" · "}
+    <button
+      type="button"
+      class="text-link bg-transparent border-0 p-0 cursor-pointer"
+      data-qa-action="ack_all"
+      data-qa-confirm={`Mark all ${count} unhandled alerts as handled?`}
+    >
+      Handle all
+    </button>
+  </span>
+  <span data-unacked-claims class:list={[count <= 0 && "hidden"]}>
+    {" · "}
+    <a href="/dashboard/history#claims-pack" class="text-link">
+      Download claims evidence pack
+    </a>
+    {" "}
+    <span class="text-[var(--color-text-muted)]">(Pro)</span>
+  </span>
+</div>

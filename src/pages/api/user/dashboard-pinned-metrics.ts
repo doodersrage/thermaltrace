@@ -58,8 +58,20 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
         if (current.includes(id)) {
           metrics = current.filter((item) => item !== id);
           if (metrics.length === 0) metrics = [...DEFAULT_PINNED_OVERVIEW_METRICS];
+        } else if (current.length >= PINNED_METRICS_MAX) {
+          return new Response(
+            JSON.stringify({
+              error: `You can pin up to ${PINNED_METRICS_MAX} Status metrics.`,
+              atMax: true,
+              metrics: current,
+            }),
+            {
+              status: 400,
+              headers: { "Content-Type": "application/json" },
+            },
+          );
         } else {
-          metrics = [...current, id].slice(0, PINNED_METRICS_MAX);
+          metrics = [...current, id];
         }
       } else if (Array.isArray(body.metrics)) {
         metrics = parsePinnedOverviewMetricsInput(body.metrics.map(String));

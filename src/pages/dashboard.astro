@@ -845,8 +845,7 @@ const garageRisk = computeGarageRiskStatus({
 
     <UnackedAlertsBanner
       count={unackedAlertCount}
-      showClaimsPackCta={unackedAlertCount > 0}
-      canAckAll={canEdit && unackedAlertCount > 0}
+      canEdit={canEdit}
     />
 
     <OverviewQuickActions
@@ -867,8 +866,10 @@ const garageRisk = computeGarageRiskStatus({
     <LowBatteryBanner message={primaryBannerIds.has("lowBattery") ? lowBatteryMessage : null} />
 
     {primaryBannerIds.has("stale") && staleSensorCount > 0 && (
-      <div class="alert-warning mb-0" role="status">
-        {staleSummary.bannerMessage}.        <a href="/" class="text-link ml-1">Check Home</a>
+      <div class="alert-warning mb-0" role="status" data-stale-banner>
+        {staleSummary.bannerMessage}.
+        {" "}
+        <a href="/" class="text-link">Open live Home</a>
         {" · "}
         <a href="/dashboard/devices" class="text-link">Devices</a>
         {" · "}
@@ -966,8 +967,10 @@ const garageRisk = computeGarageRiskStatus({
             <UpgradeNudge feature="sms_alerts" tier={entitlements.tier} compact />
           )}
           {secondaryBannerIds.has("stale") && staleSensorCount > 0 && (
-            <div class="alert-warning mb-0" role="status">
-              {staleSummary.bannerMessage}.              <a href="/" class="text-link ml-1">Check Home</a>
+            <div class="alert-warning mb-0" role="status" data-stale-banner>
+              {staleSummary.bannerMessage}.
+              {" "}
+              <a href="/" class="text-link">Open live Home</a>
               {" · "}
               <a href="/dashboard/devices" class="text-link">Devices</a>
             </div>
@@ -1460,6 +1463,99 @@ const garageRisk = computeGarageRiskStatus({
         }
       }
 
+      function showLiveFlash(message, isError) {
+        var flash = document.getElementById("overview-live-flash");
+        if (!flash) return;
+        flash.textContent = message;
+        flash.classList.remove("hidden");
+        flash.classList.toggle("dashboard-flash--error", Boolean(isError));
+        flash.classList.toggle("alert-warning", Boolean(isError));
+        flash.classList.toggle("alert-success", !isError);
+        window.clearTimeout(showLiveFlash._t);
+        showLiveFlash._t = window.setTimeout(function () {
+          flash.classList.add("hidden");
+        }, 4500);
+      }
+
+      function applyUnackedChrome(count) {
+        var n = typeof count === "number" ? count : 0;
+        var banner = document.querySelector("[data-unacked-banner]");
+        if (banner) {
+          banner.setAttribute("data-unacked-count", String(n));
+          var show = n > 0;
+          banner.hidden = !show;
+          banner.classList.toggle("hidden", !show);
+          var label = banner.querySelector("[data-unacked-label]");
+          if (label) {
+            label.textContent = " unhandled alert" + (n === 1 ? "" : "s") + ".";
+          }
+          var ackAllWrap = banner.querySelector("[data-unacked-ack-all]");
+          var canEdit = banner.getAttribute("data-can-edit") === "1";
+          if (ackAllWrap) {
+            ackAllWrap.classList.toggle("hidden", !(canEdit && n > 0));
+            var ackBtn = ackAllWrap.querySelector("[data-qa-action='ack_all']");
+            if (ackBtn) {
+              ackBtn.setAttribute(
+                "data-qa-confirm",
+                "Mark all " + n + " unhandled alerts as handled?",
+              );
+            }
+          }
+          var claims = banner.querySelector("[data-unacked-claims]");
+          if (claims) claims.classList.toggle("hidden", n <= 0);
+        }
+
+        var qa = document.querySelector("[data-overview-quick-actions]");
+        if (qa) qa.setAttribute("data-unacked", String(n));
+
+        var ackSlot = document.querySelector("[data-qa-ack-slot]");
+        if (ackSlot) {
+          if (n > 0) {
+            var ackHtml =
+              '<button type="button" class="btn-secondary btn-sm" data-qa-action="ack_latest">Acknowledge latest</button>';
+            if (n > 1) {
+              ackHtml +=
+                '<button type="button" class="btn-ghost btn-sm" data-qa-action="ack_all" data-qa-confirm="Mark all ' +
+                n +
+                ' unhandled alerts as handled?">Handle remaining (<span data-overview-field="unackedCount">' +
+                n +
+                "</span>)</button>";
+            }
+            ackSlot.innerHTML = ackHtml;
+          } else {
+            ackSlot.innerHTML =
+              '<a class="btn-ghost btn-sm" href="/dashboard/alerts" data-qa-alerts-clear>Alerts clear</a>';
+          }
+        }
+      }
+
+      function applySnoozeChrome(active) {
+        var qa = document.querySelector("[data-overview-quick-actions]");
+        if (qa) qa.setAttribute("data-snooze-active", active ? "1" : "0");
+        var slot = document.querySelector("[data-qa-snooze-slot]");
+        if (!slot) return;
+        if (active) {
+          slot.innerHTML =
+            '<button type="button" class="btn-ghost btn-sm" id="overview-snooze-action" data-qa-snooze="clear_snooze">Clear snooze</button>';
+        } else {
+          slot.innerHTML =
+            '<span class="text-sm text-[var(--color-text-muted)]">Snooze</span>' +
+            [1, 4, 24]
+              .map(function (hours) {
+                return (
+                  '<button type="button" class="btn-secondary btn-sm"' +
+                  (hours === 24 ? ' id="overview-snooze-action"' : "") +
+                  ' data-qa-snooze="snooze" data-qa-hours="' +
+                  hours +
+                  '">' +
+                  hours +
+                  "h</button>"
+                );
+              })
+              .join("");
+        }
+      }
+
       function applySnapshot(data) {
         if (!data || typeof data !== "object") return;
         loadedAt = Date.now();
@@ -1467,6 +1563,7 @@ const garageRisk = computeGarageRiskStatus({
         var title = document.querySelector('[data-overview-field="riskTitle"]');
         var detail = document.querySelector('[data-overview-field="riskDetail"]');
         var riskCard = document.querySelector("[data-overview-risk]");
+        var riskAction = document.querySelector('[data-overview-field="riskAction"]');
         if (title && data.riskTitle) title.textContent = data.riskTitle;
         if (detail && data.riskDetail) detail.textContent = data.riskDetail;
         if (riskCard && data.risk) {
@@ -1476,10 +1573,21 @@ const garageRisk = computeGarageRiskStatus({
             "garage-risk-status--" + data.risk,
           );
         }
-        var unacked = document.querySelectorAll('[data-overview-field="unackedCount"]');
-        unacked.forEach(function (el) {
-          if (typeof data.unackedAlerts === "number") el.textContent = String(data.unackedAlerts);
-        });
+        if (riskAction) {
+          if (data.riskActionLabel) riskAction.textContent = data.riskActionLabel;
+          if (data.riskActionHref) riskAction.setAttribute("href", data.riskActionHref);
+        }
+
+        if (typeof data.unackedAlerts === "number") {
+          applyUnackedChrome(data.unackedAlerts);
+          document.querySelectorAll('[data-overview-field="unackedCount"]').forEach(function (el) {
+            el.textContent = String(data.unackedAlerts);
+          });
+        }
+
+        if (typeof data.snoozeActive === "boolean") {
+          applySnoozeChrome(data.snoozeActive);
+        }
 
         if (data.lastReadingAt) {
           setMetric(
@@ -1530,6 +1638,18 @@ const garageRisk = computeGarageRiskStatus({
           setMetric("coldest_margin", marginLabel, marginDetail, marginTone);
         }
 
+        document.querySelectorAll("[data-stale-banner]").forEach(function (el) {
+          var show = typeof data.staleSensors === "number" && data.staleSensors > 0;
+          el.hidden = !show;
+          el.classList.toggle("hidden", !show);
+          if (show && data.staleBannerMessage) {
+            var textNode = el.firstChild;
+            if (textNode && textNode.nodeType === 3) {
+              textNode.textContent = data.staleBannerMessage + ". ";
+            }
+          }
+        });
+
         var banner = document.getElementById("overview-offline-banner");
         if (banner) banner.hidden = true;
       }
@@ -1565,6 +1685,31 @@ const garageRisk = computeGarageRiskStatus({
         softRefresh();
       }, 60000);
 
+      function setPinUi(metric, pinned) {
+        document.querySelectorAll('[data-pin-metric="' + metric + '"]').forEach(function (btnEl) {
+          btnEl.setAttribute("data-pinned", pinned ? "1" : "0");
+          btnEl.textContent = pinned ? "★" : "☆";
+          var label = btnEl.getAttribute("aria-label") || "";
+          if (label) {
+            if (/^Unpin /.test(label)) {
+              btnEl.setAttribute("aria-label", pinned ? label : label.replace(/^Unpin /, "Pin "));
+            } else if (/^Pin /.test(label)) {
+              btnEl.setAttribute("aria-label", pinned ? label.replace(/^Pin /, "Unpin ") : label);
+            }
+          }
+          btnEl.title = pinned ? "Unpin from Status" : "Pin to Status";
+        });
+        var card = document.querySelector('#status [data-metric-id="' + metric + '"]');
+        if (card) {
+          card.hidden = !pinned;
+          card.classList.toggle("hidden", !pinned);
+        }
+        var checkbox = document.querySelector(
+          'input[name="metrics"][value="' + metric + '"]',
+        );
+        if (checkbox) checkbox.checked = pinned;
+      }
+
       document.addEventListener("click", function (event) {
         var target = event.target;
         if (!(target instanceof Element)) return;
@@ -1574,6 +1719,7 @@ const garageRisk = computeGarageRiskStatus({
         event.stopPropagation();
         var metric = pinBtn.getAttribute("data-pin-metric");
         if (!metric) return;
+        var wasPinned = pinBtn.getAttribute("data-pinned") === "1";
         pinBtn.disabled = true;
         fetch("/api/user/dashboard-pinned-metrics", {
           method: "POST",
@@ -1585,13 +1731,33 @@ const garageRisk = computeGarageRiskStatus({
           body: JSON.stringify({ action: "toggle", metric: metric }),
         })
           .then(function (res) {
-            if (!res.ok) throw new Error("pin failed");
-            return res.json();
+            return res.json().then(function (data) {
+              return { ok: res.ok, status: res.status, data: data };
+            });
           })
-          .then(function () {
-            location.reload();
+          .then(function (result) {
+            if (!result.ok) {
+              showLiveFlash(
+                (result.data && result.data.error) || "Could not update pin.",
+                true,
+              );
+              return;
+            }
+            var metrics = result.data && result.data.metrics;
+            var nowPinned = Array.isArray(metrics) ? metrics.indexOf(metric) !== -1 : !wasPinned;
+            setPinUi(metric, nowPinned);
+            if (nowPinned && !document.querySelector('#status [data-metric-id="' + metric + '"]')) {
+              showLiveFlash("Pinned. Refresh to show it in Status.", false);
+            } else if (!nowPinned) {
+              showLiveFlash("Unpinned from Status.", false);
+            } else {
+              showLiveFlash("Pinned to Status.", false);
+            }
           })
           .catch(function () {
+            showLiveFlash("Could not update pin.", true);
+          })
+          .finally(function () {
             pinBtn.disabled = false;
           });
       });
