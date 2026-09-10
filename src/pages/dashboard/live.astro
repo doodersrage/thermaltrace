@@ -2,8 +2,15 @@
 import DashboardLayout from "../../layouts/DashboardLayout.astro";
 import LiveTempsPanel from "../../components/LiveTempsPanel";
 import WeatherPanel from "../../components/WeatherPanel";
+import DemoPullNudge from "../../components/DemoPullNudge.astro";
 import { getAuthFromCookies } from "../../lib/auth";
 import { getUserPreferences } from "../../lib/userPreferences";
+import { getUserDevicesAsTempConfig, listHouseholdDevices } from "../../lib/devices";
+import { getOrCreateHouseholdForUser, getUserHouseholdRole, canEditHousehold } from "../../lib/households";
+import { fetchLatestSensorValues } from "../../lib/sensorReadings";
+import { formatRelativeAge } from "../../lib/relativeTime";
+import { getAlertSettingsForUser } from "../../lib/notify";
+import { hasConfiguredAlertChannel } from "../../lib/freezeReadiness";
 
 const { session, user } = await getAuthFromCookies(Astro.cookies);
 if (!session || !user) {
@@ -13,32 +20,100 @@ if (!session || !user) {
 const preferences = await getUserPreferences(user);
 const showGarageTemps = preferences.showGarageTemps;
 const showWeather = preferences.showWeather;
+
+const [deviceConfig, household, alertSettings] = await Promise.all([
+  getUserDevicesAsTempConfig(user.id, user.email),
+  getOrCreateHouseholdForUser(user.id, user.email),
+  getAlertSettingsForUser(user.id, user.user_metadata as Record<string, unknown>),
+]);
+
+const householdRole = household.householdId
+  ? await getUserHouseholdRole(user.id, household.householdId)
+  : null;
+const canEdit = canEditHousehold(householdRole);
+const devices = household.householdId
+  ? (await listHouseholdDevices(household.householdId)).devices
+  : [];
+const latest = household.householdId
+  ? await fetchLatestSensorValues(household.householdId)
+  : [];
+
+const hasDevices = devices.length > 0 || deviceConfig.devices.length > 0;
+const hasLive = latest.length > 0;
+const onboardingDismissed =
+  (user.user_metadata as Record<string, unknown> | undefined)?.onboarding_dismissed === true;
+const showDemoPullNudge =
+  canEdit && !hasLive && deviceConfig.devices.length === 0 && !onboardingDismissed;
+const hasEmailAlerts =
+  alertSettings.enabled && hasConfiguredAlertChannel(alertSettings);
+const panelsHidden = !showGarageTemps && !showWeather;
 ---
-<DashboardLayout title="Live">
+<DashboardLayout title="Live" liveLagging={!hasLive || latest.some((row) => !row.recorded_at || formatRelativeAge(row.recorded_at).lagging)}>
   <div class="space-y-6">
     <section class="card" aria-labelledby="live-intro-title">
       <h2 class="card-title" id="live-intro-title">Live readings</h2>
       <p class="card-subtitle mb-0">
-        Glanceable probe cards and outdoor weather. Overview stays the ops hub;
+        Glanceable probe cards and outdoor weather. Overview stays the ops hub —
         this page is for what’s happening right now.
       </p>
     </section>
+
+    {panelsHidden && (
+      <div class="empty-state">
+        <p class="empty-state-title">Live panels are hidden</p>
+        <p class="mb-0">
+          Display preferences currently hide probe cards and weather.
+        </p>
+        <div class="empty-state-actions">
+          <form action="/api/user/preferences" method="post" class="inline">
+            <input type="hidden" name="redirect" value="/dashboard/live" />
+            <input type="hidden" name="show_garage_temps" value="true" />
+            <input type="hidden" name="show_weather" value="true" />
+            {preferences.useCelsius && (
+              <input type="hidden" name="use_celsius" value="true" />
+            )}
+            <input type="hidden" name="theme" value={preferences.theme} />
+            <input
+              type="hidden"
+              name="weather_city_id"
+              value={preferences.weatherCityId ?? ""}
+            />
+            <button type="submit" class="btn-primary">Show probes + weather</button>
+          </form>
+          <a class="btn-secondary" href="/dashboard/settings">Open settings</a>
+        </div>
+      </div>
+    )}
+
+    {!panelsHidden && !hasLive && (
+      <section class="card" aria-labelledby="live-first-run-title">
+        <h2 class="card-title" id="live-first-run-title">Waiting for a reading</h2>
+        <p class="card-subtitle mb-4">
+          {hasDevices
+            ? "POST JSON once (or fetch a pull feed) so probe cards appear here, then set freeze + email under Alerts."
+            : "Create a push device, try the demo feed, or open Devices to wire ingest — then confirm cards here."}
+        </p>
+        <div class="flex flex-wrap gap-3">
+          <a class="btn-primary" href="/dashboard/devices">Open Devices</a>
+          {showDemoPullNudge && (
+            <a class="btn-secondary" href="/dashboard/devices#demo-pull-nudge">Try demo feed</a>
+          )}
+          {!hasEmailAlerts && (
+            <a class="btn-secondary" href="/dashboard/alerts#alert-section-essentials">
+              Alert essentials
+            </a>
+          )}
+          <a class="btn-ghost" href="/about/probe-demo">Probe simulator</a>
+        </div>
+      </section>
+    )}
+
+    <DemoPullNudge show={showDemoPullNudge} />
 
     <div class="grid gap-6">
       {showGarageTemps && <LiveTempsPanel client:visible />}
       {showWeather && (
         <WeatherPanel client:visible cityId={preferences.weatherCityId ?? null} />
-      )}
-      {!showGarageTemps && !showWeather && (
-        <div class="empty-state">
-          <p class="empty-state-title">Live panels are hidden</p>
-          <p class="mb-0">
-            Update display preferences to show live readings and weather again.
-          </p>
-          <div class="empty-state-actions">
-            <a class="btn-primary" href="/dashboard/settings">Open settings</a>
-          </div>
-        </div>
       )}
     </div>
   </div>

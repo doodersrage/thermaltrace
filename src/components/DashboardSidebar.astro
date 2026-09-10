@@ -23,15 +23,35 @@ interface Props {
   isAdmin: boolean;
   email?: string | null;
   planLabel?: string;
+  unackedAlerts?: number;
+  liveLagging?: boolean;
+  showPortfolioInMonitor?: boolean;
 }
 
-const { currentPath, isAdmin, email, planLabel } = Astro.props;
+const {
+  currentPath,
+  isAdmin,
+  email,
+  planLabel,
+  unackedAlerts = 0,
+  liveLagging = false,
+  showPortfolioInMonitor = false,
+} = Astro.props;
 
 type NavItem = {
   href: string;
   label: string;
   isActive: boolean;
   Icon: typeof LayoutDashboard;
+  badge?: number | null;
+  warn?: boolean;
+};
+
+const portfolioItem: NavItem = {
+  href: "/dashboard/portfolio",
+  label: "Portfolio",
+  isActive: currentPath.startsWith("/dashboard/portfolio"),
+  Icon: Building2,
 };
 
 const monitorItems: NavItem[] = [
@@ -46,13 +66,9 @@ const monitorItems: NavItem[] = [
     label: "Live",
     isActive: currentPath.startsWith("/dashboard/live"),
     Icon: Thermometer,
+    warn: liveLagging,
   },
-  {
-    href: "/dashboard/portfolio",
-    label: "Portfolio",
-    isActive: currentPath.startsWith("/dashboard/portfolio"),
-    Icon: Building2,
-  },
+  ...(showPortfolioInMonitor ? [portfolioItem] : []),
   {
     href: "/dashboard/devices",
     label: "Devices",
@@ -66,6 +82,7 @@ const monitorItems: NavItem[] = [
     label: "Alerts",
     isActive: currentPath.startsWith("/dashboard/alerts"),
     Icon: Bell,
+    badge: unackedAlerts > 0 ? unackedAlerts : null,
   },
   {
     href: "/dashboard/history",
@@ -76,6 +93,7 @@ const monitorItems: NavItem[] = [
 ];
 
 const accountItems: NavItem[] = [
+  ...(!showPortfolioInMonitor ? [portfolioItem] : []),
   {
     href: "/dashboard/household",
     label: "Household",
@@ -143,14 +161,21 @@ const adminItems: NavItem[] = isAdmin
     ]
   : [];
 
-const allItems = [...monitorItems, ...accountItems, ...adminItems];
-const activeLabel =
-  allItems.find((item) => item.isActive)?.label ?? "Dashboard";
-
 const groups = [
   { label: "Monitor", items: monitorItems },
   { label: "Account", items: accountItems },
   ...(adminItems.length > 0 ? [{ label: "Admin", items: adminItems }] : []),
+];
+
+const activeLabel =
+  [...monitorItems, ...accountItems, ...adminItems].find((item) => item.isActive)?.label ??
+  "Dashboard";
+
+const mobileMonitor = [
+  monitorItems.find((i) => i.href === "/dashboard")!,
+  monitorItems.find((i) => i.href === "/dashboard/live")!,
+  monitorItems.find((i) => i.href === "/dashboard/devices")!,
+  monitorItems.find((i) => i.href === "/dashboard/alerts")!,
 ];
 ---
 
@@ -182,15 +207,27 @@ const groups = [
         <div class="dashboard-nav-group">
           <p class="dashboard-nav-group-label">{group.label}</p>
           <ul class="dashboard-nav-list">
-            {group.items.map(({ href, label, isActive, Icon }) => (
+            {group.items.map(({ href, label, isActive, Icon, badge, warn }) => (
               <li>
                 <a
                   href={href}
-                  class:list={["dashboard-nav-link", isActive && "dashboard-nav-link-active"]}
+                  class:list={[
+                    "dashboard-nav-link",
+                    isActive && "dashboard-nav-link-active",
+                    warn && "dashboard-nav-link--warn",
+                  ]}
                   aria-current={isActive ? "page" : undefined}
                 >
                   <Icon class="dashboard-nav-icon" size={16} strokeWidth={2} aria-hidden="true" />
-                  <span>{label}</span>
+                  <span class="dashboard-nav-label">{label}</span>
+                  {typeof badge === "number" && badge > 0 && (
+                    <span class="dashboard-nav-badge" aria-label={`${badge} unhandled`}>
+                      {badge > 99 ? "99+" : badge}
+                    </span>
+                  )}
+                  {warn && !badge && (
+                    <span class="dashboard-nav-dot" aria-label="Lagging probes"></span>
+                  )}
                 </a>
               </li>
             ))}
@@ -204,6 +241,26 @@ const groups = [
     </div>
   </nav>
 </aside>
+
+<nav class="dashboard-mobile-monitor" aria-label="Monitor shortcuts">
+  {mobileMonitor.map(({ href, label, isActive, Icon, badge, warn }) => (
+    <a
+      href={href}
+      class:list={[
+        "dashboard-mobile-monitor-link",
+        isActive && "dashboard-mobile-monitor-link-active",
+        warn && "dashboard-mobile-monitor-link--warn",
+      ]}
+      aria-current={isActive ? "page" : undefined}
+    >
+      <Icon class="dashboard-mobile-monitor-icon" size={18} strokeWidth={2} aria-hidden="true" />
+      <span>{label}</span>
+      {typeof badge === "number" && badge > 0 && (
+        <span class="dashboard-nav-badge dashboard-nav-badge--mobile">{badge > 99 ? "99+" : badge}</span>
+      )}
+    </a>
+  ))}
+</nav>
 
 <script is:inline>
   (() => {

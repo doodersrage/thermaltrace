@@ -439,10 +439,22 @@ export default function LiveTempsPanel({ intervalMs = 30000 }: Props) {
         </div>
       ) : !hasAnySensors ? (
         <div class="empty-state">
-          <p class="mb-4">No sensors available yet.</p>
-          <a class="btn-primary" href="/dashboard/devices">
-            Configure devices
-          </a>
+          <p class="empty-state-title mb-2">No sensors yet</p>
+          <p class="mb-4">
+            Create a push device or pull feed, then POST a reading. Cards show up here
+            within a few seconds.
+          </p>
+          <div class="empty-state-actions">
+            <a class="btn-primary" href="/dashboard/devices">
+              Open Devices
+            </a>
+            <a class="btn-secondary" href="/dashboard/alerts#alert-section-essentials">
+              Alert essentials
+            </a>
+            <a class="btn-ghost" href="/about/probe-demo">
+              Probe simulator
+            </a>
+          </div>
         </div>
       ) : null}
 

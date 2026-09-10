@@ -5,13 +5,17 @@ import KioskModeToggle from "../components/KioskModeToggle";
 import { getAuthFromCookies } from "../lib/auth";
 import { isUserAdmin } from "../lib/adminAccess";
 import { getUserEntitlements } from "../lib/entitlements";
+import { countUnacknowledgedAlerts } from "../lib/alertEvents";
+import { listUserHouseholds } from "../lib/households";
 
 interface Props {
   title?: string;
   requireAdmin?: boolean;
+  /** Optional lag hint for Live nav (Overview/Live can pass). */
+  liveLagging?: boolean;
 }
 
-const { title = "Dashboard", requireAdmin = false } = Astro.props;
+const { title = "Dashboard", requireAdmin = false, liveLagging = false } = Astro.props;
 
 const { session, user } = await getAuthFromCookies(Astro.cookies);
 
@@ -31,6 +35,15 @@ const planLabel =
   entitlements.tier === "admin"
     ? "Admin"
     : entitlements.tier.charAt(0).toUpperCase() + entitlements.tier.slice(1);
+
+const [unackedAlerts, userHouseholds] = await Promise.all([
+  countUnacknowledgedAlerts(user.id),
+  listUserHouseholds(user.id),
+]);
+
+const householdCount = userHouseholds.households.length;
+const showPortfolioInMonitor =
+  entitlements.canUsePortfolio || householdCount >= 2;
 ---
 <Layout title={title}>
   <div class="dashboard-shell">
@@ -39,6 +52,9 @@ const planLabel =
       isAdmin={admin}
       email={user.email}
       planLabel={planLabel}
+      unackedAlerts={unackedAlerts}
+      liveLagging={liveLagging}
+      showPortfolioInMonitor={showPortfolioInMonitor}
     />
     <div class="dashboard-main">
       <header class="dashboard-topbar">

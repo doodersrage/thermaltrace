@@ -11,6 +11,8 @@ interface Props {
   canPin?: boolean;
   snapshotField?: string | null;
   liveAgeIso?: string | null;
+  /** When false, keep in DOM for soft-pin but hide from Status grid. */
+  statusVisible?: boolean;
 }
 
 const {
@@ -25,6 +27,7 @@ const {
   canPin = false,
   snapshotField = null,
   liveAgeIso = null,
+  statusVisible = true,
 } = Astro.props;
 
 const toneClass =
@@ -44,8 +47,10 @@ const Tag = href && !canPin ? "a" : "article";
     "metric-card",
     `metric-card--${tone}`,
     href && "metric-card--link",
+    !statusVisible && "hidden",
     className,
   ]}
+  hidden={!statusVisible}
   data-metric-id={metricId ?? undefined}
   data-snapshot-field={snapshotField ?? undefined}
 >

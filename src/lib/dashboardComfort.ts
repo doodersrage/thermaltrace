@@ -47,8 +47,22 @@ export const PINNED_METRICS_MAX = 5;
 
 const CRITICAL_BANNER_IDS = new Set(["lowBattery", "stale"]);
 
+/** Ops Attention strip — sensors/alerts/freeze readiness only (not growth tips). */
+export const OPS_ATTENTION_BANNER_IDS = new Set([
+  "lowBattery",
+  "stale",
+  "coldSnap",
+  "testAlert",
+  "alertSetup",
+  "freezeReadiness",
+]);
+
 export function isCriticalOverviewBanner(id: string): boolean {
   return CRITICAL_BANNER_IDS.has(id);
+}
+
+export function isOpsAttentionBanner(id: string): boolean {
+  return OPS_ATTENTION_BANNER_IDS.has(id);
 }
 
 export function getDashboardQuietUntil(

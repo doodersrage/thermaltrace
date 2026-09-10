@@ -98,6 +98,7 @@ import {
   getDashboardQuietUntil,
   getPinnedOverviewMetrics,
   isCriticalOverviewBanner,
+  isOpsAttentionBanner,
   isDashboardQuietActive,
   shouldForceSimpleOverview,
   PINNABLE_OVERVIEW_METRICS,
@@ -701,11 +702,14 @@ const criticalBanners = activeOverviewBanners.filter((b) =>
 const nonCriticalBanners = activeOverviewBanners.filter(
   (b) => !isCriticalOverviewBanner(b.id),
 );
-/** Critical banners always surface; at most one non-critical as primary when nothing critical. */
+/** Only ops (or Live coach) may sit as the single non-critical primary. */
+const primaryEligible = nonCriticalBanners.filter(
+  (b) => isOpsAttentionBanner(b.id) || b.id === "youreLive",
+);
 const primaryBannerIds = new Set<string>(
   criticalBanners.length > 0
     ? criticalBanners.map((b) => b.id)
-    : nonCriticalBanners.slice(0, 1).map((b) => b.id),
+    : primaryEligible.slice(0, 1).map((b) => b.id),
 );
 const secondaryBannerIds = new Set(
   activeOverviewBanners
@@ -716,12 +720,24 @@ const showNestInDigest = !quietActive && showNestConnectNudge;
 const showPwaInDigest = !quietActive && showOverviewPwaNudge;
 const showAndroidInDigest = !quietActive && showAndroidNudge;
 const showBayBuddyInDigest = !quietActive && showBayBuddyNudge;
-const secondaryRecommendationCount =
-  secondaryBannerIds.size +
+
+const secondaryOpsBannerIds = [...secondaryBannerIds].filter((id) =>
+  isOpsAttentionBanner(id),
+);
+const secondaryTipBannerIds = [...secondaryBannerIds].filter(
+  (id) => !isOpsAttentionBanner(id),
+);
+const attentionOpsCount = secondaryOpsBannerIds.length;
+const tipsCount =
+  secondaryTipBannerIds.length +
   (showNestInDigest ? 1 : 0) +
   (showPwaInDigest ? 1 : 0) +
   (showAndroidInDigest ? 1 : 0) +
   (showBayBuddyInDigest ? 1 : 0);
+
+const overviewUrgent =
+  unackedAlertCount > 0 || criticalBanners.length > 0 || firstRunFocus;
+const overviewCalm = !overviewUrgent;
 
 function showPinnedMetric(id: PinnableOverviewMetric): boolean {
   return pinnedMetricSet.has(id);
@@ -743,7 +759,7 @@ const garageRisk = computeGarageRiskStatus({
   wetFloodCount,
 });
 ---
-<DashboardLayout title="Overview">
+<DashboardLayout title="Overview" liveLagging={staleSensorCount > 0 || lastAge.lagging}>
   <ProductAnalyticsTracker events={analyticsEvents} />
   <div class="dashboard-stack">
     {(passwordUpdated || prefsSaved || prefsError || checkedSaved || checkedError || ackOk || snoozeFlash || snoozeCleared || vacationFlash || vacationCleared || vacationError) && (
@@ -827,17 +843,6 @@ const garageRisk = computeGarageRiskStatus({
         Refresh
       </button>
     </div>
-    {!firstRunFocus && (hasDevices || chartWeek.points.length > 0) && (
-      <TimeToFreezeCard
-        projection={timeToFreeze}
-        freezeThresholdF={alertSettings.freezeThresholdF}
-        useCelsius={useCelsius}
-      />
-    )}
-
-    <DemoPullNudge show={showDemoPullNudge} />
-    <ProbeSimulatorNudge show={showProbeSimulatorNudge} />
-
     <HouseholdSwitcher
       households={userHouseholds.households}
       activeHouseholdId={activeHouseholdId}
@@ -896,14 +901,6 @@ const garageRisk = computeGarageRiskStatus({
       show={primaryBannerIds.has("testAlert")}
     />
 
-    <FreezeMapOptInNudge
-      canEdit={canEdit}
-      show={primaryBannerIds.has("freezeMap")}
-      cityLabel={freezeMapSettings.label}
-    />
-
-    <DashboardStoryCard show={primaryBannerIds.has("story")} />
-
     <ColdSnapChecklistCard
       show={primaryBannerIds.has("coldSnap")}
       coldSnapEnabled={alertSettings.forecastFreezeEnabled}
@@ -914,86 +911,22 @@ const garageRisk = computeGarageRiskStatus({
       <FreezeReadinessCard readiness={freezeReadiness} />
     )}
 
-    <DashboardMultiPropertyNudge show={primaryBannerIds.has("multiProperty")} />
-
-    <AttentionNeededStrip
-      count={secondaryRecommendationCount}
-      quietActive={quietActive}
-      quietUntil={quietUntil}
-    >
-      <div class="space-y-4">
-          <NestConnectNudge
-            show={showNestInDigest}
-            nestEntitled={entitlements.canUseThermostatIntegration}
-          />
-          <OverviewPwaNudge show={showPwaInDigest} />
-          <DashboardAndroidNudge show={showAndroidInDigest} />
-          <DashboardBayBuddyNudge show={showBayBuddyInDigest} />
-          <DashboardYoureLive
-            show={secondaryBannerIds.has("youreLive")}
-            hasAlertsEnabled={hasAlertsEnabled}
-            hasEmailAlerts={hasEmailAlerts}
-            hasTestAlert={hasTestAlert}
-          />
-          <AlertSetupNudge
-            hasAlertsEnabled={hasAlertsEnabled}
-            hasEmailAlerts={hasEmailAlerts}
-            canEdit={canEdit}
-            show={secondaryBannerIds.has("alertSetup")}
-          />
-          <TestAlertNudge
-            canEdit={canEdit}
-            show={secondaryBannerIds.has("testAlert")}
-          />
-          <FreezeMapOptInNudge
-            canEdit={canEdit}
-            show={secondaryBannerIds.has("freezeMap")}
-            cityLabel={freezeMapSettings.label}
-          />
-          <DashboardStoryCard show={secondaryBannerIds.has("story")} />
-          <DashboardMultiPropertyNudge show={secondaryBannerIds.has("multiProperty")} />
-          <ColdSnapChecklistCard
-            show={secondaryBannerIds.has("coldSnap")}
-            coldSnapEnabled={alertSettings.forecastFreezeEnabled}
-            canUseForecast={entitlements.canUseForecastAlerts}
-          />
-          {secondaryBannerIds.has("freezeReadiness") && (
-            <FreezeReadinessCard readiness={freezeReadiness} />
-          )}
-          {secondaryBannerIds.has("upgrade") && upgradeTarget === "member" && (
-            <UpgradeNudge feature="data_retention" tier={entitlements.tier} compact />
-          )}
-          {secondaryBannerIds.has("upgrade") && upgradeTarget === "pro" && (
-            <UpgradeNudge feature="sms_alerts" tier={entitlements.tier} compact />
-          )}
-          {secondaryBannerIds.has("stale") && staleSensorCount > 0 && (
-            <div class="alert-warning mb-0" role="status" data-stale-banner>
-              {staleSummary.bannerMessage}.
-              {" "}
-              <a href="/dashboard/live" class="text-link">Open Live</a>
-              {" · "}
-              <a href="/dashboard/devices" class="text-link">Devices</a>
-            </div>
-          )}
-          <LowBatteryBanner message={secondaryBannerIds.has("lowBattery") ? lowBatteryMessage : null} />
-      </div>
-    </AttentionNeededStrip>
 
     {firstRunFocus && canEdit && (
       <section class="card" aria-labelledby="first-run-focus-title">
         <h2 class="card-title" id="first-run-focus-title">
           {latest.length === 0
-            ? "Get a reading on this Overview"
+            ? "Get a reading on Live"
             : "Finish the alert path"}
         </h2>
         <p class="card-subtitle mb-4">
           {latest.length === 0
             ? hasDevices
-              ? "You have a device. POST JSON once (or fetch a pull feed) so sensors appear here, then set freeze + email and send a test."
+              ? "You have a device. POST JSON once (or fetch a pull feed) so sensors appear on Live, then set freeze + email and send a test."
               : "Create a push device for ESP/Arduino, or try the demo feed, then set freeze + email and send a test."
             : !hasEmailAlerts
               ? "Live probes are in. Set freeze threshold + email under Alerts, then send a test so you trust delivery before a real freeze night."
-              : "Send a test alert once. Insights, Nest, Android nudges, and the full status strip unlock after that."}
+              : "Send a test alert once. Insights and the full status strip unlock after that."}
         </p>
         <div class="flex flex-wrap gap-3">
           {latest.length === 0 ? (
@@ -1002,6 +935,7 @@ const garageRisk = computeGarageRiskStatus({
               {showDemoPullNudge && (
                 <a class="btn-secondary" href="#demo-pull-nudge">Try demo feed</a>
               )}
+              <a class="btn-secondary" href="/dashboard/live">Open Live</a>
               {!hasDevices && (
                 <a class="btn-secondary" href="/about/esp32-freeze-kit">ESP32 parts list</a>
               )}
@@ -1028,10 +962,10 @@ const garageRisk = computeGarageRiskStatus({
 
     {prioritizeEmptyOverview && canEdit && !firstRunFocus && (
       <section class="card" aria-labelledby="empty-overview-cta-title">
-        <h2 class="card-title" id="empty-overview-cta-title">Get a reading on this Overview</h2>
+        <h2 class="card-title" id="empty-overview-cta-title">Get a reading on Live</h2>
         <p class="card-subtitle mb-4">
           {hasDevices
-            ? "You have a device. POST JSON once (or fetch a pull feed) so sensors appear here, then set freeze + email."
+            ? "You have a device. POST JSON once (or fetch a pull feed) so sensors appear on Live, then set freeze + email."
             : "Create a push device for ESP/Arduino, or try the demo feed, then set freeze + email under Alerts."}
         </p>
         <div class="flex flex-wrap gap-3">
@@ -1056,28 +990,61 @@ const garageRisk = computeGarageRiskStatus({
 
     <section class="dashboard-section" id="status" aria-labelledby="status-heading">
       <div class="dashboard-section-head">
-        <h2 id="status-heading" class="dashboard-section-title">Status</h2>
-        {firstRunFocus && (
-          <p class="dashboard-section-desc mb-0">
-            Essentials only until freeze + email + a test alert are done.
-          </p>
+        <div>
+          <h2 id="status-heading" class="dashboard-section-title">Status</h2>
+          {firstRunFocus && (
+            <p class="dashboard-section-desc mb-0">
+              Essentials only until freeze + email + a test alert are done.
+            </p>
+          )}
+          {!firstRunFocus && (
+            <p class="dashboard-section-desc mb-0">
+              Ops snapshot — probe values live on
+              <a class="text-link" href="/dashboard/live">Live</a>.
+            </p>
+          )}
+        </div>
+        {!firstRunFocus && canEdit && (
+          <details class="status-pin-picker">
+            <summary class="text-sm text-link cursor-pointer">Pin metrics</summary>
+            <form
+              action="/api/user/dashboard-pinned-metrics"
+              method="post"
+              class="mt-3 flex flex-wrap gap-3 items-end"
+            >
+              <input type="hidden" name="redirect" value="/dashboard" />
+              {PINNABLE_OVERVIEW_METRICS.map((id) => (
+                <label class="text-sm flex items-center gap-1">
+                  <input
+                    type="checkbox"
+                    name="metrics"
+                    value={id}
+                    checked={pinnedMetricSet.has(id)}
+                  />
+                  <span>{PINNABLE_OVERVIEW_METRIC_LABELS[id]}</span>
+                </label>
+              ))}
+              <button type="submit" class="btn-secondary btn-sm">Save pins</button>
+            </form>
+          </details>
         )}
       </div>
       <DashboardMetricGrid>
-        {showPinnedMetric("last_reading") && (
+        {(canEdit || showPinnedMetric("last_reading")) && (
           <MetricCard
             label="Last reading"
             value={newestReading ? lastAge.label : "None yet"}
             href="/dashboard/live"
             tone={!newestReading || lastAge.lagging ? "warning" : "success"}
             metricId="last_reading"
-            pinned
+            pinned={showPinnedMetric("last_reading")}
+            statusVisible={showPinnedMetric("last_reading")}
             canPin={canEdit}
             snapshotField="last_reading"
             liveAgeIso={newestReading}
           />
         )}
-        {showPinnedMetric("sensors") && (
+        {(canEdit || showPinnedMetric("sensors")) && (
           <MetricCard
             label="Sensors"
             value={sensorsValue}
@@ -1085,23 +1052,25 @@ const garageRisk = computeGarageRiskStatus({
             href="/dashboard/devices"
             tone={staleSensorCount > 0 ? "warning" : "neutral"}
             metricId="sensors"
-            pinned
+            pinned={showPinnedMetric("sensors")}
+            statusVisible={showPinnedMetric("sensors")}
             canPin={canEdit}
             snapshotField="sensors"
           />
         )}
-        {!firstRunFocus && showPinnedMetric("feeds") && (
+        {!firstRunFocus && (canEdit || showPinnedMetric("feeds")) && (
           <MetricCard
             label="Feeds"
             value={feedsValue}
             href="/dashboard/devices#pull-feeds"
             tone={feedIssueCount > 0 ? "warning" : "neutral"}
             metricId="feeds"
-            pinned
+            pinned={showPinnedMetric("feeds")}
+            statusVisible={showPinnedMetric("feeds")}
             canPin={canEdit}
           />
         )}
-        {showPinnedMetric("alerts") && (
+        {(canEdit || showPinnedMetric("alerts")) && (
           <MetricCard
             label="Alerts"
             value={alertSettings.enabled ? "On" : "Off"}
@@ -1109,12 +1078,13 @@ const garageRisk = computeGarageRiskStatus({
             href="/dashboard/alerts"
             tone={alertSettings.enabled ? "success" : "neutral"}
             metricId="alerts"
-            pinned
+            pinned={showPinnedMetric("alerts")}
+            statusVisible={showPinnedMetric("alerts")}
             canPin={canEdit}
             snapshotField="alerts"
           />
         )}
-        {!firstRunFocus && houseContext && showPinnedMetric("house") && (
+        {!firstRunFocus && houseContext && (canEdit || showPinnedMetric("house")) && (
           <MetricCard
             label="House"
             value={houseContext.metricValue}
@@ -1122,13 +1092,14 @@ const garageRisk = computeGarageRiskStatus({
             href="/dashboard/devices#indoor-reference"
             tone="neutral"
             metricId="house"
-            pinned
+            pinned={showPinnedMetric("house")}
+            statusVisible={showPinnedMetric("house")}
             canPin={canEdit}
           />
         )}
         {!firstRunFocus && (
           <>
-            {showPinnedMetric("freeze_hours") && (
+            {(canEdit || showPinnedMetric("freeze_hours")) && (
               <MetricCard
                 label="Freeze hours (7d)"
                 value={
@@ -1146,11 +1117,12 @@ const garageRisk = computeGarageRiskStatus({
                 href="/dashboard/history"
                 tone={freezeHours.hoursBelow34 > 0 ? "warning" : "neutral"}
                 metricId="freeze_hours"
-                pinned
+                pinned={showPinnedMetric("freeze_hours")}
+                statusVisible={showPinnedMetric("freeze_hours")}
                 canPin={canEdit}
               />
             )}
-            {showPinnedMetric("coldest_margin") && (
+            {(canEdit || showPinnedMetric("coldest_margin")) && (
               <MetricCard
                 label="Coldest margin"
                 value={
@@ -1174,12 +1146,13 @@ const garageRisk = computeGarageRiskStatus({
                         : "success"
                 }
                 metricId="coldest_margin"
-                pinned
+                pinned={showPinnedMetric("coldest_margin")}
+                statusVisible={showPinnedMetric("coldest_margin")}
                 canPin={canEdit}
                 snapshotField="coldest_margin"
               />
             )}
-            {showPinnedMetric("indoor_outdoor") && (
+            {(canEdit || showPinnedMetric("indoor_outdoor")) && (
               <MetricCard
                 label="Indoor − outdoor"
                 value={
@@ -1203,11 +1176,12 @@ const garageRisk = computeGarageRiskStatus({
                       : "neutral"
                 }
                 metricId="indoor_outdoor"
-                pinned
+                pinned={showPinnedMetric("indoor_outdoor")}
+                statusVisible={showPinnedMetric("indoor_outdoor")}
                 canPin={canEdit}
               />
             )}
-            {showPinnedMetric("probe_spread") && (
+            {(canEdit || showPinnedMetric("probe_spread")) && (
               <MetricCard
                 label="Probe spread"
                 value={probeSpread ? `${probeSpread.spreadF.toFixed(1)}°F` : "—"}
@@ -1225,11 +1199,12 @@ const garageRisk = computeGarageRiskStatus({
                       : "neutral"
                 }
                 metricId="probe_spread"
-                pinned
+                pinned={showPinnedMetric("probe_spread")}
+                statusVisible={showPinnedMetric("probe_spread")}
                 canPin={canEdit}
               />
             )}
-            {showPinnedMetric("condensation") && (
+            {(canEdit || showPinnedMetric("condensation")) && (
               <MetricCard
                 label="Condensation (7d)"
                 value={
@@ -1250,11 +1225,12 @@ const garageRisk = computeGarageRiskStatus({
                     : "neutral"
                 }
                 metricId="condensation"
-                pinned
+                pinned={showPinnedMetric("condensation")}
+                statusVisible={showPinnedMetric("condensation")}
                 canPin={canEdit}
               />
             )}
-            {feedUptime && showPinnedMetric("feed_health") && (
+            {feedUptime && (canEdit || showPinnedMetric("feed_health")) && (
               <MetricCard
                 label="Feed health"
                 value={`${feedUptime.pct.toFixed(0)}%`}
@@ -1262,41 +1238,110 @@ const garageRisk = computeGarageRiskStatus({
                 href="/dashboard/devices#pull-feeds"
                 tone={feedUptime.pct < 100 ? "warning" : "success"}
                 metricId="feed_health"
-                pinned
+                pinned={showPinnedMetric("feed_health")}
+                statusVisible={showPinnedMetric("feed_health")}
                 canPin={canEdit}
               />
             )}
           </>
         )}
       </DashboardMetricGrid>
-      {!firstRunFocus && (
-        <details class="mt-3">
-          <summary class="text-sm text-link cursor-pointer">Pin Status metrics</summary>
-          <form
-            action="/api/user/dashboard-pinned-metrics"
-            method="post"
-            class="mt-3 flex flex-wrap gap-3 items-end"
-          >
-            <input type="hidden" name="redirect" value="/dashboard" />
-            {PINNABLE_OVERVIEW_METRICS.map((id) => (
-              <label class="text-sm flex items-center gap-1">
-                <input
-                  type="checkbox"
-                  name="metrics"
-                  value={id}
-                  checked={pinnedMetricSet.has(id)}
-                />
-                <span>{PINNABLE_OVERVIEW_METRIC_LABELS[id]}</span>
-              </label>
-            ))}
-            <button type="submit" class="btn-secondary btn-sm">Save pins</button>
-            <a class="btn-ghost btn-sm" href="/dashboard/settings#dashboard-comfort">
-              More comfort settings
-            </a>
-          </form>
-        </details>
+      {!firstRunFocus && canEdit && (
+        <p class="mt-3 mb-0 text-sm text-[var(--color-text-muted)]">
+          Or use ★ on each card. More comfort settings in
+          <a class="text-link" href="/dashboard/settings#dashboard-comfort"> Settings</a>.
+        </p>
       )}
     </section>
+
+    <DemoPullNudge show={showDemoPullNudge} />
+    <ProbeSimulatorNudge show={showProbeSimulatorNudge} />
+
+    {!firstRunFocus && (hasDevices || chartWeek.points.length > 0) && (
+      <TimeToFreezeCard
+        projection={timeToFreeze}
+        freezeThresholdF={alertSettings.freezeThresholdF}
+        useCelsius={useCelsius}
+      />
+    )}
+
+    <AttentionNeededStrip
+      count={attentionOpsCount}
+      title="Attention needed"
+      storageKey="tt-attention-ops-collapsed"
+      defaultOpen={attentionOpsCount > 0 && !overviewCalm}
+      showQuietControls={false}
+    >
+      <div class="space-y-4">
+          <AlertSetupNudge
+            hasAlertsEnabled={hasAlertsEnabled}
+            hasEmailAlerts={hasEmailAlerts}
+            canEdit={canEdit}
+            show={secondaryBannerIds.has("alertSetup")}
+          />
+          <TestAlertNudge
+            canEdit={canEdit}
+            show={secondaryBannerIds.has("testAlert")}
+          />
+          <ColdSnapChecklistCard
+            show={secondaryBannerIds.has("coldSnap")}
+            coldSnapEnabled={alertSettings.forecastFreezeEnabled}
+            canUseForecast={entitlements.canUseForecastAlerts}
+          />
+          {secondaryBannerIds.has("freezeReadiness") && (
+            <FreezeReadinessCard readiness={freezeReadiness} />
+          )}
+          {secondaryBannerIds.has("stale") && staleSensorCount > 0 && (
+            <div class="alert-warning mb-0" role="status" data-stale-banner>
+              {staleSummary.bannerMessage}.
+              {" "}
+              <a href="/dashboard/live" class="text-link">Open Live</a>
+              {" · "}
+              <a href="/dashboard/devices" class="text-link">Devices</a>
+            </div>
+          )}
+          <LowBatteryBanner message={secondaryBannerIds.has("lowBattery") ? lowBatteryMessage : null} />
+      </div>
+    </AttentionNeededStrip>
+
+    <AttentionNeededStrip
+      count={tipsCount}
+      quietActive={quietActive}
+      quietUntil={quietUntil}
+      title="Tips"
+      storageKey="tt-attention-tips-collapsed"
+      defaultOpen={false}
+      showQuietControls={true}
+    >
+      <div class="space-y-4">
+          <NestConnectNudge
+            show={showNestInDigest}
+            nestEntitled={entitlements.canUseThermostatIntegration}
+          />
+          <OverviewPwaNudge show={showPwaInDigest} />
+          <DashboardAndroidNudge show={showAndroidInDigest} />
+          <DashboardBayBuddyNudge show={showBayBuddyInDigest} />
+          <DashboardYoureLive
+            show={secondaryBannerIds.has("youreLive")}
+            hasAlertsEnabled={hasAlertsEnabled}
+            hasEmailAlerts={hasEmailAlerts}
+            hasTestAlert={hasTestAlert}
+          />
+          <FreezeMapOptInNudge
+            canEdit={canEdit}
+            show={secondaryBannerIds.has("freezeMap") || primaryBannerIds.has("freezeMap")}
+            cityLabel={freezeMapSettings.label}
+          />
+          <DashboardStoryCard show={secondaryBannerIds.has("story") || primaryBannerIds.has("story")} />
+          <DashboardMultiPropertyNudge show={secondaryBannerIds.has("multiProperty") || primaryBannerIds.has("multiProperty")} />
+          {secondaryBannerIds.has("upgrade") && upgradeTarget === "member" && (
+            <UpgradeNudge feature="data_retention" tier={entitlements.tier} compact />
+          )}
+          {secondaryBannerIds.has("upgrade") && upgradeTarget === "pro" && (
+            <UpgradeNudge feature="sms_alerts" tier={entitlements.tier} compact />
+          )}
+      </div>
+    </AttentionNeededStrip>
 
     <section class="dashboard-section" aria-labelledby="curves-heading">
       <div class="dashboard-section-head">
@@ -1580,6 +1625,8 @@ const garageRisk = computeGarageRiskStatus({
 
         if (typeof data.unackedAlerts === "number") {
           applyUnackedChrome(data.unackedAlerts);
+          var qaDetails = document.querySelector("[data-qa-details]");
+          if (qaDetails && data.unackedAlerts > 0) qaDetails.open = true;
           document.querySelectorAll('[data-overview-field="unackedCount"]').forEach(function (el) {
             el.textContent = String(data.unackedAlerts);
           });
@@ -1746,12 +1793,10 @@ const garageRisk = computeGarageRiskStatus({
             var metrics = result.data && result.data.metrics;
             var nowPinned = Array.isArray(metrics) ? metrics.indexOf(metric) !== -1 : !wasPinned;
             setPinUi(metric, nowPinned);
-            if (nowPinned && !document.querySelector('#status [data-metric-id="' + metric + '"]')) {
-              showLiveFlash("Pinned. Refresh to show it in Status.", false);
-            } else if (!nowPinned) {
-              showLiveFlash("Unpinned from Status.", false);
-            } else {
+            if (nowPinned) {
               showLiveFlash("Pinned to Status.", false);
+            } else {
+              showLiveFlash("Unpinned from Status.", false);
             }
           })
           .catch(function () {

@@ -31,94 +31,152 @@ const spaces = deviceSpaces.filter(Boolean);
     data-unacked={String(unackedCount)}
     data-snooze-active={snoozeActive ? "1" : "0"}
     data-snooze-until={snoozeUntil ?? ""}
+    data-qa-calm={!snoozeActive && unackedCount === 0 ? "1" : "0"}
   >
-    <div class="overview-quick-actions-head">
-      <h2 class="card-title mb-0" id="overview-quick-actions-title">Quick actions</h2>
-      <p class="card-subtitle mb-0">
-        Acknowledge, snooze alerts, or mark that you checked a space.
-      </p>
-    </div>
-    <p class="alert-success mt-0 mb-3 hidden" data-qa-status role="status"></p>
-    <p class="alert-warning mt-0 mb-3 hidden" data-qa-error role="alert"></p>
-    <div class="overview-quick-actions-row" data-qa-row>
-      <div data-qa-ack-slot class="inline-flex flex-wrap items-center gap-2">
-        {unackedCount > 0 ? (
-          <>
-            <button
-              type="button"
-              class="btn-secondary btn-sm"
-              data-qa-action="ack_latest"
-            >
-              Acknowledge latest
-            </button>
-            {unackedCount > 1 && (
+    {unackedCount === 0 && !snoozeActive ? (
+      <details class="overview-quick-actions-details" data-qa-details>
+        <summary class="overview-quick-actions-summary" id="overview-quick-actions-title">
+          Actions
+          <span class="text-[var(--color-text-muted)] font-normal"> · alerts clear · mark space checked</span>
+        </summary>
+        <div class="overview-quick-actions-body mt-3">
+          <p class="alert-success mt-0 mb-3 hidden" data-qa-status role="status"></p>
+          <p class="alert-warning mt-0 mb-3 hidden" data-qa-error role="alert"></p>
+          <div class="overview-quick-actions-row" data-qa-row>
+            <div data-qa-ack-slot class="inline-flex flex-wrap items-center gap-2">
+              <a class="btn-ghost btn-sm" href="/dashboard/alerts" data-qa-alerts-clear>Alerts clear</a>
+            </div>
+            <div data-qa-snooze-slot class="inline-flex flex-wrap items-center gap-1">
+              <span class="text-sm text-[var(--color-text-muted)]">Snooze</span>
+              {[1, 4, 24].map((hours) => (
+                <button
+                  type="button"
+                  class="btn-secondary btn-sm"
+                  id={hours === 24 ? "overview-snooze-action" : undefined}
+                  data-qa-snooze="snooze"
+                  data-qa-hours={String(hours)}
+                >
+                  {hours}h
+                </button>
+              ))}
+            </div>
+            <div class="inline-flex flex-wrap items-center gap-2">
+              {householdId && (
+                <input type="hidden" data-qa-household value={householdId} />
+              )}
+              {spaces.length > 0 && (
+                <select class="form-input text-sm py-1" data-qa-space aria-label="Space checked">
+                  <option value="">Whole property</option>
+                  {spaces.map((space) => (
+                    <option value={space}>{space}</option>
+                  ))}
+                </select>
+              )}
+              <button type="button" class="btn-ghost btn-sm" id="overview-checked-space" data-qa-checked>
+                I checked the space
+              </button>
+            </div>
+            <span
+              class="overview-checked-status text-sm text-[var(--color-text-muted)]"
+              id="overview-checked-status"
+              data-checked-at={spaceCheckedAt ?? ""}
+              data-overview-field="spaceCheckedAt"
+              hidden={!spaceCheckedAt}
+            ></span>
+          </div>
+        </div>
+      </details>
+    ) : (
+      <>
+        <div class="overview-quick-actions-head">
+          <h2 class="card-title mb-0" id="overview-quick-actions-title">Quick actions</h2>
+          <p class="card-subtitle mb-0">
+            Acknowledge, snooze alerts, or mark that you checked a space.
+          </p>
+        </div>
+        <p class="alert-success mt-0 mb-3 hidden" data-qa-status role="status"></p>
+        <p class="alert-warning mt-0 mb-3 hidden" data-qa-error role="alert"></p>
+        <div class="overview-quick-actions-row" data-qa-row>
+          <div data-qa-ack-slot class="inline-flex flex-wrap items-center gap-2">
+            {unackedCount > 0 ? (
+              <>
+                <button
+                  type="button"
+                  class="btn-secondary btn-sm"
+                  data-qa-action="ack_latest"
+                >
+                  Acknowledge latest
+                </button>
+                {unackedCount > 1 && (
+                  <button
+                    type="button"
+                    class="btn-ghost btn-sm"
+                    data-qa-action="ack_all"
+                    data-qa-confirm={`Mark all ${unackedCount} unhandled alerts as handled?`}
+                  >
+                    Handle remaining (<span data-overview-field="unackedCount">{unackedCount}</span>)
+                  </button>
+                )}
+              </>
+            ) : (
+              <a class="btn-ghost btn-sm" href="/dashboard/alerts" data-qa-alerts-clear>Alerts clear</a>
+            )}
+          </div>
+
+          <div data-qa-snooze-slot class="inline-flex flex-wrap items-center gap-1">
+            {snoozeActive ? (
               <button
                 type="button"
                 class="btn-ghost btn-sm"
-                data-qa-action="ack_all"
-                data-qa-confirm={`Mark all ${unackedCount} unhandled alerts as handled?`}
+                id="overview-snooze-action"
+                data-qa-snooze="clear_snooze"
               >
-                Handle remaining (<span data-overview-field="unackedCount">{unackedCount}</span>)
+                Clear snooze
               </button>
+            ) : (
+              <>
+                <span class="text-sm text-[var(--color-text-muted)]">Snooze</span>
+                {[1, 4, 24].map((hours) => (
+                  <button
+                    type="button"
+                    class="btn-secondary btn-sm"
+                    id={hours === 24 ? "overview-snooze-action" : undefined}
+                    data-qa-snooze="snooze"
+                    data-qa-hours={String(hours)}
+                  >
+                    {hours}h
+                  </button>
+                ))}
+              </>
             )}
-          </>
-        ) : (
-          <a class="btn-ghost btn-sm" href="/dashboard/alerts" data-qa-alerts-clear>Alerts clear</a>
-        )}
-      </div>
+          </div>
 
-      <div data-qa-snooze-slot class="inline-flex flex-wrap items-center gap-1">
-        {snoozeActive ? (
-          <button
-            type="button"
-            class="btn-ghost btn-sm"
-            id="overview-snooze-action"
-            data-qa-snooze="clear_snooze"
-          >
-            Clear snooze
-          </button>
-        ) : (
-          <>
-            <span class="text-sm text-[var(--color-text-muted)]">Snooze</span>
-            {[1, 4, 24].map((hours) => (
-              <button
-                type="button"
-                class="btn-secondary btn-sm"
-                id={hours === 24 ? "overview-snooze-action" : undefined}
-                data-qa-snooze="snooze"
-                data-qa-hours={String(hours)}
-              >
-                {hours}h
-              </button>
-            ))}
-          </>
-        )}
-      </div>
-
-      <div class="inline-flex flex-wrap items-center gap-2">
-        {householdId && (
-          <input type="hidden" data-qa-household value={householdId} />
-        )}
-        {spaces.length > 0 && (
-          <select class="form-input text-sm py-1" data-qa-space aria-label="Space checked">
-            <option value="">Whole property</option>
-            {spaces.map((space) => (
-              <option value={space}>{space}</option>
-            ))}
-          </select>
-        )}
-        <button type="button" class="btn-ghost btn-sm" id="overview-checked-space" data-qa-checked>
-          I checked the space
-        </button>
-      </div>
-      <span
-        class="overview-checked-status text-sm text-[var(--color-text-muted)]"
-        id="overview-checked-status"
-        data-checked-at={spaceCheckedAt ?? ""}
-        data-overview-field="spaceCheckedAt"
-        hidden={!spaceCheckedAt}
-      ></span>
-    </div>
+          <div class="inline-flex flex-wrap items-center gap-2">
+            {householdId && (
+              <input type="hidden" data-qa-household value={householdId} />
+            )}
+            {spaces.length > 0 && (
+              <select class="form-input text-sm py-1" data-qa-space aria-label="Space checked">
+                <option value="">Whole property</option>
+                {spaces.map((space) => (
+                  <option value={space}>{space}</option>
+                ))}
+              </select>
+            )}
+            <button type="button" class="btn-ghost btn-sm" id="overview-checked-space" data-qa-checked>
+              I checked the space
+            </button>
+          </div>
+          <span
+            class="overview-checked-status text-sm text-[var(--color-text-muted)]"
+            id="overview-checked-status"
+            data-checked-at={spaceCheckedAt ?? ""}
+            data-overview-field="spaceCheckedAt"
+            hidden={!spaceCheckedAt}
+          ></span>
+        </div>
+      </>
+    )}
   </section>
 )}
 
@@ -261,5 +319,15 @@ const spaces = deviceSpaces.filter(Boolean);
     flex-wrap: wrap;
     align-items: center;
     gap: 0.5rem;
+  }
+
+  .overview-quick-actions-summary {
+    cursor: pointer;
+    font-weight: 600;
+    list-style: none;
+  }
+
+  .overview-quick-actions-summary::-webkit-details-marker {
+    display: none;
   }
 </style>

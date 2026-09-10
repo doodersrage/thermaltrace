@@ -2797,6 +2797,7 @@
 
   body.is-kiosk .site-header,
   body.is-kiosk .dashboard-sidebar,
+  body.is-kiosk .dashboard-mobile-monitor,
   body.is-kiosk .site-footer {
     display: none !important;
   }
@@ -3287,6 +3288,98 @@
 
   .dashboard-nav-link-active .dashboard-nav-icon {
     opacity: 1;
+  }
+
+  .dashboard-nav-label {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .dashboard-nav-badge {
+    margin-left: auto;
+    min-width: 1.25rem;
+    padding: 0.05rem 0.35rem;
+    border-radius: 999px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    line-height: 1.2;
+    text-align: center;
+    color: #fff;
+    background: var(--color-danger, #c53030);
+  }
+
+  .dashboard-nav-badge--mobile {
+    position: absolute;
+    top: 0.15rem;
+    right: 0.35rem;
+    min-width: 1rem;
+    padding: 0.05rem 0.25rem;
+  }
+
+  .dashboard-nav-dot {
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 999px;
+    background: var(--color-warning, #d97706);
+    margin-left: auto;
+  }
+
+  .dashboard-nav-link--warn {
+    color: var(--color-warning-text, var(--color-warning));
+  }
+
+  .dashboard-mobile-monitor {
+    display: none;
+  }
+
+  @media (max-width: 1023px) {
+    .dashboard-mobile-monitor {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 40;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.15rem;
+      padding: 0.35rem 0.4rem calc(0.35rem + env(safe-area-inset-bottom, 0px));
+      background: var(--color-surface, #111);
+      border-top: 1px solid var(--color-border);
+      box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.18);
+    }
+
+    .dashboard-mobile-monitor-link {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.15rem;
+      min-height: 2.75rem;
+      padding: 0.25rem 0.15rem;
+      border-radius: var(--radius-md);
+      font-size: 0.65rem;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      text-decoration: none;
+    }
+
+    .dashboard-mobile-monitor-link-active {
+      color: var(--color-accent-muted);
+      background: var(--color-accent-soft);
+    }
+
+    .dashboard-mobile-monitor-link--warn {
+      color: var(--color-warning-text, var(--color-warning));
+    }
+
+    .dashboard-mobile-monitor-icon {
+      opacity: 0.9;
+    }
+
+    .dashboard-main {
+      padding-bottom: calc(4.25rem + env(safe-area-inset-bottom, 0px));
+    }
   }
 
   .dashboard-sidebar-footer {

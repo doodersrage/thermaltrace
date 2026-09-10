@@ -24,17 +24,20 @@ const nextLabel =
       ? "Send a test alert"
       : "Review history";
 ---
-<DashboardCard>
-  <div class="flex flex-wrap items-start justify-between gap-3">
-    <div>
-      <h2 class="card-title">You’re receiving data</h2>
-      <p class="card-subtitle mb-0">
-        Live readings are landing. Next: make sure freeze and leak alerts reach you before a cold night or a wet pad.
-      </p>
+<div data-nudge-key="live_coach">
+  <DashboardCard>
+    <div class="flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <h2 class="card-title">Probe cards live on Live</h2>
+        <p class="card-subtitle mb-0">
+          Glanceable readings moved to Dashboard → Live. Overview stays for risk and what to do next.
+        </p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <a class="btn-primary" href="/dashboard/live">Open Live</a>
+        <a class="btn-secondary" href={nextHref}>{nextLabel}</a>
+        <button type="button" class="btn-ghost btn-sm" data-dismiss="live_coach">Dismiss</button>
+      </div>
     </div>
-    <div class="flex flex-wrap gap-2">
-      <a class="btn-primary" href={nextHref}>{nextLabel}</a>
-      <a class="btn-secondary" href="/dashboard/live">Open Live</a>
-    </div>
-  </div>
-</DashboardCard>
+  </DashboardCard>
+</div>

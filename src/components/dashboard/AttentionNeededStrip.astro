@@ -1,11 +1,25 @@
 ---
 interface Props {
   count: number;
-  quietActive: boolean;
-  quietUntil: string | null;
+  quietActive?: boolean;
+  quietUntil?: string | null;
+  title?: string;
+  storageKey?: string;
+  /** When true, details start open unless the user previously collapsed. */
+  defaultOpen?: boolean;
+  showQuietControls?: boolean;
 }
 
-const { count, quietActive, quietUntil } = Astro.props;
+const {
+  count,
+  quietActive = false,
+  quietUntil = null,
+  title = "Attention needed",
+  storageKey = "tt-attention-collapsed",
+  defaultOpen = false,
+  showQuietControls = true,
+} = Astro.props;
+
 const quietLabel =
   quietActive && quietUntil
     ? `Quiet until ${new Date(quietUntil).toLocaleDateString(undefined, {
@@ -15,13 +29,17 @@ const quietLabel =
     : null;
 ---
 
-{(count > 0 || quietActive) && (
-  <div class="attention-needed card">
+{(count > 0 || (showQuietControls && quietActive)) && (
+  <div class="attention-needed card" data-attention-root data-storage-key={storageKey}>
     <div class="attention-needed-row">
       {count > 0 ? (
-        <details class="attention-needed-details" data-attention-details open>
+        <details
+          class="attention-needed-details"
+          data-attention-details
+          open={defaultOpen || undefined}
+        >
           <summary class="attention-needed-summary">
-            Attention needed ({count})
+            {title} ({count})
           </summary>
           <div class="attention-needed-body" data-attention-slot>
             <slot />
@@ -32,35 +50,38 @@ const quietLabel =
           Recommendations quieted. Critical alerts still show above.
         </p>
       )}
-      <div class="attention-needed-actions">
-        {quietActive ? (
-          <form action="/api/user/dashboard-quiet" method="post">
-            <input type="hidden" name="redirect" value="/dashboard" />
-            <input type="hidden" name="action" value="clear" />
-            <button type="submit" class="btn-ghost btn-sm">
-              {quietLabel ?? "End quiet"}
-            </button>
-          </form>
-        ) : (
-          <form action="/api/user/dashboard-quiet" method="post">
-            <input type="hidden" name="redirect" value="/dashboard" />
-            <input type="hidden" name="action" value="quiet_7d" />
-            <button type="submit" class="btn-ghost btn-sm">Hide recommendations 7d</button>
-          </form>
-        )}
-      </div>
+      {showQuietControls && (
+        <div class="attention-needed-actions">
+          {quietActive ? (
+            <form action="/api/user/dashboard-quiet" method="post">
+              <input type="hidden" name="redirect" value="/dashboard" />
+              <input type="hidden" name="action" value="clear" />
+              <button type="submit" class="btn-ghost btn-sm">
+                {quietLabel ?? "End quiet"}
+              </button>
+            </form>
+          ) : (
+            <form action="/api/user/dashboard-quiet" method="post">
+              <input type="hidden" name="redirect" value="/dashboard" />
+              <input type="hidden" name="action" value="quiet_7d" />
+              <button type="submit" class="btn-ghost btn-sm">Hide tips 7d</button>
+            </form>
+          )}
+        </div>
+      )}
     </div>
   </div>
 )}
 
 <script>
-  const KEY = "tt-attention-collapsed";
-  const details = document.querySelector<HTMLDetailsElement>("[data-attention-details]");
-  if (details) {
+  document.querySelectorAll("[data-attention-root]").forEach((root) => {
+    const KEY = root.getAttribute("data-storage-key") || "tt-attention-collapsed";
+    const details = root.querySelector("[data-attention-details]");
+    if (!(details instanceof HTMLDetailsElement)) return;
     try {
-      if (localStorage.getItem(KEY) === "1") {
-        details.open = false;
-      }
+      const stored = localStorage.getItem(KEY);
+      if (stored === "1") details.open = false;
+      else if (stored === "0") details.open = true;
     } catch {
       // ignore
     }
@@ -71,7 +92,7 @@ const quietLabel =
         // ignore
       }
     });
-  }
+  });
 </script>
 
 <style>
