@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none" role="img" aria-labelledby="tt-mark-title">
+  <title id="tt-mark-title">ThermalTrace mark</title>
+  <defs>
+    <linearGradient id="tt-trace" x1="20" y1="40" x2="112" y2="72" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FF7A00"/>
+      <stop offset="100%" stop-color="#FFC107"/>
+    </linearGradient>
+  </defs>
+  <!-- Concept 4   bare monogram (charcoal T + orange/yellow trace) -->
+  <path
+    fill="#2F3A45"
+    d="M22 26h84c5.5 0 10 4.5 10 10v12c0 5.5-4.5 10-10 10H74v58c0 5.5-4.5 10-10 10H64c-5.5 0-10-4.5-10-10V58H22c-5.5 0-10-4.5-10-10V36c0-5.5 4.5-10 10-10z"
+  />
+  <!-- Trace weaves under the crossbar and across the stem -->
+  <path
+    d="M18 70h16l12-22 14 36 14-30 12 20 18-10"
+    stroke="url(#tt-trace)"
+    stroke-width="9"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"
+  />
+  <circle cx="108" cy="62" r="9" fill="#FFC107"/>
+</svg>

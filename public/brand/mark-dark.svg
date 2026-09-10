@@ -1,24 +1,24 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none" role="img" aria-labelledby="tt-circle-title">
-  <title id="tt-circle-title">ThermalTrace</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none" role="img" aria-labelledby="tt-app-title">
+  <title id="tt-app-title">ThermalTrace</title>
   <defs>
-    <linearGradient id="tt-steel-c" x1="256" y1="80" x2="256" y2="430" gradientUnits="userSpaceOnUse">
+    <linearGradient id="tt-steel-app" x1="256" y1="80" x2="256" y2="430" gradientUnits="userSpaceOnUse">
       <stop offset="0%" stop-color="#F4F6F8"/>
       <stop offset="100%" stop-color="#A8B0BA"/>
     </linearGradient>
-    <linearGradient id="tt-trace-c" x1="70" y1="200" x2="440" y2="280" gradientUnits="userSpaceOnUse">
+    <linearGradient id="tt-trace-app" x1="70" y1="200" x2="440" y2="280" gradientUnits="userSpaceOnUse">
       <stop offset="0%" stop-color="#FF7A00"/>
       <stop offset="100%" stop-color="#FFC107"/>
     </linearGradient>
   </defs>
-  <!-- Concept 3 - circular mark -->
-  <circle cx="256" cy="256" r="256" fill="#2F3A45"/>
+  <!-- Concept 2 - monogram app tile -->
+  <rect width="512" height="512" rx="112" fill="#2F3A45"/>
   <path
-    fill="url(#tt-steel-c)"
+    fill="url(#tt-steel-app)"
     d="M96 112h320c18 0 32 14 32 32v40c0 18-14 32-32 32H268v208c0 18-14 32-32 32h-24c-18 0-32-14-32-32V216H96c-18 0-32-14-32-32v-40c0-18 14-32 32-32z"
   />
   <path
     d="M80 268h56l42-72 50 124 50-104 42 70 64-36"
-    stroke="url(#tt-trace-c)"
+    stroke="url(#tt-trace-app)"
     stroke-width="30"
     stroke-linecap="round"
     stroke-linejoin="round"

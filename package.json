@@ -35,6 +35,7 @@
     "stripe:portal": "node --env-file=.env scripts/configure-stripe-portal.mjs",
     "smoke:portfolio-billing": "node --env-file=.env scripts/smoke-portfolio-billing.mjs",
     "generate:vapid": "node scripts/generate-vapid-keys.mjs",
+    "brand:icons": "bash scripts/export-brand-icons.sh",
     "astro": "astro",
     "docs:dev": "pnpm --dir docs --ignore-workspace dev",
     "docs:build": "pnpm --dir docs --ignore-workspace build",

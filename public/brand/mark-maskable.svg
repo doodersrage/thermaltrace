@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none" role="img" aria-labelledby="tt-mask-title">
+  <title id="tt-mask-title">ThermalTrace</title>
+  <defs>
+    <linearGradient id="tt-steel-m" x1="256" y1="80" x2="256" y2="430" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#F4F6F8"/>
+      <stop offset="100%" stop-color="#A8B0BA"/>
+    </linearGradient>
+    <linearGradient id="tt-trace-m" x1="70" y1="200" x2="440" y2="280" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FF7A00"/>
+      <stop offset="100%" stop-color="#FFC107"/>
+    </linearGradient>
+  </defs>
+  <!-- Full-bleed maskable / adaptive -->
+  <rect width="512" height="512" fill="#2F3A45"/>
+  <g transform="translate(51 51) scale(0.8)">
+    <path
+      fill="url(#tt-steel-m)"
+      d="M96 112h320c18 0 32 14 32 32v40c0 18-14 32-32 32H268v208c0 18-14 32-32 32h-24c-18 0-32-14-32-32V216H96c-18 0-32-14-32-32v-40c0-18 14-32 32-32z"
+    />
+    <path
+      d="M80 268h56l42-72 50 124 50-104 42 70 64-36"
+      stroke="url(#tt-trace-m)"
+      stroke-width="30"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      fill="none"
+    />
+    <circle cx="424" cy="246" r="30" fill="#FFC107"/>
+  </g>
+</svg>

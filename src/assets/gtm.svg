@@ -1,25 +1,38 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 58" fill="none" role="img" aria-labelledby="tt-logo-title">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 64" fill="none" role="img" aria-labelledby="tt-logo-title">
   <title id="tt-logo-title">ThermalTrace</title>
   <defs>
-    <linearGradient id="tt-steel" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#ECEEF2"/>
-      <stop offset="42%" stop-color="#B9BFC8"/>
-      <stop offset="100%" stop-color="#6B737D"/>
+    <linearGradient id="tt-steel" x1="32" y1="4" x2="32" y2="60" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#F4F6F8"/>
+      <stop offset="100%" stop-color="#A8B0BA"/>
     </linearGradient>
-    <linearGradient id="tt-accent" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#FFD9B0"/>
-      <stop offset="38%" stop-color="#FF9E4A"/>
-      <stop offset="100%" stop-color="#E85500"/>
+    <linearGradient id="tt-trace" x1="8" y1="24" x2="56" y2="40" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FF7A00"/>
+      <stop offset="100%" stop-color="#FFC107"/>
     </linearGradient>
   </defs>
-
+  <!-- Concept 1 - wordmark + icon (dark-UI colors; light theme CSS darkens) -->
+  <g transform="translate(0 2) scale(0.47)">
+    <path
+      fill="url(#tt-steel)"
+      d="M22 26h84c5.5 0 10 4.5 10 10v12c0 5.5-4.5 10-10 10H74v58c0 5.5-4.5 10-10 10H64c-5.5 0-10-4.5-10-10V58H22c-5.5 0-10-4.5-10-10V36c0-5.5 4.5-10 10-10z"
+    />
+    <path
+      d="M18 70h16l12-22 14 36 14-30 12 20 18-10"
+      stroke="url(#tt-trace)"
+      stroke-width="9"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      fill="none"
+    />
+    <circle cx="108" cy="62" r="9" fill="#FFC107"/>
+  </g>
   <text
     y="46"
     font-family="ui-rounded, 'Segoe UI', system-ui, sans-serif"
-    font-size="49"
+    font-size="42"
     font-weight="800"
-    letter-spacing="-0.025em"
+    letter-spacing="-0.03em"
   >
-    <tspan x="0" fill="url(#tt-steel)">Thermal</tspan><tspan dx="6" fill="url(#tt-accent)">Trace</tspan>
+    <tspan x="72" fill="#E8ECF0">Thermal</tspan><tspan dx="2" fill="#FF7A00">Trace</tspan>
   </text>
 </svg>

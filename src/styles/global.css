@@ -636,7 +636,7 @@
     animation: home-rise 520ms var(--motion-ease) both;
   }
 
-  /* Match public/logo.svg — steel “Thermal” + orange “Trace” (vertical fills). */
+  /* Match public/logo.svg — icon + “Thermal” (light) + “Trace” (orange). */
   .brand-mark {
     display: inline;
     font-weight: inherit;

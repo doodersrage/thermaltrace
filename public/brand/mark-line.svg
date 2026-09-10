@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none" role="img" aria-labelledby="tt-line-title">
+  <title id="tt-line-title">ThermalTrace mark</title>
+  <defs>
+    <linearGradient id="tt-trace-line" x1="20" y1="40" x2="112" y2="72" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FF7A00"/>
+      <stop offset="100%" stop-color="#FFC107"/>
+    </linearGradient>
+  </defs>
+  <!-- Concept 4   minimal line (stroke T) -->
+  <path
+    d="M28 40h72M64 40v64"
+    stroke="#2F3A45"
+    stroke-width="14"
+    stroke-linecap="round"
+    fill="none"
+  />
+  <path
+    d="M18 70h16l12-22 14 36 14-30 12 20 18-10"
+    stroke="url(#tt-trace-line)"
+    stroke-width="8"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"
+  />
+  <circle cx="108" cy="62" r="8" fill="#FFC107"/>
+</svg>
