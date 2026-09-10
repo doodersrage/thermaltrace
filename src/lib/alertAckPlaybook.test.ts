@@ -16,9 +16,11 @@ vi.mock("./supabase", () => ({
 
 const mockGetAlertEventForUser = vi.fn();
 const mockAcknowledgeAlertEvent = vi.fn();
+const mockUpdateAlertEventMeta = vi.fn();
 vi.mock("./alertEvents", () => ({
   getAlertEventForUser: (...a: unknown[]) => mockGetAlertEventForUser(...a),
   acknowledgeAlertEvent: (...a: unknown[]) => mockAcknowledgeAlertEvent(...a),
+  updateAlertEventMeta: (...a: unknown[]) => mockUpdateAlertEventMeta(...a),
 }));
 
 const mockGetUserHouseholdId = vi.fn();
@@ -66,6 +68,7 @@ beforeEach(() => {
   mockFrom.mockReset();
   mockGetAlertEventForUser.mockReset().mockResolvedValue(baseEvent);
   mockAcknowledgeAlertEvent.mockReset().mockResolvedValue({ ok: true });
+  mockUpdateAlertEventMeta.mockReset().mockResolvedValue({ ok: true });
   mockGetUserHouseholdId.mockReset().mockResolvedValue("house-1");
   mockSnoozeAlertsForUser.mockReset().mockResolvedValue(undefined);
   mockSendTenantFreezeRelay.mockReset().mockResolvedValue({ ok: true });
@@ -111,7 +114,7 @@ describe("executeAlertAckPlaybook", () => {
     [
       "false_alarm",
       24,
-      "Marked as false alarm: alerts snoozed 24h. Check probe placement if this keeps happening.",
+      "Marked as false alarm: alerts snoozed 24h. Suggested fix: Raise the threshold a degree or two. Open /dashboard/alerts?tab=settings#alert-section-essentials",
     ],
   ] as const)("snoozes %s for %i hour(s)", async (action, hours, message) => {
     const { executeAlertAckPlaybook } = await import("./alertAckPlaybook");
