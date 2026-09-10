@@ -935,7 +935,7 @@ export default function HistoryChart({
           >
             {linkCopied ? "Copied" : "Link"}
           </button>
-          {canShareChart && (
+          {canShareChart ? (
             <button
               type="button"
               class="history-chart-zoom-btn history-chart-expand-btn"
@@ -945,6 +945,15 @@ export default function HistoryChart({
             >
               {shareBusy ? "…" : shareMessage ? "Shared" : "Share"}
             </button>
+          ) : (
+            <a
+              class="history-chart-zoom-btn history-chart-expand-btn"
+              href="/dashboard/plans"
+              aria-label="Upgrade to share chart snapshots"
+              title="Chart share is on Member+"
+            >
+              Share
+            </a>
           )}
           {claimsPackHrefForView() && (
             <a

@@ -4,7 +4,7 @@ import { createServerClient } from "./supabase";
 import { snoozeAlertsForUser } from "./alertSnooze";
 import { sendTenantFreezeRelay } from "./tenantRelay";
 import { deliverWebhookPost } from "./webhookDeliveries";
-import { getAlertSettingsForUser } from "./notify";
+import { getAlertSettingsForUser, saveAlertSettingsForUser } from "./notify";
 import { resolveSiteUrl } from "./schemaMarkup";
 import { suggestFalseAlarmTip } from "./falseAlarmHints";
 
@@ -14,6 +14,7 @@ export type AckPlaybookAction =
   | "snooze_4h"
   | "snooze_24h"
   | "false_alarm"
+  | "raise_threshold"
   | "notify_tenant"
   | "webhook_ping";
 
@@ -34,20 +35,43 @@ export async function executeAlertAckPlaybook(input: {
     return { ok: false, message: "Alert event not found." };
   }
 
-  if (input.action === "snooze_1h" || input.action === "snooze_4h" || input.action === "snooze_24h" || input.action === "false_alarm") {
+  if (
+    input.action === "snooze_1h" ||
+    input.action === "snooze_4h" ||
+    input.action === "snooze_24h" ||
+    input.action === "false_alarm" ||
+    input.action === "raise_threshold"
+  ) {
     const hours =
       input.action === "snooze_1h" ? 1 : input.action === "snooze_4h" ? 4 : 24;
     await snoozeAlertsForUser(input.userId, hours);
   }
 
   let suggestedTipId: string | undefined;
-  if (input.action === "false_alarm") {
+  let raisedTo: number | null = null;
+  if (input.action === "false_alarm" || input.action === "raise_threshold") {
     const tip = suggestFalseAlarmTip(event.kind);
     suggestedTipId = tip.id;
     await updateAlertEventMeta(input.userId, input.eventId, {
       feedback: "false_alarm",
       feedbackAt: new Date().toISOString(),
       suggestedTipId: tip.id,
+    });
+  }
+
+  if (input.action === "raise_threshold") {
+    const settings = await getAlertSettingsForUser(input.userId, {});
+    const next = Math.min(50, Math.round((settings.freezeThresholdF + 2) * 10) / 10);
+    raisedTo = next;
+    await saveAlertSettingsForUser(input.userId, {
+      ...settings,
+      freezeThresholdF: next,
+    });
+    await updateAlertEventMeta(input.userId, input.eventId, {
+      feedback: "false_alarm",
+      feedbackAt: new Date().toISOString(),
+      suggestedTipId: "threshold",
+      reasonSummary: `Raised freeze threshold to ${next}°F after false alarm`,
     });
   }
 
@@ -116,6 +140,13 @@ export async function executeAlertAckPlaybook(input: {
     return { ok: false, message: ack.error ?? "Could not acknowledge alert." };
   }
 
+  if (input.action === "raise_threshold" && raisedTo != null) {
+    return {
+      ok: true,
+      message: `False alarm handled: freeze threshold raised to ${raisedTo}°F and alerts snoozed 24h.`,
+    };
+  }
+
   if (input.action === "false_alarm" && suggestedTipId) {
     const tip = suggestFalseAlarmTip(event.kind);
     const tipHref = tip.href ?? "/dashboard/alerts#alert-section-essentials";
@@ -132,6 +163,7 @@ export async function executeAlertAckPlaybook(input: {
     snooze_24h: "Alert handled: freeze alerts snoozed for 24 hours.",
     false_alarm:
       "Marked as false alarm: alerts snoozed 24h. Check probe placement if this keeps happening.",
+    raise_threshold: "False alarm handled and freeze threshold raised.",
     notify_tenant: "Alert handled: tenant contact emailed.",
     webhook_ping: "Alert handled: outbound webhook notified.",
   };

@@ -75,7 +75,7 @@ function sensorNeedsRename(label: string): boolean {
         <div class="alert-warning mb-4">
           <p class="m-0">
             You are at your push device limit.
-            <a class="text-link" href="/dashboard#plans">Upgrade your plan</a> to add more, or delete a device below.
+            <a class="text-link" href="/dashboard/plans">Upgrade your plan</a> to add more, or delete a device below.
           </p>
         </div>
       ) : canEdit && devices.length > 0 ? (
@@ -114,7 +114,7 @@ function sensorNeedsRename(label: string): boolean {
           <div class="flex flex-wrap items-end gap-3 mb-3">
             <label class="text-sm">
               Operation
-              <select name="bulk_op" class="block mt-1">
+              <select name="bulk_op" class="block mt-1" id="bulk-op-select">
                 <option value="enable">Enable</option>
                 <option value="disable">Disable</option>
                 <option value="set_space">Set space</option>
@@ -125,12 +125,13 @@ function sensorNeedsRename(label: string): boolean {
               Space (for set space)
               <input type="text" name="space" class="block mt-1" placeholder="Garage" />
             </label>
-            <button type="submit" class="btn-secondary btn-sm">Apply to selected</button>
+            <button type="button" class="btn-ghost btn-sm" id="bulk-select-all">Select all</button>
+            <button type="submit" class="btn-secondary btn-sm" id="bulk-apply-btn">Apply to selected</button>
           </div>
           <div class="bulk-devices-checks space-y-1">
             {pushDevices.map((device) => (
               <label class="flex items-center gap-2 text-sm">
-                <input type="checkbox" name="ids" value={device.id} />
+                <input type="checkbox" name="ids" value={device.id} class="bulk-device-id" />
                 <span>
                   {device.name}
                   {!device.enabled && (
@@ -141,6 +142,25 @@ function sensorNeedsRename(label: string): boolean {
             ))}
           </div>
         </form>
+        <script>
+          const form = document.getElementById("bulk-devices-form");
+          const selectAll = document.getElementById("bulk-select-all");
+          const opSelect = document.getElementById("bulk-op-select");
+          selectAll?.addEventListener("click", () => {
+            form?.querySelectorAll(".bulk-device-id").forEach((el) => {
+              if (el instanceof HTMLInputElement) el.checked = true;
+            });
+          });
+          form?.addEventListener("submit", (event) => {
+            if (!(opSelect instanceof HTMLSelectElement)) return;
+            if (opSelect.value !== "delete") return;
+            const checked = form.querySelectorAll(".bulk-device-id:checked").length;
+            if (checked === 0) return;
+            if (!confirm(`Delete ${checked} device${checked === 1 ? "" : "s"}? This cannot be undone.`)) {
+              event.preventDefault();
+            }
+          });
+        </script>
       )}
 
       {pushDevices.length > 0 && (

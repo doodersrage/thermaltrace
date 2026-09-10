@@ -6,6 +6,7 @@ import PwaInstallCard from "../../components/dashboard/PwaInstallCard.astro";
 import ProductAnalyticsTracker from "../../components/ProductAnalyticsTracker.astro";
 import ReferralCard from "../../components/ReferralCard.astro";
 import FalseAlarmTipsCard from "../../components/dashboard/FalseAlarmTipsCard.astro";
+import AlertActivityList from "../../components/dashboard/AlertActivityList.astro";
 import { getAuthFromCookies } from "../../lib/auth";
 import { resolveSiteUrl } from "../../lib/schemaMarkup";
 import {
@@ -15,14 +16,8 @@ import {
 } from "../../lib/notify";
 import { getRuntimeEnv } from "../../lib/runtimeEnv";
 import { getUserEntitlements } from "../../lib/entitlements";
-import { formatRelativeAge } from "../../lib/relativeTime";
 import { listRecentAlertEvents } from "../../lib/alertEvents";
-import {
-  FALSE_ALARM_TIPS,
-  FLOOD_FALSE_ALARM_TIPS,
-  formatAlertWhyMeta,
-} from "../../lib/falseAlarmHints";
-import { formatAlertChannelList, formatAlertChannelsCsv } from "../../lib/alertChannelLabels";
+import { formatAlertChannelsCsv } from "../../lib/alertChannelLabels";
 import {
   getOrCreateHouseholdForUser,
   getUserHouseholdRole,
@@ -303,92 +298,13 @@ const referralRewardDays = Number(
     <section class="card">
       <h2 class="card-title">Recent alert activity</h2>
       <p class="card-subtitle mb-4">Audit trail of delivered and skipped channels.</p>
-      {recentEvents.length === 0 ? (
-        <p class="mb-0 text-sm text-[var(--color-text-muted)]">No alert events yet.</p>
-      ) : (
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm">
-            <caption class="sr-only">Recent alert delivery and acknowledgement events</caption>
-            <thead>
-              <tr class="text-left text-[var(--color-text-muted)]">
-                <th scope="col" class="py-2 pr-3">When</th>
-                <th scope="col" class="py-2 pr-3">Kind</th>
-                <th scope="col" class="py-2 pr-3">Title</th>
-                <th scope="col" class="py-2 pr-3">Why</th>
-                <th scope="col" class="py-2 pr-3">Sent</th>
-                <th scope="col" class="py-2 pr-3">Skipped</th>
-                <th scope="col" class="py-2">Ack</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentEvents.map((event) => {
-                const age = formatRelativeAge(event.created_at);
-                const why = formatAlertWhyMeta(event.meta ?? {});
-                const tipId = event.meta?.suggestedTipId;
-                const tip =
-                  tipId != null
-                    ? [...FALSE_ALARM_TIPS, ...FLOOD_FALSE_ALARM_TIPS].find((t) => t.id === tipId)
-                    : null;
-                return (
-                  <tr class="border-t border-[var(--color-border)] align-top">
-                    <td class="py-2 pr-3 whitespace-nowrap">{age.label}</td>
-                    <td class="py-2 pr-3">{event.kind}</td>
-                    <td class="py-2 pr-3">{event.title}</td>
-                    <td class="py-2 pr-3 max-w-xs">
-                      {why ? (
-                        <details>
-                          <summary class="cursor-pointer text-link text-xs">Why</summary>
-                          <p class="mt-1 mb-0 text-xs text-[var(--color-text-muted)] whitespace-pre-wrap">
-                            {why}
-                          </p>
-                        </details>
-                      ) : (
-                        <span class="text-[var(--color-text-muted)]">—</span>
-                      )}
-                      {tip && (
-                        <p class="mt-2 mb-0 text-xs">
-                          Suggested fix: {tip.title}.{" "}
-                          {tip.href ? (
-                            <a class="text-link" href={tip.href}>{tip.hrefLabel ?? "Open"}</a>
-                          ) : null}
-                        </p>
-                      )}
-                    </td>
-                    <td class="py-2 pr-3">{formatAlertChannelList(event.channels_sent) || "—"}</td>
-                    <td class="py-2 pr-3">{formatAlertChannelList(event.channels_skipped) || "—"}</td>
-                    <td class="py-2">
-                      {event.acknowledged_at ? (
-                        <span class="text-[var(--color-text-muted)]">Handled</span>
-                      ) : event.channels_sent.length > 0 && canEdit ? (
-                        <form action="/api/user/alert-events/ack" method="post" class="flex flex-col gap-1">
-                          <input type="hidden" name="event_id" value={event.id} />
-                          <input type="hidden" name="redirect" value="/dashboard/alerts" />
-                          <select class="form-input text-xs py-1" name="action" aria-label="Acknowledge action">
-                            <option value="ack">I'm on it</option>
-                            <option value="snooze_1h">Handle & snooze 1h</option>
-                            <option value="snooze_4h">Handle & snooze 4h</option>
-                            <option value="snooze_24h">Handle & snooze 24h</option>
-                            <option value="false_alarm">False alarm (snooze 24h)</option>
-                            {hasTenantRelay && (
-                              <option value="notify_tenant">Handle & email tenant</option>
-                            )}
-                            {hasOutboundWebhook && entitlements.canUseOutboundWebhook && (
-                              <option value="webhook_ping">Handle & ping webhook</option>
-                            )}
-                          </select>
-                          <button class="btn-ghost text-xs" type="submit">Apply</button>
-                        </form>
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <AlertActivityList
+        events={recentEvents}
+        canEdit={canEdit}
+        hasTenantRelay={hasTenantRelay}
+        hasOutboundWebhook={hasOutboundWebhook}
+        canUseOutboundWebhook={entitlements.canUseOutboundWebhook}
+      />
     </section>
   </div>
 </DashboardLayout>

@@ -3,9 +3,10 @@ interface Props {
   canEdit: boolean;
   unackedCount: number;
   snoozeUntil: string | null;
+  spaceCheckedAt: string | null;
 }
 
-const { canEdit, unackedCount, snoozeUntil } = Astro.props;
+const { canEdit, unackedCount, snoozeUntil, spaceCheckedAt } = Astro.props;
 const snoozeActive =
   snoozeUntil != null && Number.isFinite(Date.parse(snoozeUntil))
     ? Date.parse(snoozeUntil) > Date.now()
@@ -51,31 +52,27 @@ const snoozeActive =
         </form>
       )}
 
-      <button
-        type="button"
-        class="btn-ghost btn-sm"
-        id="overview-checked-space"
-        data-checked-key="tt-space-checked-at"
-      >
-        I checked the space
-      </button>
+      <form action="/api/user/space-checked" method="post">
+        <input type="hidden" name="redirect" value="/dashboard" />
+        <button type="submit" class="btn-ghost btn-sm" id="overview-checked-space">
+          I checked the space
+        </button>
+      </form>
       <span
         class="overview-checked-status text-sm text-[var(--color-text-muted)]"
         id="overview-checked-status"
-        hidden
+        data-checked-at={spaceCheckedAt ?? ""}
+        hidden={!spaceCheckedAt}
       ></span>
     </div>
   </section>
 )}
 
 <script>
-  const key = "tt-space-checked-at";
-  const btn = document.getElementById("overview-checked-space");
   const status = document.getElementById("overview-checked-status");
-
   function renderChecked() {
     if (!status) return;
-    const raw = localStorage.getItem(key);
+    const raw = status.getAttribute("data-checked-at") || "";
     if (!raw) {
       status.hidden = true;
       status.textContent = "";
@@ -95,12 +92,6 @@ const snoozeActive =
           ? `Checked ${mins}m ago`
           : `Checked ${Math.round(mins / 60)}h ago`;
   }
-
-  btn?.addEventListener("click", () => {
-    localStorage.setItem(key, new Date().toISOString());
-    renderChecked();
-  });
-
   renderChecked();
 </script>
 

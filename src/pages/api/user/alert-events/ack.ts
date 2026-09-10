@@ -14,6 +14,7 @@ const VALID_ACTIONS = new Set<AckPlaybookAction>([
   "snooze_4h",
   "snooze_24h",
   "false_alarm",
+  "raise_threshold",
   "notify_tenant",
   "webhook_ping",
 ]);

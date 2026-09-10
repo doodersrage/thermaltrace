@@ -132,6 +132,18 @@ const currentParamsQs = (() => {
   if (compareTo) params.set("compare_to", compareTo);
   return params.toString();
 })();
+
+function comparePresetHref(preset: "prior_week" | "prior_month"): string {
+  const params = new URLSearchParams();
+  if (tab) params.set("tab", tab);
+  if (feedFilter) params.set("feed", feedFilter);
+  if (probeFilter) params.set("probe", probeFilter);
+  if (fromDate) params.set("from", fromDate);
+  if (toDate) params.set("to", toDate);
+  if (days && days !== 7) params.set("days", String(days));
+  params.set("compare_preset", preset);
+  return `${basePath}?${params.toString()}`;
+}
 ---
 
 <DashboardCard>
@@ -249,7 +261,11 @@ const currentParamsQs = (() => {
     <div class="form-field mb-0">
       <label class="form-label" for="compare-to">Compare to</label>
       <input class="form-input" type="date" id="compare-to" name="compare_to" value={compareTo} />
-      <p class="form-hint">Optional second window (disables YoY).</p>
+      <p class="form-hint mb-1">Optional second window (disables YoY).</p>
+      <div class="flex flex-wrap gap-2 mt-1">
+        <a class="btn-ghost btn-sm" href={comparePresetHref("prior_week")}>Prior week</a>
+        <a class="btn-ghost btn-sm" href={comparePresetHref("prior_month")}>Prior month</a>
+      </div>
     </div>
     <div class="form-field mb-0">
       <label class="form-label" for="days-filter">Chart range</label>

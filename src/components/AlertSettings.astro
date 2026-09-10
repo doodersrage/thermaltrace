@@ -44,6 +44,32 @@ const {
 const includedIds = new Set(settings.thresholdSensorScope.includedSensorIds);
 const scopeAllSensors = settings.thresholdSensorScope.includedSensorIds.length === 0;
 
+const QUIET_TIMEZONES = [
+  "America/New_York",
+  "America/Chicago",
+  "America/Denver",
+  "America/Los_Angeles",
+  "America/Phoenix",
+  "America/Anchorage",
+  "Pacific/Honolulu",
+  "America/Toronto",
+  "America/Vancouver",
+  "Europe/London",
+  "Europe/Paris",
+  "Europe/Berlin",
+  "UTC",
+];
+
+function toTimeInputValue(raw: string | null | undefined, fallback: string): string {
+  const value = (raw ?? "").trim();
+  if (/^\d{2}:\d{2}$/.test(value)) return value;
+  if (/^\d{1}:\d{2}$/.test(value)) return `0${value}`;
+  return fallback;
+}
+
+const quietStartValue = toTimeInputValue(settings.quietHoursStart, "22:00");
+const quietEndValue = toTimeInputValue(settings.quietHoursEnd, "07:00");
+
 const ALERT_CHANNELS = [
   { id: "email", label: "Email" },
   { id: "sms", label: "SMS" },
@@ -486,7 +512,7 @@ const rulesJson = JSON.stringify(settings.alertRules ?? []);
 
     {needsPro && (
       <p class="mb-4 text-sm text-[var(--color-text-muted)]">
-        Unlock SMS, push, and webhooks with <a class="text-link" href="/dashboard#plans">Pro</a>.
+        Unlock SMS, push, and webhooks with <a class="text-link" href="/dashboard/plans">Pro</a>.
       </p>
     )}
 
@@ -612,13 +638,14 @@ const rulesJson = JSON.stringify(settings.alertRules ?? []);
 
   <AlertSettingsPanel
     id="alert-section-quiet"
-    title="Quiet hours"
-    subtitle="Suppress non-critical alerts overnight while still allowing freeze and flood warnings through."
+    title="Alert quiet hours"
+    subtitle="Pause overnight delivery of non-critical alerts. Separate from Overview “hide recommendations,” which only quiets dashboard nudges."
     collapsible
+    open={essentialsFirst}
   >
     <label class="checkbox-row mb-2">
       <input type="checkbox" name="quiet_hours_enabled" value="true" checked={settings.quietHoursEnabled} />
-      <span>Enable quiet hours</span>
+      <span>Enable alert quiet hours</span>
     </label>
     <label class="checkbox-row mb-3">
       <input type="checkbox" name="quiet_hours_bypass_freeze" value="true" checked={settings.quietHoursBypassFreeze} />
@@ -629,22 +656,34 @@ const rulesJson = JSON.stringify(settings.alertRules ?? []);
       <span>
         Still send critical freeze/flood/forecast via SMS (Pro)
         {!entitlements.canUseSms && (
-          <>: <a class="text-link" href="/dashboard#plans">Upgrade</a></>
+          <>: <a class="text-link" href="/dashboard/plans">Upgrade</a></>
         )}
       </span>
     </label>
     <div class="config-row-grid">
       <div class="form-field mb-0">
-        <label class="form-label" for="quiet_hours_start">Start (HH:MM)</label>
-        <input class="form-input" type="text" id="quiet_hours_start" name="quiet_hours_start" value={settings.quietHoursStart} placeholder="22:00" />
+        <label class="form-label" for="quiet_hours_start">Start</label>
+        <input class="form-input" type="time" id="quiet_hours_start" name="quiet_hours_start" value={quietStartValue} />
       </div>
       <div class="form-field mb-0">
-        <label class="form-label" for="quiet_hours_end">End (HH:MM)</label>
-        <input class="form-input" type="text" id="quiet_hours_end" name="quiet_hours_end" value={settings.quietHoursEnd} placeholder="07:00" />
+        <label class="form-label" for="quiet_hours_end">End</label>
+        <input class="form-input" type="time" id="quiet_hours_end" name="quiet_hours_end" value={quietEndValue} />
       </div>
       <div class="form-field mb-0">
-        <label class="form-label" for="quiet_hours_timezone">Timezone (IANA)</label>
-        <input class="form-input" type="text" id="quiet_hours_timezone" name="quiet_hours_timezone" value={settings.quietHoursTimezone} placeholder="America/New_York" />
+        <label class="form-label" for="quiet_hours_timezone">Timezone</label>
+        <select class="form-input" id="quiet_hours_timezone" name="quiet_hours_timezone">
+          {QUIET_TIMEZONES.map((tz) => (
+            <option value={tz} selected={settings.quietHoursTimezone === tz}>
+              {tz.replace(/_/g, " ")}
+            </option>
+          ))}
+          {settings.quietHoursTimezone &&
+            !QUIET_TIMEZONES.includes(settings.quietHoursTimezone) && (
+              <option value={settings.quietHoursTimezone} selected>
+                {settings.quietHoursTimezone}
+              </option>
+            )}
+        </select>
       </div>
     </div>
   </AlertSettingsPanel>

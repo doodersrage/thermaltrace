@@ -342,7 +342,14 @@ const digestError = Astro.url.searchParams.get("digest_error");
             <li class="flex items-center justify-between gap-4">
               <div>
                 <strong>{h.name}</strong>
-                <span class="text-sm text-[var(--color-text-muted)]"> · {h.role}</span>
+                <span class="text-sm text-[var(--color-text-muted)]">
+                  {" · "}
+                  {h.role === "member"
+                    ? "Editor"
+                    : h.role === "owner"
+                      ? "Owner"
+                      : h.role.replace("_", " ")}
+                </span>
                 {h.household_id === active.householdId && (
                   <span class="feed-health-ok ml-2">Active</span>
                 )}
@@ -379,7 +386,7 @@ const digestError = Astro.url.searchParams.get("digest_error");
           <div class="form-field">
             <label class="form-label" for="invite_role">Role</label>
             <select class="form-input" id="invite_role" name="role">
-              <option value="member">Member (can edit devices & alerts)</option>
+              <option value="member">Editor (can edit devices & alerts)</option>
               {canInvitePropertyManager ? (
                 <option value="property_manager">Property manager (devices & alerts only)</option>
               ) : null}
@@ -452,7 +459,14 @@ const digestError = Astro.url.searchParams.get("digest_error");
           <li class="flex items-center justify-between gap-4">
             <div>
               <strong>{member.email}</strong>
-              <span class="text-sm text-[var(--color-text-muted)]"> · {member.role}</span>
+              <span class="text-sm text-[var(--color-text-muted)]">
+                {" · "}
+                {member.role === "member"
+                  ? "Editor"
+                  : member.role === "owner"
+                    ? "Owner"
+                    : member.role.replace("_", " ")}
+              </span>
             </div>
             {member.role !== "owner" && ownedId === manageId && (
               <form

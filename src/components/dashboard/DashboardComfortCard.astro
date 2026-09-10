@@ -47,25 +47,27 @@ const pinnedSet = new Set(pinnedMetrics);
 
   <div class="space-y-4">
     <div>
-      <h3 class="text-sm font-semibold mb-2">Quiet mode</h3>
+      <h3 class="text-sm font-semibold mb-2">Hide recommendations</h3>
       <p class="text-sm text-[var(--color-text-muted)] mb-2">
         Hides non-critical overview recommendations for 7 days. Low battery, stale
-        sensors, and unacked alerts still appear.
+        sensors, and unacked alerts still appear. This is separate from
+        <a class="text-link" href="/dashboard/alerts#alert-section-quiet">alert quiet hours</a>
+        (which pause overnight delivery).
       </p>
       {quietActive && quietUntil ? (
         <form action="/api/user/dashboard-quiet" method="post" class="flex flex-wrap gap-2 items-center">
           <input type="hidden" name="redirect" value="/dashboard/settings" />
           <input type="hidden" name="action" value="clear" />
           <span class="text-sm">
-            Quiet until {new Date(quietUntil).toLocaleString()}
+            Recommendations hidden until {new Date(quietUntil).toLocaleString()}
           </span>
-          <button type="submit" class="btn-secondary btn-sm">End quiet</button>
+          <button type="submit" class="btn-secondary btn-sm">Show recommendations</button>
         </form>
       ) : (
         <form action="/api/user/dashboard-quiet" method="post">
           <input type="hidden" name="redirect" value="/dashboard/settings" />
           <input type="hidden" name="action" value="quiet_7d" />
-          <button type="submit" class="btn-secondary btn-sm">Quiet for 7 days</button>
+          <button type="submit" class="btn-secondary btn-sm">Hide recommendations for 7 days</button>
         </form>
       )}
     </div>
