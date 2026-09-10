@@ -48,12 +48,11 @@
       return;
     }
 
-    showStatus(data?.message ?? "Alert settings saved.");
-    window.setTimeout(() => {
-      const params = new URLSearchParams({ tab: "settings", alert_saved: "1" });
-      if (data?.channelsIncomplete) params.set("channels_incomplete", "1");
-      window.location.href = `/dashboard/alerts?${params.toString()}`;
-    }, 400);
+    // Navigate immediately so a quick "Send test now" click cannot race a
+    // delayed reload (SSR flash banner carries the same success copy).
+    const params = new URLSearchParams({ tab: "settings", alert_saved: "1" });
+    if (data?.channelsIncomplete) params.set("channels_incomplete", "1");
+    window.location.assign(`/dashboard/alerts?${params.toString()}`);
   });
 
   document.querySelectorAll<HTMLButtonElement>("[data-snooze-action]").forEach((btn) => {

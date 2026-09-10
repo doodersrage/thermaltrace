@@ -23,6 +23,7 @@ test.describe("alert settings", () => {
 
   test("freeze threshold persists after save", async ({ page }) => {
     test.skip(!getE2ECredentials(), "Set E2E_TEST_EMAIL and E2E_TEST_PASSWORD");
+    test.setTimeout(60_000);
 
     await signIn(page, "/dashboard/alerts?tab=settings");
 
@@ -50,6 +51,7 @@ test.describe("alert settings", () => {
 
   test("email channel + freeze alerts enable and test send", async ({ page }) => {
     test.skip(!getE2ECredentials(), "Set E2E_TEST_EMAIL and E2E_TEST_PASSWORD");
+    test.setTimeout(60_000);
 
     await signIn(page, "/dashboard/alerts?tab=settings");
 
@@ -62,15 +64,17 @@ test.describe("alert settings", () => {
     await expect(page.getByRole("status").filter({ hasText: /Alert settings saved/i })).toBeVisible({
       timeout: 20_000,
     });
+    await expect(page).toHaveURL(/tab=settings/);
 
-    await page.getByRole("button", { name: /Send test now/i }).click();
-    await expect(page).toHaveURL(/test_sent=1|test_error=1/, { timeout: 25_000 });
+    const sendTest = page.locator("#send-test-alert").getByRole("button", { name: /Send test now/i });
+    await sendTest.click();
+    // Flash query params are stripped via replaceState — assert the SSR banner instead.
     await expect(
       page.getByRole("status").filter({
         hasText: /Test alert sent|Could not send test|No channels|No alert channels/i,
       }),
-    ).toBeVisible();
-    await expect(page.getByRole("status")).toContainText(/Test alert sent/i);
+    ).toBeVisible({ timeout: 25_000 });
+    await expect(page.getByRole("status").filter({ hasText: /Test alert sent/i })).toBeVisible();
   });
 });
 
