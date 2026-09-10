@@ -565,6 +565,7 @@ const devicesSetupHref =
       </section>
     )}
 
+    {devicesView === "setup" && (
     <PushDevicesPanel
       activeTab={activeTab}
       entitlements={entitlements}
@@ -579,10 +580,11 @@ const devicesSetupHref =
       ingestKey={ingestKey}
       transferTargets={transferTargets}
     />
+    )}
 
-    {((devicesView === "ops" && !showDeviceWizard) || (devicesView === "setup" && activeTab === "pull")) && (
+    {devicesView === "setup" && (
     <PullFeedsPanel
-      activeTab={devicesView === "setup" ? "pull" : activeTab}
+      activeTab={activeTab}
       showPowerFeatures={showPowerFeatures}
       canEdit={canEdit}
       canManageThermostat={canManageThermostat}

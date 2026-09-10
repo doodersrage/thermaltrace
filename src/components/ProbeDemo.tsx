@@ -434,7 +434,7 @@ export default function ProbeDemo() {
           {" "}
           <a class="text-link" href="/dashboard">Overview + demo feed</a>
           {" · "}
-          <a class="text-link" href="/dashboard/alerts#alert-section-essentials">
+          <a class="text-link" href="/dashboard/alerts?tab=settings#alert-section-essentials">
             Freeze + email essentials
           </a>
         </p>

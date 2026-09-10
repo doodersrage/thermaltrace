@@ -27,7 +27,7 @@ const { canManage, options, selectedSensorId, saved, error } = Astro.props;
   )}
   {canManage ? (
     <form method="post" action="/api/household/indoor-reference" class="flex flex-wrap items-end gap-3">
-      <input type="hidden" name="redirect" value="/dashboard/devices#indoor-reference" />
+      <input type="hidden" name="redirect" value="/dashboard/devices?view=setup&tab=pull#indoor-reference" />
       <div class="form-field mb-0 min-w-[14rem] flex-1">
         <label class="form-label" for="indoor-reference-sensor">Reference sensor</label>
         <select

@@ -31,7 +31,7 @@ const schema = [
       lede="Freeze and flood risk is easier with a second set of eyes. Share your invite link: new signups get 7 extra days on Pro trial, and you earn +7 trial days when a referred friend subscribes."
     >
       {user ? (
-        <a slot="actions" class="btn-primary" href="/dashboard/alerts#referral-card">Copy your invite link</a>
+        <a slot="actions" class="btn-primary" href="/dashboard/alerts?tab=settings#referral-card">Copy your invite link</a>
       ) : (
         <a slot="actions" class="btn-primary" href="/register?next=/dashboard/alerts">Create a free account</a>
       )}

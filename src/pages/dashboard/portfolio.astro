@@ -184,7 +184,7 @@ const viewMode = Astro.url.searchParams.get("view") === "heatmap" ? "heatmap" : 
         <p class="mt-2 mb-0 text-xs text-[var(--color-text-muted)]">
           Bulk vacation applies to every property you can edit. Forecast / NWS / flood alerts still deliver during vacation.
           Toggle the coldest-properties digest under
-          <a class="text-link" href="/dashboard/alerts#alert-section-essentials">Alerts → Essentials</a>.
+          <a class="text-link" href="/dashboard/alerts?tab=settings#alert-section-essentials">Alerts → Essentials</a>.
         </p>
       </DashboardCard>
     )}
@@ -196,7 +196,7 @@ const viewMode = Astro.url.searchParams.get("view") === "heatmap" ? "heatmap" : 
         </h2>
         <p class="card-subtitle mb-3">
           Portfolio digest emails fire when properties cross freeze: toggle under
-          <a class="text-link" href="/dashboard/alerts#alert-section-essentials">Alerts → Essentials</a>.
+          <a class="text-link" href="/dashboard/alerts?tab=settings#alert-section-essentials">Alerts → Essentials</a>.
           Flood/leak wet contacts auto-alert per property (bypass vacation).
         </p>
         <ul class="m-0 p-0 list-none space-y-2">

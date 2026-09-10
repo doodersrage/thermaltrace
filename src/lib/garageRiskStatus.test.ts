@@ -40,7 +40,15 @@ describe("computeGarageRiskStatus", () => {
   });
 
   it("returns ok when readings and alerts are healthy", () => {
-    expect(computeGarageRiskStatus(base).level).toBe("ok");
+    const status = computeGarageRiskStatus(base);
+    expect(status.level).toBe("ok");
+    expect(status.actionHref).toBe("/dashboard/live");
+  });
+
+  it("sends near-freeze watch to Live, not marketing home", () => {
+    const status = computeGarageRiskStatus({ ...base, coldestProbeTempF: 36 });
+    expect(status.level).toBe("watch");
+    expect(status.actionHref).toBe("/dashboard/live");
   });
 
   it("treats stale probes as likely unplugged", () => {
@@ -65,5 +73,6 @@ describe("computeGarageRiskStatus", () => {
     });
     expect(status.level).toBe("watch");
     expect(status.actionHref).toContain("alerts");
+    expect(status.actionHref).toContain("tab=settings");
   });
 });

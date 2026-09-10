@@ -280,6 +280,14 @@ async function countTemperatureHistoryRows(
   return { count: count ?? 0, error: null };
 }
 
+export async function householdHasTemperatureHistory(userId: string): Promise<boolean> {
+  const householdId = await getUserHouseholdId(userId);
+  if (!householdId) return false;
+  const { count, error } = await countTemperatureHistoryRows(householdId, {});
+  if (error) return false;
+  return count > 0;
+}
+
 async function fetchTemperatureHistoryPage(
   householdId: string,
   filters: HistoryFilters,

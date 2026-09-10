@@ -23,7 +23,7 @@ if (!show) return null;
   {!coldSnapEnabled && canUseForecast && (
     <p class="alert-warning mb-4" role="status">
       Cold-snap mode (forecast freeze alerts) is off.
-      <a class="text-link" href="/dashboard/alerts#alert-section-essentials">Turn it on</a>
+      <a class="text-link" href="/dashboard/alerts?tab=settings#alert-section-essentials">Turn it on</a>
       so you get warned before outdoor lows hit your threshold.
     </p>
   )}
@@ -41,7 +41,7 @@ if (!show) return null;
   <div class="flex flex-wrap gap-3">
     <a class="btn-secondary" href="/freeze-season">Full freeze-season guide</a>
     <a class="btn-ghost" href="/about/cold-snap-playbook">Cold-snap playbook</a>
-    <a class="btn-ghost" href="/dashboard/alerts#alert-section-essentials">Alert essentials</a>
-    <a class="btn-ghost" href="/dashboard/alerts#send-test-alert">Send a test alert</a>
+    <a class="btn-ghost" href="/dashboard/alerts?tab=settings#alert-section-essentials">Alert essentials</a>
+    <a class="btn-ghost" href="/dashboard/alerts?tab=settings#send-test-alert">Send a test alert</a>
   </div>
 </DashboardCard>

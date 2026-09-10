@@ -1,0 +1,102 @@
+---
+interface Props {
+  passwordUpdated?: boolean;
+  prefsSaved?: boolean;
+  prefsError?: boolean;
+  checkedSaved?: boolean;
+  checkedError?: boolean;
+  ackOk?: boolean;
+  ackMsg?: string | null;
+  snoozeFlash?: boolean;
+  snoozeHours?: string | null;
+  snoozeCleared?: boolean;
+  vacationFlash?: boolean;
+  vacationCleared?: boolean;
+  vacationError?: boolean;
+}
+
+const {
+  passwordUpdated = false,
+  prefsSaved = false,
+  prefsError = false,
+  checkedSaved = false,
+  checkedError = false,
+  ackOk = false,
+  ackMsg = null,
+  snoozeFlash = false,
+  snoozeHours = null,
+  snoozeCleared = false,
+  vacationFlash = false,
+  vacationCleared = false,
+  vacationError = false,
+} = Astro.props;
+
+const show =
+  passwordUpdated ||
+  prefsSaved ||
+  prefsError ||
+  checkedSaved ||
+  checkedError ||
+  ackOk ||
+  snoozeFlash ||
+  snoozeCleared ||
+  vacationFlash ||
+  vacationCleared ||
+  vacationError;
+---
+
+{show && (
+  <div class="dashboard-flash" id="overview-flash">
+    {passwordUpdated && (
+      <p class="alert-success mt-0 mb-0" role="status">Password updated.</p>
+    )}
+    {prefsSaved && (
+      <p class="alert-success mt-0 mb-0" role="status">
+        Display preferences saved.
+        {" "}
+        <a class="text-link" href="/dashboard/settings">Open settings</a>
+      </p>
+    )}
+    {prefsError && (
+      <p class="alert-warning mt-0 mb-0" role="alert">
+        Could not save display preferences.
+        {" "}
+        <a class="text-link" href="/dashboard/settings">Try again in settings</a>
+      </p>
+    )}
+    {checkedSaved && (
+      <p class="alert-success mt-0 mb-0" role="status">
+        Marked this property as checked.
+      </p>
+    )}
+    {checkedError && (
+      <p class="alert-warning mt-0 mb-0" role="alert">
+        Could not save space-checked status. Try again.
+      </p>
+    )}
+    {ackOk && (
+      <p class="alert-success mt-0 mb-0" role="status">
+        {ackMsg ?? "Alert marked as handled."}
+      </p>
+    )}
+    {snoozeFlash && (
+      <p class="alert-success mt-0 mb-0" role="status">
+        Alerts snoozed{snoozeHours ? ` for ${snoozeHours}h` : ""}.
+      </p>
+    )}
+    {snoozeCleared && (
+      <p class="alert-success mt-0 mb-0" role="status">Snooze cleared.</p>
+    )}
+    {vacationFlash && (
+      <p class="alert-success mt-0 mb-0" role="status">Vacation mode set.</p>
+    )}
+    {vacationCleared && (
+      <p class="alert-success mt-0 mb-0" role="status">Vacation cleared.</p>
+    )}
+    {vacationError && (
+      <p class="alert-warning mt-0 mb-0" role="alert">
+        Could not set vacation. Pick a future return date.
+      </p>
+    )}
+  </div>
+)}

@@ -27,7 +27,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   const sensorRaw = form.get("sensor_id")?.toString().trim() ?? "";
   const sensorId = sensorRaw || null;
   const redirectTo =
-    form.get("redirect")?.toString() || "/dashboard/devices#indoor-reference";
+    form.get("redirect")?.toString() || "/dashboard/devices?view=setup&tab=pull#indoor-reference";
 
   const result = await updateIndoorReferenceSensor(householdId, sensorId);
   if (result.error) {

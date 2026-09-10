@@ -33,7 +33,7 @@ export const FALSE_ALARM_TIPS: FalseAlarmHint[] = [
     title: "Raise the threshold a degree or two",
     detail:
       "A 32°F trip fires on every brief draft. Many households use 34–36°F so they act before ice forms without waking for every door open.",
-    href: "/dashboard/alerts#alert-section-essentials",
+    href: "/dashboard/alerts?tab=settings#alert-section-essentials",
     hrefLabel: "Alert essentials",
   },
   {
@@ -57,7 +57,7 @@ export const FLOOD_FALSE_ALARM_TIPS: FalseAlarmHint[] = [
     title: "Sump duty cycle ≠ leak",
     detail:
       "Rising sump level during a storm is normal. Use a flood/leak contact for standing water, and a custom level_above rule only if you want pump-failure early warning, not every pump cycle.",
-    href: "/dashboard/alerts#alert-section-rules",
+    href: "/dashboard/alerts?tab=settings#alert-section-rules",
     hrefLabel: "Alert rules",
   },
   {

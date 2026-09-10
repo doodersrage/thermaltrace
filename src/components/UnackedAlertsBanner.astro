@@ -30,7 +30,7 @@ const { count, canEdit = false } = Astro.props;
   </span>
   <span data-unacked-claims class:list={[count <= 0 && "hidden"]}>
     {" · "}
-    <a href="/dashboard/history#claims-pack" class="text-link">
+    <a href="/dashboard/history?tab=exports#claims-pack" class="text-link">
       Download claims evidence pack
     </a>
     {" "}

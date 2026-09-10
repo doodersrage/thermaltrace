@@ -474,10 +474,10 @@ export default function LiveTempsPanel({ intervalMs = 30000 }: Props) {
             within a few seconds.
           </p>
           <div class="empty-state-actions">
-            <a class="btn-primary" href="/dashboard/devices">
+            <a class="btn-primary" href="/dashboard/devices?view=setup">
               Open Devices
             </a>
-            <a class="btn-secondary" href="/dashboard/alerts#alert-section-essentials">
+            <a class="btn-secondary" href="/dashboard/alerts?tab=settings#alert-section-essentials">
               Alert essentials
             </a>
             <a class="btn-ghost" href="/about/probe-demo">

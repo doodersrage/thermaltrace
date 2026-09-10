@@ -188,7 +188,7 @@ const schema = [
       <ol class="text-sm space-y-2 pl-5 list-decimal mb-4">
         <li>Expose your thermostat in HA (e.g. <code>climate.living_room</code>).</li>
         <li>Every 15 minutes, call <code>thermaltrace.push</code> with a <code>temperature</code> sensor (key <code>house_indoor</code>).</li>
-        <li>In ThermalTrace: <a class="text-link" href="/dashboard/devices#indoor-reference">Devices → Indoor reference</a>: pick that sensor.</li>
+        <li>In ThermalTrace: <a class="text-link" href="/dashboard/devices?view=setup&tab=pull#indoor-reference">Devices → Indoor reference</a>: pick that sensor.</li>
       </ol>
       <pre class="text-xs overflow-x-auto mb-4"><code>{`automation:
   - alias: Push house temp to ThermalTrace

@@ -13,9 +13,9 @@ if (!show) return null;
 
 const nextHref =
   !hasAlertsEnabled || !hasEmailAlerts
-    ? "/dashboard/alerts#alert-section-channels"
+    ? "/dashboard/alerts?tab=settings#alert-section-channels"
     : !hasTestAlert
-      ? "/dashboard/alerts#send-test-alert"
+      ? "/dashboard/alerts?tab=settings#send-test-alert"
       : "/dashboard/history";
 const nextLabel =
   !hasAlertsEnabled || !hasEmailAlerts

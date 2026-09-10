@@ -24,7 +24,7 @@ const { show, alertsDone = false } = Astro.props;
     <p class="mb-3 text-sm text-[var(--color-text-muted)]">
       Sensor names look fine as-is.
       {" "}
-      <a class="text-link" href="/dashboard/devices?rename_sensors=1">Rename later</a>
+      <a class="text-link" href="/dashboard/devices?view=setup&rename_sensors=1">Rename later</a>
       {" "}
       on the device card if you want.
     </p>
@@ -33,7 +33,7 @@ const { show, alertsDone = false } = Astro.props;
         <a class="btn-primary" href="#first-alert-setup">Set freeze + email</a>
       )}
       {alertsDone && (
-        <a class="btn-primary" href="/dashboard/alerts#send-test-alert">Send a test alert</a>
+        <a class="btn-primary" href="/dashboard/alerts?tab=settings#send-test-alert">Send a test alert</a>
       )}
       <a class="btn-secondary" href="/dashboard">Overview</a>
     </div>

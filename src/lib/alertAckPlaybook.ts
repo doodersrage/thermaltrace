@@ -149,7 +149,7 @@ export async function executeAlertAckPlaybook(input: {
 
   if (input.action === "false_alarm" && suggestedTipId) {
     const tip = suggestFalseAlarmTip(event.kind);
-    const tipHref = tip.href ?? "/dashboard/alerts#alert-section-essentials";
+    const tipHref = tip.href ?? "/dashboard/alerts?tab=settings#alert-section-essentials";
     return {
       ok: true,
       message: `Marked as false alarm: alerts snoozed 24h. Suggested fix: ${tip.title}. Open ${tipHref}`,

@@ -1,4 +1,9 @@
 import { staleProbeDetail, wetFloodDetail } from "./falseAlarmHints";
+import {
+  alertsSettingsPath,
+  devicesOpsPath,
+  devicesSetupPath,
+} from "./dashboardDeepLinks";
 
 /**
  * Single Overview status: is the monitored space OK, worth watching, or at freeze/flood risk?
@@ -36,7 +41,7 @@ export function computeGarageRiskStatus(input: {
       title: "Add a probe to start",
       detail: "Create a push device, then POST a reading, or try the demo feed without hardware.",
       actionLabel: "Connect a device",
-      actionHref: "/dashboard/devices",
+      actionHref: devicesSetupPath(),
     };
   }
 
@@ -47,7 +52,7 @@ export function computeGarageRiskStatus(input: {
       detail:
         "Your device is set up but has not reported yet. Finish ingest, then confirm freeze and flood alerts.",
       actionLabel: "Finish device setup",
-      actionHref: "/dashboard/devices",
+      actionHref: devicesSetupPath(),
     };
   }
 
@@ -68,7 +73,7 @@ export function computeGarageRiskStatus(input: {
       title: "Probe may be unplugged",
       detail: staleProbeDetail(input.staleSensorCount),
       actionLabel: "Check devices",
-      actionHref: "/dashboard/devices",
+      actionHref: devicesOpsPath(),
     };
   }
 
@@ -132,7 +137,7 @@ export function computeGarageRiskStatus(input: {
       detail:
         "Turn on alerts and email so freeze and flood reach you: wet contacts auto-notify once alerts are on.",
       actionLabel: "Set freeze + email",
-      actionHref: "/dashboard/alerts#alert-section-essentials",
+      actionHref: alertsSettingsPath("alert-section-essentials"),
     };
   }
 
@@ -146,8 +151,8 @@ export function computeGarageRiskStatus(input: {
       level: "watch",
       title: "Close to freeze threshold",
       detail: `Coldest probe ${input.coldestProbeTempF!.toFixed(1)}°F, within 5°F of ${input.freezeThresholdF}°F.`,
-      actionLabel: "View Home",
-      actionHref: "/",
+      actionLabel: "Open Live",
+      actionHref: "/dashboard/live",
     };
   }
 
@@ -155,7 +160,7 @@ export function computeGarageRiskStatus(input: {
     level: "ok",
     title: "Looking good",
     detail: "Probes are reporting: nothing at freeze threshold, no wet flood contacts.",
-    actionLabel: "View Home",
-    actionHref: "/",
+    actionLabel: "Open Live",
+    actionHref: "/dashboard/live",
   };
 }

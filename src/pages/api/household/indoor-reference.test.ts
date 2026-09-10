@@ -88,7 +88,7 @@ describe("POST /api/household/indoor-reference", () => {
 
     expect(mockUpdateIndoorReferenceSensor).toHaveBeenCalledWith("house-1", null);
     expect(context.redirect).toHaveBeenCalledWith(
-      "/dashboard/devices?indoor_ref_saved=1#indoor-reference",
+      "/dashboard/devices?view=setup&tab=pull&indoor_ref_saved=1#indoor-reference",
     );
   });
 
@@ -96,14 +96,14 @@ describe("POST /api/household/indoor-reference", () => {
     const { POST } = await import("./indoor-reference");
     const context = makeContext({
       sensor_id: "sensor-1",
-      redirect: "/dashboard/devices#indoor-reference",
+      redirect: "/dashboard/devices?view=setup&tab=pull#indoor-reference",
     });
 
     await POST(context);
 
     expect(mockUpdateIndoorReferenceSensor).toHaveBeenCalledWith("house-1", "sensor-1");
     expect(context.redirect).toHaveBeenCalledWith(
-      "/dashboard/devices?indoor_ref_saved=1#indoor-reference",
+      "/dashboard/devices?view=setup&tab=pull&indoor_ref_saved=1#indoor-reference",
     );
   });
 
@@ -115,7 +115,7 @@ describe("POST /api/household/indoor-reference", () => {
     await POST(context);
 
     expect(context.redirect).toHaveBeenCalledWith(
-      "/dashboard/devices?indoor_ref_error=save_failed#indoor-reference",
+      "/dashboard/devices?view=setup&tab=pull&indoor_ref_error=save_failed#indoor-reference",
     );
   });
 });

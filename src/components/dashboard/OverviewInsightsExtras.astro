@@ -1,0 +1,118 @@
+---
+import DoorDurationCard from "../DoorDurationCard.astro";
+import DoorEventHistory from "../DoorEventHistory.astro";
+import BatteryDeclineCard from "./BatteryDeclineCard.astro";
+import DoorTempInsightCard from "./DoorTempInsightCard.astro";
+import EnergyOverviewCard from "./EnergyOverviewCard.astro";
+import FloodLevelCard from "./FloodLevelCard.astro";
+import AirQualityCard from "./AirQualityCard.astro";
+import InsightCalloutCard from "./InsightCalloutCard.astro";
+import RssiOverviewCard from "./RssiOverviewCard.astro";
+import ClaimsPackPromptCard from "./ClaimsPackPromptCard.astro";
+import type { DeviceWithSensors } from "../../lib/devices";
+import type { DoorOpenSession } from "../../lib/doorDuration";
+import type { PlanTier } from "../../lib/entitlements";
+import type {
+  AirQualityOverview,
+  BatteryOverviewRow,
+  EnergyOverview,
+  FloodLevelOverview,
+  RssiOverviewRow,
+} from "../../lib/overviewExtras";
+
+interface Callout {
+  title: string;
+  detail: string;
+  tone?: string;
+}
+
+interface Props {
+  doorTempSummary: Callout | null;
+  powerTempSummary: Callout | null;
+  motionSummary: Callout | null;
+  devices: DeviceWithSensors[];
+  doorSessions: DoorOpenSession[];
+  householdId: string | null;
+  batteryOverview: BatteryOverviewRow[];
+  rssiOverview: RssiOverviewRow[];
+  airQualityOverview: AirQualityOverview;
+  energyOverview: EnergyOverview | null;
+  coolingRateFPerHour: number | null;
+  floodLevelOverview: FloodLevelOverview;
+  canUseClaimsPack: boolean;
+  tier: PlanTier;
+  showClaimsPackPrompt: boolean;
+}
+
+const {
+  doorTempSummary,
+  powerTempSummary,
+  motionSummary,
+  devices,
+  doorSessions,
+  householdId,
+  batteryOverview,
+  rssiOverview,
+  airQualityOverview,
+  energyOverview,
+  coolingRateFPerHour,
+  floodLevelOverview,
+  canUseClaimsPack,
+  tier,
+  showClaimsPackPrompt,
+} = Astro.props;
+
+function calloutTone(tone?: string): "warning" | "info" {
+  return tone === "warning" ? "warning" : "info";
+}
+---
+
+<details class="card">
+  <summary class="dashboard-recommendations-summary">Sensor extras</summary>
+  <div class="dashboard-recommendations-body space-y-4">
+    {doorTempSummary && (
+      <DoorTempInsightCard
+        title={doorTempSummary.title}
+        detail={doorTempSummary.detail}
+        tone={calloutTone(doorTempSummary.tone)}
+      />
+    )}
+    {powerTempSummary && (
+      <InsightCalloutCard
+        title="Power vs temperature"
+        subtitle="Circuit Off time correlated with cooling rate."
+        headline={powerTempSummary.title}
+        detail={powerTempSummary.detail}
+        tone={calloutTone(powerTempSummary.tone)}
+        href="/dashboard/devices?view=ops"
+        hrefLabel="Open Devices"
+      />
+    )}
+    {motionSummary && (
+      <InsightCalloutCard
+        title="Motion"
+        subtitle="Activity in the last 24 hours."
+        headline={motionSummary.title}
+        detail={motionSummary.detail}
+        tone={calloutTone(motionSummary.tone)}
+      />
+    )}
+    <DoorDurationCard devices={devices} sessions={doorSessions} />
+    <DoorEventHistory householdId={householdId} />
+    <BatteryDeclineCard rows={batteryOverview} />
+    <RssiOverviewCard rows={rssiOverview} />
+    <AirQualityCard overview={airQualityOverview} />
+    {energyOverview && (
+      <EnergyOverviewCard
+        energy={energyOverview}
+        coolingRateFPerHour={coolingRateFPerHour}
+      />
+    )}
+    <FloodLevelCard overview={floodLevelOverview} />
+    <ClaimsPackPromptCard
+      canUseClaimsPack={canUseClaimsPack}
+      tier={tier}
+      show={showClaimsPackPrompt}
+    />
+  </div>
+</details>

@@ -40,7 +40,7 @@ export function buildFreezeDrillEmailParts(input: {
     cta: { label: "Open dashboard", url: `${input.siteUrl}/dashboard` },
     secondaryCta: {
       label: "Send test alert",
-      url: `${input.siteUrl}/dashboard/alerts#send-test-alert`,
+      url: `${input.siteUrl}/dashboard/alerts?tab=settings#send-test-alert`,
     },
     tone: "brand",
     footerNote: "Disable pre-season drills in Dashboard → Alerts.",

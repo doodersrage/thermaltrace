@@ -18,6 +18,7 @@ import {
 } from "../../lib/households";
 import { getTenantNotifySettings } from "../../lib/tenantRelay";
 import {
+  getDashboardGrowthTipsDismissed,
   getDashboardQuietUntil,
   getPinnedOverviewMetrics,
   isDashboardQuietActive,
@@ -57,11 +58,14 @@ const pinnedSaved = Astro.url.searchParams.get("pinned_saved");
 const pinnedError = Astro.url.searchParams.get("pinned_error");
 const quietSaved = Astro.url.searchParams.get("quiet_saved");
 const quietCleared = Astro.url.searchParams.get("quiet_cleared");
+const tipsHidden = Astro.url.searchParams.get("tips_hidden");
+const tipsReset = Astro.url.searchParams.get("tips_reset");
 const onboardingDismissed =
   (user.user_metadata as Record<string, unknown> | undefined)?.onboarding_dismissed ===
   true;
 const quietUntil = getDashboardQuietUntil(user);
 const quietActive = isDashboardQuietActive(user);
+const growthTipsDismissed = getDashboardGrowthTipsDismissed(user);
 const pinnedMetrics = getPinnedOverviewMetrics(user);
 const forceSimpleNote = shouldForceSimpleOverview(householdRole);
 const planLabel =
@@ -74,7 +78,7 @@ const planLabel =
   subtitle="Live display and theme. Security, retention, and landlord relay live under Advanced."
 >
   <div class="space-y-6">
-    {(passwordUpdated || prefsSaved || prefsError || pinnedSaved || pinnedError || quietSaved || quietCleared) && (
+    {(passwordUpdated || prefsSaved || prefsError || pinnedSaved || pinnedError || quietSaved || quietCleared || tipsHidden || tipsReset) && (
       <div>
       {passwordUpdated && (
         <p class="alert-success mt-0 mb-0" role="status">Password updated.</p>
@@ -96,6 +100,11 @@ const planLabel =
           {quietCleared ? "Recommendations shown again." : "Overview recommendations hidden for 7 days."}
         </p>
       )}
+      {(tipsHidden || tipsReset) && (
+        <p class="alert-success mt-0 mb-0" role="status">
+          {tipsReset ? "Companion tips shown on Overview again." : "Companion tips hidden on Overview."}
+        </p>
+      )}
       </div>
     )}
 
@@ -106,6 +115,7 @@ const planLabel =
         pinnedMetrics={pinnedMetrics}
         quietUntil={quietUntil}
         quietActive={quietActive}
+        growthTipsDismissed={growthTipsDismissed}
         forceSimpleNote={forceSimpleNote}
       />
     </div>

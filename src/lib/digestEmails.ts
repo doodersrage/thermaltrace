@@ -188,7 +188,7 @@ export async function sendWeeklyDigestsForAllUsers(): Promise<{
         },
         secondaryCta: {
           label: "Manage digest settings",
-          url: `${siteUrl}/dashboard/alerts#alert-section-essentials`,
+          url: `${siteUrl}/dashboard/alerts?tab=settings#alert-section-essentials`,
         },
         tone: "brand",
         footerNote:

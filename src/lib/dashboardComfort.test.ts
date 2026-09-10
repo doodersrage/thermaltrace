@@ -6,6 +6,7 @@ import {
   parsePinnedOverviewMetricsInput,
   quietUntilSevenDaysFromNow,
   shouldForceSimpleOverview,
+  shouldShowOverviewGrowthTips,
 } from "./dashboardComfort";
 
 describe("dashboardComfort", () => {
@@ -51,5 +52,35 @@ describe("dashboardComfort", () => {
 
   it("defaults pinned metrics when missing", () => {
     expect(getPinnedOverviewMetrics(null).length).toBeGreaterThan(0);
+  });
+
+  it("hides growth tips after dismiss or 14 days live", () => {
+    const now = 1_800_000_000_000;
+    expect(
+      shouldShowOverviewGrowthTips(
+        { created_at: new Date(now - 2 * 24 * 60 * 60 * 1000).toISOString() } as never,
+        { hasLive: true, settled: true },
+        now,
+      ),
+    ).toBe(true);
+    expect(
+      shouldShowOverviewGrowthTips(
+        {
+          created_at: new Date(now - 20 * 24 * 60 * 60 * 1000).toISOString(),
+        } as never,
+        { hasLive: true, settled: true },
+        now,
+      ),
+    ).toBe(false);
+    expect(
+      shouldShowOverviewGrowthTips(
+        {
+          created_at: new Date(now - 20 * 24 * 60 * 60 * 1000).toISOString(),
+          user_metadata: { dashboard_growth_tips_dismissed: true },
+        } as never,
+        { hasLive: false, settled: false },
+        now,
+      ),
+    ).toBe(false);
   });
 });

@@ -169,6 +169,60 @@ export function quietUntilSevenDaysFromNow(nowMs = Date.now()): string {
   return new Date(nowMs + 7 * 24 * 60 * 60 * 1000).toISOString();
 }
 
+export const GROWTH_TIPS_AUTO_HIDE_MS = 14 * 24 * 60 * 60 * 1000;
+
+export function getDashboardGrowthTipsDismissed(
+  user: User | null | undefined,
+): boolean {
+  return user?.user_metadata?.dashboard_growth_tips_dismissed === true;
+}
+
+/**
+ * Nest / PWA / Android / Bay Buddy on Overview Tips.
+ * Hidden after dismiss-once, Quiet, or 14 days past account create once the user is live and settled.
+ */
+export function shouldShowOverviewGrowthTips(
+  user: User | null | undefined,
+  opts: { hasLive: boolean; settled: boolean },
+  nowMs = Date.now(),
+): boolean {
+  if (getDashboardGrowthTipsDismissed(user)) return false;
+  if (isDashboardQuietActive(user, nowMs)) return false;
+  if (opts.hasLive && opts.settled) {
+    const created = Date.parse(user?.created_at ?? "");
+    if (Number.isFinite(created) && nowMs - created >= GROWTH_TIPS_AUTO_HIDE_MS) {
+      return false;
+    }
+  }
+  return true;
+}
+
+export async function updateDashboardGrowthTipsDismissed(
+  accessToken: string,
+  refreshToken: string,
+  dismissed: boolean,
+): Promise<{ user: User | null; error: Error | null }> {
+  const client = createAuthClient();
+  const { data: sessionData, error: sessionError } = await client.auth.setSession({
+    access_token: accessToken,
+    refresh_token: refreshToken,
+  });
+
+  if (sessionError || !sessionData.session) {
+    return { user: null, error: sessionError ?? new Error("Invalid session") };
+  }
+
+  const { data, error } = await client.auth.updateUser({
+    data: { dashboard_growth_tips_dismissed: dismissed },
+  });
+
+  if (error) {
+    return { user: null, error };
+  }
+
+  return { user: data.user, error: null };
+}
+
 /** Viewer / alert_only roles stay on Simple overview. */
 export function shouldForceSimpleOverview(
   role: string | null | undefined,
