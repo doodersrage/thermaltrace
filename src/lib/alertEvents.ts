@@ -1,6 +1,20 @@
 import { createServerClient } from "./supabase";
 import { escapeCsvField } from "./csvEscape";
 
+export type AlertEventMeta = {
+  thresholdF?: number;
+  probeLabel?: string;
+  probeTempF?: number;
+  outdoorTempF?: number | null;
+  deltaTF?: number | null;
+  runwayHours?: number | null;
+  doorOpen?: boolean;
+  feedback?: "false_alarm" | string;
+  feedbackAt?: string;
+  suggestedTipId?: string;
+  reasonSummary?: string;
+};
+
 export type AlertEventRow = {
   id: number;
   user_id: string;
@@ -11,7 +25,13 @@ export type AlertEventRow = {
   channels_skipped: string[];
   created_at: string;
   acknowledged_at: string | null;
+  meta?: AlertEventMeta;
 };
+
+function parseAlertEventMeta(raw: unknown): AlertEventMeta {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+  return raw as AlertEventMeta;
+}
 
 export async function recordAlertEvent(input: {
   userId: string;
@@ -20,6 +40,7 @@ export async function recordAlertEvent(input: {
   body: string;
   channelsSent: string[];
   channelsSkipped: string[];
+  meta?: AlertEventMeta;
 }): Promise<number | null> {
   const supabase = createServerClient();
   const { data, error } = await supabase
@@ -31,6 +52,7 @@ export async function recordAlertEvent(input: {
       body: input.body,
       channels_sent: input.channelsSent,
       channels_skipped: input.channelsSkipped,
+      meta: (input.meta ?? {}) as import("../types/supabase").Json,
     })
     .select("id")
     .single();
@@ -41,6 +63,25 @@ export async function recordAlertEvent(input: {
   }
 
   return data?.id ?? null;
+}
+
+export async function updateAlertEventMeta(
+  userId: string,
+  eventId: number,
+  patch: AlertEventMeta,
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = createServerClient();
+  const existing = await getAlertEventForUser(userId, eventId);
+  if (!existing) return { ok: false, error: "Alert event not found." };
+
+  const { error } = await supabase
+    .from("alert_events")
+    .update({ meta: { ...existing.meta, ...patch } as import("../types/supabase").Json })
+    .eq("id", eventId)
+    .eq("user_id", userId);
+
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
 }
 
 export async function updateAlertEventChannels(
@@ -116,7 +157,10 @@ export async function getAlertEventForUser(
     .maybeSingle();
 
   if (error || !data) return null;
-  return data as AlertEventRow;
+  return {
+    ...(data as AlertEventRow),
+    meta: parseAlertEventMeta((data as { meta?: unknown }).meta),
+  };
 }
 
 export async function listRecentAlertEvents(
@@ -132,7 +176,10 @@ export async function listRecentAlertEvents(
     .limit(limit);
 
   if (error || !data) return [];
-  return data as AlertEventRow[];
+  return data.map((row) => ({
+    ...(row as AlertEventRow),
+    meta: parseAlertEventMeta((row as { meta?: unknown }).meta),
+  }));
 }
 
 export const ALERT_EVENTS_EXPORT_MAX = 5000;

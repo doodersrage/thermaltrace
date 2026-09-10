@@ -1,0 +1,121 @@
+---
+interface Props {
+  canEdit: boolean;
+  unackedCount: number;
+  snoozeUntil: string | null;
+}
+
+const { canEdit, unackedCount, snoozeUntil } = Astro.props;
+const snoozeActive =
+  snoozeUntil != null && Number.isFinite(Date.parse(snoozeUntil))
+    ? Date.parse(snoozeUntil) > Date.now()
+    : false;
+---
+
+{canEdit && (
+  <section class="card overview-quick-actions" aria-labelledby="overview-quick-actions-title">
+    <div class="overview-quick-actions-head">
+      <h2 class="card-title mb-0" id="overview-quick-actions-title">Quick actions</h2>
+      <p class="card-subtitle mb-0">
+        Acknowledge, snooze alerts, or mark that you checked the space.
+      </p>
+    </div>
+    <div class="overview-quick-actions-row">
+      {unackedCount > 0 ? (
+        <form action="/api/user/alert-events/ack" method="post">
+          <input type="hidden" name="redirect" value="/dashboard" />
+          <input type="hidden" name="action" value="ack_latest" />
+          <button type="submit" class="btn-secondary btn-sm">
+            Acknowledge latest ({unackedCount})
+          </button>
+        </form>
+      ) : (
+        <a class="btn-ghost btn-sm" href="/dashboard/alerts">Alerts clear</a>
+      )}
+
+      {snoozeActive ? (
+        <form action="/api/user/alert-snooze" method="post">
+          <input type="hidden" name="redirect" value="/dashboard" />
+          <input type="hidden" name="action" value="clear" />
+          <button type="submit" class="btn-ghost btn-sm" id="overview-snooze-action">
+            Clear snooze
+          </button>
+        </form>
+      ) : (
+        <form action="/api/user/alert-snooze" method="post">
+          <input type="hidden" name="redirect" value="/dashboard" />
+          <input type="hidden" name="action" value="snooze_24" />
+          <button type="submit" class="btn-secondary btn-sm" id="overview-snooze-action">
+            Snooze 24h
+          </button>
+        </form>
+      )}
+
+      <button
+        type="button"
+        class="btn-ghost btn-sm"
+        id="overview-checked-space"
+        data-checked-key="tt-space-checked-at"
+      >
+        I checked the space
+      </button>
+      <span
+        class="overview-checked-status text-sm text-[var(--color-text-muted)]"
+        id="overview-checked-status"
+        hidden
+      ></span>
+    </div>
+  </section>
+)}
+
+<script>
+  const key = "tt-space-checked-at";
+  const btn = document.getElementById("overview-checked-space");
+  const status = document.getElementById("overview-checked-status");
+
+  function renderChecked() {
+    if (!status) return;
+    const raw = localStorage.getItem(key);
+    if (!raw) {
+      status.hidden = true;
+      status.textContent = "";
+      return;
+    }
+    const ts = Date.parse(raw);
+    if (!Number.isFinite(ts)) {
+      status.hidden = true;
+      return;
+    }
+    const mins = Math.max(0, Math.round((Date.now() - ts) / 60000));
+    status.hidden = false;
+    status.textContent =
+      mins < 1
+        ? "Checked just now"
+        : mins < 60
+          ? `Checked ${mins}m ago`
+          : `Checked ${Math.round(mins / 60)}h ago`;
+  }
+
+  btn?.addEventListener("click", () => {
+    localStorage.setItem(key, new Date().toISOString());
+    renderChecked();
+  });
+
+  renderChecked();
+</script>
+
+<style>
+  .overview-quick-actions-head {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .overview-quick-actions-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+</style>

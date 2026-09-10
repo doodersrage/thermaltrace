@@ -48,6 +48,7 @@ export type Database = {
           created_at: string
           id: number
           kind: string
+          meta: Json
           title: string
           user_id: string
         }
@@ -59,6 +60,7 @@ export type Database = {
           created_at?: string
           id?: number
           kind: string
+          meta?: Json
           title: string
           user_id: string
         }
@@ -70,6 +72,7 @@ export type Database = {
           created_at?: string
           id?: number
           kind?: string
+          meta?: Json
           title?: string
           user_id?: string
         }
@@ -459,6 +462,71 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "claims_pack_exports_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chart_share_tokens: {
+        Row: {
+          created_at: string
+          expires_at: string
+          r2_key: string
+          title: string | null
+          token: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          r2_key: string
+          title?: string | null
+          token: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          r2_key?: string
+          title?: string | null
+          token?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      history_saved_views: {
+        Row: {
+          created_at: string
+          household_id: string | null
+          id: string
+          name: string
+          params: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          household_id?: string | null
+          id?: string
+          name: string
+          params?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          household_id?: string | null
+          id?: string
+          name?: string
+          params?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "history_saved_views_household_id_fkey"
             columns: ["household_id"]
             isOneToOne: false
             referencedRelation: "households"
@@ -1022,6 +1090,7 @@ export type Database = {
       household_members: {
         Row: {
           created_at: string
+          digest_opt_in: boolean
           household_id: string
           id: string
           role: string
@@ -1029,6 +1098,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          digest_opt_in?: boolean
           household_id: string
           id?: string
           role?: string
@@ -1036,6 +1106,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          digest_opt_in?: boolean
           household_id?: string
           id?: string
           role?: string

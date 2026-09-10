@@ -45,7 +45,7 @@ const groups = [
   {
     title: "Push ingest key recovery (Reveal key on Devices)",
     keys: ["INGEST_KEY_ENCRYPTION_SECRET"],
-    doc: "https://thermaltrace.dev/dashboard/temperature",
+    doc: "https://thermaltrace.dev/dashboard/devices",
   },
   {
     title: "YubiKey OTP (YubiCloud)",

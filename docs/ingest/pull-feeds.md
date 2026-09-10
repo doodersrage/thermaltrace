@@ -8,7 +8,7 @@ Product walkthrough (UI steps): [Adding push and pull devices](https://thermaltr
 
 ## Setup
 
-1. Open **[Dashboard → Devices → Pull feeds](https://thermaltrace.dev/dashboard/temperature?tab=pull)**
+1. Open **[Dashboard → Devices → Pull feeds](https://thermaltrace.dev/dashboard/devices?tab=pull)**
 2. Add an HTTPS URL and set **JSON root key** (default `temp`)
 3. Click **Test feed URL**, then **Save pull setup** — probe keys auto-import from the live feed
 4. Rename labels on the same page, or click **Accept suggested names**

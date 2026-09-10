@@ -141,7 +141,7 @@ const showCard = entitled
               {canManage ? (
                 connection ? (
                   <form action={`/api/integrations/${provider}/disconnect`} method="post">
-                    <input type="hidden" name="redirect" value="/dashboard/temperature" />
+                    <input type="hidden" name="redirect" value="/dashboard/devices" />
                     <button type="submit" class="btn-secondary">Disconnect</button>
                   </form>
                 ) : canConnect ? (

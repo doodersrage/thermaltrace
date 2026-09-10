@@ -6,11 +6,15 @@ import type { LatestSensorRow } from "../../lib/sensorReadings";
 import { formatRelativeAge, freshnessDetail } from "../../lib/relativeTime";
 import { freshnessDetailForSource } from "../../lib/sensorFreshness";
 import { batterySparklinePath, parseBatteryHistory } from "../../lib/batterySparkline";
+import {
+  formatBatteryEta,
+  scoreDeviceHealth,
+} from "../../lib/deviceHealthScore";
+import ReadingAgeBadge from "./ReadingAgeBadge.astro";
 
 /**
  * Devices tab: device health table, latest sensor values grid, and pull-feed
- * health grid. Extracted from dashboard/temperature.astro -- same markup and
- * behavior, just split out since the parent page had grown past 1,400 lines.
+ * health grid.
  */
 interface Props {
   devices: DeviceWithSensors[];
@@ -22,20 +26,18 @@ const { devices, latest, feedHealth } = Astro.props;
 
 const kindLabels = SENSOR_KIND_LABELS;
 
-function readDeviceMetaNumber(meta: unknown, key: string): number | null {
-  if (!meta || typeof meta !== "object" || Array.isArray(meta)) return null;
-  const value = (meta as Record<string, unknown>)[key];
-  return typeof value === "number" && Number.isFinite(value) ? value : null;
-}
-
 function formatDeviceBattery(meta: unknown): string {
-  const battery = readDeviceMetaNumber(meta, "battery_pct");
-  return battery == null ? "—" : `${battery}%`;
+  if (!meta || typeof meta !== "object" || Array.isArray(meta)) return "—";
+  const battery = (meta as Record<string, unknown>).battery_pct;
+  return typeof battery === "number" && Number.isFinite(battery)
+    ? `${battery}%`
+    : "—";
 }
 
 function formatDeviceRssi(meta: unknown): string {
-  const rssi = readDeviceMetaNumber(meta, "rssi");
-  return rssi == null ? "—" : `${rssi} dBm`;
+  if (!meta || typeof meta !== "object" || Array.isArray(meta)) return "—";
+  const rssi = (meta as Record<string, unknown>).rssi;
+  return typeof rssi === "number" && Number.isFinite(rssi) ? `${rssi} dBm` : "—";
 }
 
 function formatLatestValue(row: LatestSensorRow): string {
@@ -47,11 +49,18 @@ function formatLatestValue(row: LatestSensorRow): string {
   }
   return row.value_text ?? "—";
 }
+
+const healthTone: Record<string, string> = {
+  healthy: "text-[var(--color-success,#16a34a)]",
+  watch: "text-amber-600 dark:text-amber-300",
+  at_risk: "text-[var(--color-danger)]",
+  offline: "text-[var(--color-text-muted)]",
+};
 ---
 <section class="card" id="device-health">
   <h2 class="card-title">Device health</h2>
   <p class="card-subtitle mb-4">
-    Last seen, staleness, and optional battery/RSSI from ingest payloads.
+    Health score, last seen, battery ETA, and optional RSSI from ingest payloads.
   </p>
   {devices.length === 0 ? (
     <p class="mb-0 text-sm text-[var(--color-text-muted)]">
@@ -65,11 +74,13 @@ function formatLatestValue(row: LatestSensorRow): string {
         <thead>
           <tr class="text-left text-[var(--color-text-muted)]">
             <th class="py-2 pr-3">Device</th>
+            <th class="py-2 pr-3">Health</th>
             <th class="py-2 pr-3">Space</th>
             <th class="py-2 pr-3">Source</th>
             <th class="py-2 pr-3">Last seen</th>
             <th class="py-2 pr-3">Sensors</th>
             <th class="py-2 pr-3">Battery</th>
+            <th class="py-2 pr-3">ETA</th>
             <th class="py-2">RSSI</th>
           </tr>
         </thead>
@@ -80,6 +91,7 @@ function formatLatestValue(row: LatestSensorRow): string {
             const rssi = formatDeviceRssi(device.meta);
             const sparkPath = batterySparklinePath(parseBatteryHistory(device.meta));
             const pullHealth = feedHealth.statuses.find((f) => f.feedId === device.id);
+            const health = scoreDeviceHealth(device, latest);
             return (
               <tr class="border-t border-[var(--color-border)]">
                 <td class="py-2 pr-3">
@@ -89,6 +101,14 @@ function formatLatestValue(row: LatestSensorRow): string {
                       key {device.ingest_key_prefix}…
                     </span>
                   )}
+                </td>
+                <td class="py-2 pr-3">
+                  <span class:list={["font-semibold", healthTone[health.label]]}>
+                    {health.score}
+                  </span>
+                  <span class="block text-xs text-[var(--color-text-muted)]">
+                    {health.label.replace("_", " ")} · {health.detail}
+                  </span>
                 </td>
                 <td class="py-2 pr-3">{device.space || "—"}</td>
                 <td class="py-2 pr-3">
@@ -100,7 +120,10 @@ function formatLatestValue(row: LatestSensorRow): string {
                   )}
                 </td>
                 <td class:list={["py-2 pr-3", age.lagging && "text-[var(--color-danger)]"]}>
-                  {device.last_seen_at ? freshnessDetail(age) : age.label}
+                  <ReadingAgeBadge iso={device.last_seen_at} emptyLabel="Never" />
+                  <span class="block text-xs text-[var(--color-text-muted)] mt-1">
+                    {device.last_seen_at ? freshnessDetail(age) : "No readings yet"}
+                  </span>
                 </td>
                 <td class="py-2 pr-3">{device.sensors.length}</td>
                 <td class="py-2 pr-3">
@@ -117,6 +140,7 @@ function formatLatestValue(row: LatestSensorRow): string {
                     </svg>
                   )}
                 </td>
+                <td class="py-2 pr-3">{formatBatteryEta(health.daysRemaining)}</td>
                 <td class="py-2">{rssi}</td>
               </tr>
             );
@@ -143,6 +167,8 @@ function formatLatestValue(row: LatestSensorRow): string {
                 {device?.source === "pull_url" ? " · pull" : device?.source === "push" ? " · push" : ""}
               </p>
               <p class:list={["m-0 mt-1 text-sm", age.lagging && "text-amber-300"]}>
+                <ReadingAgeBadge iso={row.recorded_at} />
+                {" · "}
                 {freshnessDetailForSource(row.recorded_at, device?.source ?? null)}
               </p>
             </div>

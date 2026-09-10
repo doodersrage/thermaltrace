@@ -3,6 +3,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
 import DisplayPreferences from "../../components/DisplayPreferences.astro";
 import PwaInstallCard from "../../components/dashboard/PwaInstallCard.astro";
 import DashboardCard from "../../components/dashboard/DashboardCard.astro";
+import DashboardComfortCard from "../../components/dashboard/DashboardComfortCard.astro";
 import TenantRelayCard from "../../components/dashboard/TenantRelayCard.astro";
 import AccountSecurity from "../../components/AccountSecurity.astro";
 import AccountLifecycle from "../../components/AccountLifecycle.astro";
@@ -16,6 +17,12 @@ import {
   getUserHouseholdRole,
 } from "../../lib/households";
 import { getTenantNotifySettings } from "../../lib/tenantRelay";
+import {
+  getDashboardQuietUntil,
+  getPinnedOverviewMetrics,
+  isDashboardQuietActive,
+  shouldForceSimpleOverview,
+} from "../../lib/dashboardComfort";
 
 const { session, user } = await getAuthFromCookies(Astro.cookies);
 if (!session || !user) {
@@ -43,9 +50,17 @@ const deleteError = Astro.url.searchParams.get("delete_error");
 const retentionSaved = Astro.url.searchParams.get("retention_saved");
 const tenantSaved = Astro.url.searchParams.get("tenant_saved");
 const tenantError = Astro.url.searchParams.get("tenant_error");
+const pinnedSaved = Astro.url.searchParams.get("pinned_saved");
+const pinnedError = Astro.url.searchParams.get("pinned_error");
+const quietSaved = Astro.url.searchParams.get("quiet_saved");
+const quietCleared = Astro.url.searchParams.get("quiet_cleared");
 const onboardingDismissed =
   (user.user_metadata as Record<string, unknown> | undefined)?.onboarding_dismissed ===
   true;
+const quietUntil = getDashboardQuietUntil(user);
+const quietActive = isDashboardQuietActive(user);
+const pinnedMetrics = getPinnedOverviewMetrics(user);
+const forceSimpleNote = shouldForceSimpleOverview(householdRole);
 const planLabel =
   entitlements.tier === "admin"
     ? "Admin"
@@ -67,9 +82,29 @@ const planLabel =
       {prefsError && (
         <p class="alert-warning" role="alert">Could not save display preferences.</p>
       )}
+      {pinnedSaved && (
+        <p class="alert-success" role="status">Pinned metrics saved.</p>
+      )}
+      {pinnedError && (
+        <p class="alert-warning" role="alert">Could not save pinned metrics.</p>
+      )}
+      {(quietSaved || quietCleared) && (
+        <p class="alert-success" role="status">
+          {quietCleared ? "Quiet mode cleared." : "Quiet mode enabled for 7 days."}
+        </p>
+      )}
     </section>
 
     <DisplayPreferences preferences={preferences} redirectTo="/dashboard/settings" />
+
+    <div id="dashboard-comfort">
+      <DashboardComfortCard
+        pinnedMetrics={pinnedMetrics}
+        quietUntil={quietUntil}
+        quietActive={quietActive}
+        forceSimpleNote={forceSimpleNote}
+      />
+    </div>
 
     <PwaInstallCard />
 

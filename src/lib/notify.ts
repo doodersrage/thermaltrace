@@ -8,7 +8,7 @@ import {
   getAlertSettingsFromMetadata,
   rowToAlertSettings,
 } from "./alerts";
-import { recordAlertEvent, updateAlertEventChannels } from "./alertEvents";
+import { recordAlertEvent, updateAlertEventChannels, type AlertEventMeta } from "./alertEvents";
 import { buildUserAckUrl } from "./alertAckTokens";
 import { buildSiteUrl } from "./siteUrl";
 import { applyAlertTemplates } from "./alertTemplates";
@@ -28,6 +28,7 @@ export type NotifyPayload = {
   title: string;
   body: string;
   kind?: NotifyKind;
+  meta?: AlertEventMeta;
 };
 
 async function sendEmail(to: string, subject: string, body: string): Promise<void> {
@@ -521,6 +522,7 @@ export async function notifyUser(
       body: payload.body,
       channelsSent: [],
       channelsSkipped: skipped,
+      meta: payload.meta,
     });
     return { sent: [], skipped };
   }
@@ -540,6 +542,7 @@ export async function notifyUser(
       body: payload.body,
       channelsSent: [],
       channelsSkipped: skipped,
+      meta: payload.meta,
     });
     return { sent: [], skipped };
   }
@@ -557,6 +560,7 @@ export async function notifyUser(
     body: payload.body,
     channelsSent: [],
     channelsSkipped: [],
+    meta: payload.meta,
   });
 
   const kind = payloadResolved.kind;
@@ -741,6 +745,7 @@ export async function notifyUser(
       body: payload.body,
       channelsSent: sent,
       channelsSkipped: skipped,
+      meta: payload.meta,
     });
   }
 

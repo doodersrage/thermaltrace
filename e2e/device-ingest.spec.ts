@@ -19,7 +19,7 @@ test.describe("device ingest", () => {
   test("create device, POST a reading, see it land, then clean up", async ({ page }) => {
     test.skip(!getE2ECredentials(), "Set E2E_TEST_EMAIL and E2E_TEST_PASSWORD");
 
-    await signIn(page, "/dashboard/temperature?tab=push");
+    await signIn(page, "/dashboard/devices?tab=push");
 
     await page.getByRole("button", { name: /Create push device/i }).click();
 

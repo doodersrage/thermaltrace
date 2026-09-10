@@ -38,6 +38,10 @@ interface Props {
   alertMarkers?: import("../lib/chartAlertMarkers").ChartAlertMarker[];
   highlightAlertId?: number | null;
   canUseClaimsPack?: boolean;
+  compareFrom?: string;
+  compareTo?: string;
+  savedViews?: import("../lib/historySavedViews").HistorySavedView[];
+  canShareChart?: boolean;
 }
 
 const {
@@ -67,6 +71,10 @@ const {
   alertMarkers = [],
   highlightAlertId = null,
   canUseClaimsPack = false,
+  compareFrom = "",
+  compareTo = "",
+  savedViews = [],
+  canShareChart = false,
 } = Astro.props;
 const { readings, page, pageSize, totalCount, totalPages, error } = history;
 
@@ -86,6 +94,8 @@ function buildFilterUrl(nextFeed: string, nextProbe: string, nextPage = 1): stri
   if (days && days !== 7) params.set("days", String(days));
   if (compareYoy) params.set("yoy", "1");
   if (overlayColdest) params.set("overlay", "coldest");
+  if (compareFrom) params.set("compare_from", compareFrom);
+  if (compareTo) params.set("compare_to", compareTo);
   return `${basePath}?${params.toString()}`;
 }
 
@@ -104,8 +114,24 @@ const chartTitle =
     ? "Temperature trend (selected dates)"
     : `Temperature trend (last ${days} days)`;
 
-const hasActiveFilters = Boolean(feedFilter || probeFilter || fromDate || toDate);
-const clearFiltersHref = basePath;
+const hasActiveFilters = Boolean(
+  feedFilter || probeFilter || fromDate || toDate || compareFrom || compareTo,
+);
+const clearFiltersHref = tab ? `${basePath}?tab=${tab}` : basePath;
+const currentParamsQs = (() => {
+  const params = new URLSearchParams();
+  if (tab) params.set("tab", tab);
+  if (feedFilter) params.set("feed", feedFilter);
+  if (probeFilter) params.set("probe", probeFilter);
+  if (fromDate) params.set("from", fromDate);
+  if (toDate) params.set("to", toDate);
+  if (days && days !== 7) params.set("days", String(days));
+  if (compareYoy) params.set("yoy", "1");
+  if (overlayColdest) params.set("overlay", "coldest");
+  if (compareFrom) params.set("compare_from", compareFrom);
+  if (compareTo) params.set("compare_to", compareTo);
+  return params.toString();
+})();
 ---
 
 <DashboardCard>
@@ -125,6 +151,53 @@ const clearFiltersHref = basePath;
       </a>
     )}
   </div>
+
+  {(savedViews.length > 0 || true) && (
+    <div class="mb-4 flex flex-wrap items-center gap-2">
+      {savedViews.map((view) => {
+        const qs = (() => {
+          const sp = new URLSearchParams();
+          const p = view.params;
+          if (p.feed) sp.set("feed", p.feed);
+          if (p.probe) sp.set("probe", p.probe);
+          if (p.from) sp.set("from", p.from);
+          if (p.to) sp.set("to", p.to);
+          if (p.days && p.days !== 7) sp.set("days", String(p.days));
+          if (p.tab) sp.set("tab", p.tab);
+          if (p.yoy) sp.set("yoy", "1");
+          if (p.overlay) sp.set("overlay", p.overlay);
+          if (p.compare_from) sp.set("compare_from", p.compare_from);
+          if (p.compare_to) sp.set("compare_to", p.compare_to);
+          return sp.toString();
+        })();
+        return (
+          <span class="inline-flex items-center gap-1 rounded border border-[var(--color-border)] px-2 py-1 text-sm">
+            <a class="text-link" href={`${basePath}?${qs}`}>{view.name}</a>
+            <form action="/api/user/history-views" method="post" class="inline">
+              <input type="hidden" name="action" value="delete" />
+              <input type="hidden" name="id" value={view.id} />
+              <input type="hidden" name="redirect" value={Astro.url.pathname + Astro.url.search} />
+              <button type="submit" class="btn-ghost text-xs px-1" aria-label={`Delete ${view.name}`}>×</button>
+            </form>
+          </span>
+        );
+      })}
+      <form action="/api/user/history-views" method="post" class="inline-flex flex-wrap items-center gap-2">
+        <input type="hidden" name="action" value="create" />
+        <input type="hidden" name="params" value={currentParamsQs} />
+        <input type="hidden" name="redirect" value={Astro.url.pathname + Astro.url.search} />
+        <input
+          class="form-input text-sm"
+          type="text"
+          name="name"
+          placeholder="Save current view"
+          required
+          maxlength="80"
+        />
+        <button type="submit" class="btn-ghost btn-sm">Save view</button>
+      </form>
+    </div>
+  )}
 
   {anomalies.length > 0 && (
     <div class="alert-warning mb-4">
@@ -168,6 +241,15 @@ const clearFiltersHref = basePath;
     <div class="form-field mb-0">
       <label class="form-label" for="to-date">To</label>
       <input class="form-input" type="date" id="to-date" name="to" value={toDate} />
+    </div>
+    <div class="form-field mb-0">
+      <label class="form-label" for="compare-from">Compare from</label>
+      <input class="form-input" type="date" id="compare-from" name="compare_from" value={compareFrom} />
+    </div>
+    <div class="form-field mb-0">
+      <label class="form-label" for="compare-to">Compare to</label>
+      <input class="form-input" type="date" id="compare-to" name="compare_to" value={compareTo} />
+      <p class="form-hint">Optional second window (disables YoY).</p>
     </div>
     <div class="form-field mb-0">
       <label class="form-label" for="days-filter">Chart range</label>
@@ -219,6 +301,7 @@ const clearFiltersHref = basePath;
       alertMarkers={alertMarkers}
       highlightAlertId={highlightAlertId}
       canUseClaimsPack={canUseClaimsPack}
+      canShareChart={canShareChart}
     />
   )}
 
@@ -241,14 +324,14 @@ const clearFiltersHref = basePath;
             </p>
             <ol class="mb-4 pl-5 text-sm text-left max-w-md mx-auto space-y-1 text-[var(--color-text-muted)]">
               <li>
-                <a class="text-link" href="/dashboard/temperature">Add a device or feed</a>
+                <a class="text-link" href="/dashboard/devices">Add a device or feed</a>
               </li>
               <li>Verify ingest on the Devices page</li>
               <li>
                 <a class="text-link" href="/">Open Home</a> to confirm live readings
               </li>
             </ol>
-            <a class="btn-primary" href="/dashboard/temperature">Go to Devices</a>
+            <a class="btn-primary" href="/dashboard/devices">Go to Devices</a>
           </>
         )}
       </div>

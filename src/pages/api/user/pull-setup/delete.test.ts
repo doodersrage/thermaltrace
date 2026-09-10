@@ -42,7 +42,7 @@ beforeEach(() => {
   });
   mockRequireHouseholdEditor.mockReset().mockResolvedValue({ ok: true, ctx: {} });
   mockRedirectUnlessEditor.mockReset().mockReturnValue(null);
-  mockFormRedirectPath.mockReset().mockReturnValue("/dashboard/temperature?tab=pull");
+  mockFormRedirectPath.mockReset().mockReturnValue("/dashboard/devices?tab=pull");
   mockDeleteUserTempFeed.mockReset().mockResolvedValue({ error: null });
 });
 
@@ -59,7 +59,7 @@ describe("POST /api/user/pull-setup/delete", () => {
   });
 
   it("returns the editor-guard redirect when blocked", async () => {
-    const blocked = fakeRedirect("/dashboard/temperature?error=viewer");
+    const blocked = fakeRedirect("/dashboard/devices?error=viewer");
     mockRequireHouseholdEditor.mockResolvedValue({ ok: false, error: "viewer" });
     mockRedirectUnlessEditor.mockReturnValue(blocked);
     const { POST } = await import("./delete");
@@ -89,7 +89,7 @@ describe("POST /api/user/pull-setup/delete", () => {
 
     expect(mockDeleteUserTempFeed).toHaveBeenCalledWith("user-1", "feed-1");
     expect(context.redirect).toHaveBeenCalledWith(
-      "/dashboard/temperature?feed_deleted=1&tab=pull",
+      "/dashboard/devices?feed_deleted=1&tab=pull",
     );
     expect(response.status).toBe(302);
   });
@@ -102,7 +102,7 @@ describe("POST /api/user/pull-setup/delete", () => {
     await POST(context);
 
     expect(context.redirect).toHaveBeenCalledWith(
-      "/dashboard/temperature?feeds_error=1&tab=pull",
+      "/dashboard/devices?feeds_error=1&tab=pull",
     );
   });
 });

@@ -21,7 +21,7 @@ vi.mock("../../../lib/referrals", () => ({
 
 const mockSanitizeRegisterNext = vi.fn();
 vi.mock("../../../lib/registerUrl", () => ({
-  REGISTER_NEXT_DEVICES: "/dashboard/temperature",
+  REGISTER_NEXT_DEVICES: "/dashboard/devices",
   sanitizeRegisterNext: (...a: unknown[]) => mockSanitizeRegisterNext(...a),
 }));
 
@@ -114,9 +114,9 @@ describe("POST /api/auth/register", () => {
   });
 
   it("redirects to signin with the sanitized next path and registered=1", async () => {
-    mockSanitizeRegisterNext.mockReturnValue("/dashboard/temperature?intro=1");
+    mockSanitizeRegisterNext.mockReturnValue("/dashboard/devices?intro=1");
     const { POST } = await import("./register");
-    const context = makeContext({ email: "a@example.com", password: "password1", next: "/dashboard/temperature?intro=1" });
+    const context = makeContext({ email: "a@example.com", password: "password1", next: "/dashboard/devices?intro=1" });
 
     await POST(context);
 
@@ -124,7 +124,7 @@ describe("POST /api/auth/register", () => {
     const url = new URL(location, "https://example.com");
     expect(url.pathname).toBe("/signin");
     expect(url.searchParams.get("registered")).toBe("1");
-    expect(url.searchParams.get("next")).toBe("/dashboard/temperature?intro=1");
+    expect(url.searchParams.get("next")).toBe("/dashboard/devices?intro=1");
   });
 
   it("falls back to the register-devices path when next is unsafe", async () => {
@@ -136,6 +136,6 @@ describe("POST /api/auth/register", () => {
 
     const location = (context.redirect as unknown as { mock: { calls: string[][] } }).mock.calls[0][0];
     const url = new URL(location, "https://example.com");
-    expect(url.searchParams.get("next")).toBe("/dashboard/temperature");
+    expect(url.searchParams.get("next")).toBe("/dashboard/devices");
   });
 });

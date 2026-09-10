@@ -419,7 +419,7 @@ export default function ProbeDemo() {
           account, POST once, and set a threshold before the next cold night.
         </p>
         <div class="flex flex-wrap gap-3 mb-3">
-          <a class="btn-primary" href="/register?next=/dashboard/temperature">
+          <a class="btn-primary" href="/register?next=/dashboard/devices">
             Create free account
           </a>
           <a class="btn-secondary" href="/about/adding-devices">

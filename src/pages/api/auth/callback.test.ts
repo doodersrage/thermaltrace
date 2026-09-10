@@ -49,7 +49,7 @@ vi.mock("../../../lib/referrals", () => ({
 }));
 
 vi.mock("../../../lib/registerUrl", () => ({
-  REGISTER_NEXT_DEVICES: "/dashboard/temperature",
+  REGISTER_NEXT_DEVICES: "/dashboard/devices",
 }));
 
 const mockHasMobileOAuthCookie = vi.fn();
@@ -181,7 +181,7 @@ describe("GET /api/auth/callback", () => {
     expect(mockApplySessionCookiesAfterAuth).toHaveBeenCalledWith(
       expect.anything(),
       expect.anything(),
-      "/dashboard/temperature",
+      "/dashboard/devices",
     );
   });
 
@@ -211,11 +211,11 @@ describe("GET /api/auth/callback", () => {
   });
 
   it("redirects using applySessionCookiesAfterAuth's redirectTo on the normal path", async () => {
-    mockApplySessionCookiesAfterAuth.mockResolvedValue({ redirectTo: "/dashboard/temperature" });
+    mockApplySessionCookiesAfterAuth.mockResolvedValue({ redirectTo: "/dashboard/devices" });
     const { GET } = await import("./callback");
 
     const response = await GET(makeContext({ search: { code: "abc" } }));
 
-    expect(response.headers.get("Location")).toBe("/dashboard/temperature");
+    expect(response.headers.get("Location")).toBe("/dashboard/devices");
   });
 });

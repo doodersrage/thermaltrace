@@ -33,7 +33,7 @@ type EditableProbe = TempProbeConfig & { reading?: string };
 export default function PullProbeMapper({
   feeds,
   probes: initialProbes,
-  redirectTo = "/dashboard/temperature",
+  redirectTo = "/dashboard/devices",
 }: Props) {
   const [probes, setProbes] = useState<EditableProbe[]>(
     initialProbes.filter((probe) => Boolean(probe.key)),

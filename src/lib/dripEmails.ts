@@ -40,7 +40,7 @@ export const DRIP_STAGES: DripStage[] = [
         `POST to ${site}/api/ingest/<your-key> — sample sketches are in the GitHub repo`,
         "Prefer reading first? Live demo (no account): /demo",
       ],
-      cta: { label: "Open Devices", url: `${site}/dashboard/temperature` },
+      cta: { label: "Open Devices", url: `${site}/dashboard/devices` },
       secondaryCta: { label: "Adding devices guide", url: `${site}/about/adding-devices` },
       tone: "brand",
     }),

@@ -22,7 +22,7 @@ export const GET: APIRoute = async ({ request, cookies, redirect }) => {
   }
 
   const manager = await requireHouseholdManager(user.id);
-  const blocked = redirectUnlessManager(manager, "/dashboard/temperature", redirect);
+  const blocked = redirectUnlessManager(manager, "/dashboard/devices", redirect);
   if (blocked) return blocked;
 
   const state = randomState();
@@ -37,7 +37,7 @@ export const GET: APIRoute = async ({ request, cookies, redirect }) => {
   const redirectUri = `${buildSiteUrl(request)}/api/integrations/ecobee/callback`;
   const authorizeUrl = buildEcobeeAuthorizeUrl(state, redirectUri);
   if (!authorizeUrl) {
-    return redirect("/dashboard/temperature?thermostat_error=not_configured");
+    return redirect("/dashboard/devices?thermostat_error=not_configured");
   }
 
   return redirect(authorizeUrl);

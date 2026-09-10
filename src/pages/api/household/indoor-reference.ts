@@ -15,19 +15,19 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
 
   const householdId = await getOwnedHouseholdId(user.id);
   if (!householdId) {
-    return redirect("/dashboard/temperature?indoor_ref_error=no_household");
+    return redirect("/dashboard/devices?indoor_ref_error=no_household");
   }
 
   const role = await getUserHouseholdRole(user.id, householdId);
   if (!canEditHousehold(role)) {
-    return redirect("/dashboard/temperature?indoor_ref_error=forbidden");
+    return redirect("/dashboard/devices?indoor_ref_error=forbidden");
   }
 
   const form = await request.formData();
   const sensorRaw = form.get("sensor_id")?.toString().trim() ?? "";
   const sensorId = sensorRaw || null;
   const redirectTo =
-    form.get("redirect")?.toString() || "/dashboard/temperature#indoor-reference";
+    form.get("redirect")?.toString() || "/dashboard/devices#indoor-reference";
 
   const result = await updateIndoorReferenceSensor(householdId, sensorId);
   if (result.error) {

@@ -1,6 +1,7 @@
 ---
 import DashboardLayout from "../../layouts/DashboardLayout.astro";
 import DashboardCard from "../../components/dashboard/DashboardCard.astro";
+import ReadingAgeBadge from "../../components/dashboard/ReadingAgeBadge.astro";
 import UpgradeNudge from "../../components/UpgradeNudge.astro";
 import { getAuthFromCookies } from "../../lib/auth";
 import { fetchCrossPropertySnapshots } from "../../lib/crossProperty";
@@ -66,6 +67,7 @@ const vacationFlash = flash.get("portfolio_vacation") === "1";
 const vacationCleared = flash.get("portfolio_vacation_cleared") === "1";
 const vacationDays = flash.get("days");
 const vacationProperties = flash.get("properties");
+const viewMode = Astro.url.searchParams.get("view") === "heatmap" ? "heatmap" : "list";
 ---
 <DashboardLayout title="Portfolio">
   <div class="space-y-6">
@@ -94,6 +96,25 @@ const vacationProperties = flash.get("properties");
         <p class="alert-success mt-3" role="status">
           Vacation cleared across {vacationProperties ?? "your"} editable propert{(vacationProperties === "1") ? "y" : "ies"}.
         </p>
+      )}
+      {entitlements.canUsePortfolio && withHealth.length > 0 && (
+        <div class="mt-4 flex flex-wrap gap-2">
+          <a
+            class:list={["btn-ghost btn-sm", viewMode === "list" && "font-semibold"]}
+            href={`/dashboard/portfolio${portfolioListQueryString({ ...listQuery, page: 1 })}`}
+          >
+            List
+          </a>
+          <a
+            class:list={["btn-ghost btn-sm", viewMode === "heatmap" && "font-semibold"]}
+            href={`/dashboard/portfolio${(() => {
+              const base = portfolioListQueryString({ ...listQuery, page: 1 });
+              return base ? `${base}&view=heatmap` : "?view=heatmap";
+            })()}`}
+          >
+            Heatmap
+          </a>
+        </div>
       )}
     </section>
 
@@ -196,6 +217,7 @@ const vacationProperties = flash.get("properties");
       ) : (
       <>
       <form class="history-filters" method="get" action="/dashboard/portfolio">
+        {viewMode === "heatmap" && <input type="hidden" name="view" value="heatmap" />}
         <div class="form-field mb-0">
           <label class="form-label" for="portfolio-search">Search</label>
           <input
@@ -244,7 +266,36 @@ const vacationProperties = flash.get("properties");
         </p>
       ) : (
       <>
-      <div class="overflow-x-auto">
+      {viewMode === "heatmap" && (
+        <div class="portfolio-heatmap mb-4" role="list">
+          {listed.rows.map((p) => {
+            const tone =
+              p.health.label === "healthy"
+                ? "healthy"
+                : p.health.label === "watch"
+                  ? "watch"
+                  : p.health.label === "offline"
+                    ? "offline"
+                    : "risk";
+            return (
+              <a
+                class:list={["portfolio-heatmap-cell", `portfolio-heatmap-cell--${tone}`]}
+                href={`/dashboard?household=${p.householdId}`}
+                role="listitem"
+                title={`${p.name}: ${p.health.score}% · ${p.health.detail}`}
+              >
+                <span class="portfolio-heatmap-name">{p.name}</span>
+                <span class="portfolio-heatmap-score">{p.health.score}%</span>
+                <span class="portfolio-heatmap-meta">
+                  {p.minTempF != null ? `${p.minTempF.toFixed(0)}°F` : "—"}
+                  {p.floodWet ? " · wet" : ""}
+                </span>
+              </a>
+            );
+          })}
+        </div>
+      )}
+      <div class:list={["overflow-x-auto", viewMode === "heatmap" && "hidden"]}>
         <table class="w-full text-sm">
           <thead>
             <tr>
@@ -291,9 +342,12 @@ const vacationProperties = flash.get("properties");
                 </td>
                 <td class="py-2">{p.deviceCount}</td>
                 <td class="py-2">
-                  {p.lastReadingAt
-                    ? new Date(p.lastReadingAt).toLocaleString()
-                    : "—"}
+                  <ReadingAgeBadge iso={p.lastReadingAt} emptyLabel="—" />
+                  {p.lastReadingAt && (
+                    <span class="block text-xs text-[var(--color-text-muted)] mt-1">
+                      {new Date(p.lastReadingAt).toLocaleString()}
+                    </span>
+                  )}
                 </td>
               </tr>
             ))}
@@ -333,3 +387,55 @@ const vacationProperties = flash.get("properties");
     </DashboardCard>
   </div>
 </DashboardLayout>
+
+<style>
+  .portfolio-heatmap {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+    gap: 0.5rem;
+  }
+
+  .portfolio-heatmap-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--color-border);
+    text-decoration: none;
+    color: inherit;
+    min-height: 5.5rem;
+  }
+
+  .portfolio-heatmap-cell--healthy {
+    background: color-mix(in srgb, var(--color-success, #16a34a) 18%, transparent);
+  }
+
+  .portfolio-heatmap-cell--watch {
+    background: color-mix(in srgb, var(--color-warning, #d97706) 22%, transparent);
+  }
+
+  .portfolio-heatmap-cell--risk {
+    background: color-mix(in srgb, var(--color-danger, #dc2626) 22%, transparent);
+  }
+
+  .portfolio-heatmap-cell--offline {
+    background: color-mix(in srgb, var(--color-text-muted) 14%, transparent);
+  }
+
+  .portfolio-heatmap-name {
+    font-weight: 600;
+    font-size: 0.875rem;
+    line-height: 1.25;
+  }
+
+  .portfolio-heatmap-score {
+    font-size: 1.125rem;
+    font-weight: 700;
+  }
+
+  .portfolio-heatmap-meta {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+  }
+</style>

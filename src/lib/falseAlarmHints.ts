@@ -83,3 +83,46 @@ export function wetFloodDetail(wetCount: number): string {
   const sensor = n === 1 ? "flood/leak sensor is" : "flood/leak sensors are";
   return `${n} ${sensor} wet right now: flood alerts bypass snooze and vacation. Check the pan, sump, or supply line.`;
 }
+
+export function suggestFalseAlarmTip(kind: string): FalseAlarmHint {
+  if (kind === "flood") {
+    return FLOOD_FALSE_ALARM_TIPS[0] ?? FALSE_ALARM_TIPS[0]!;
+  }
+  if (kind === "outage" || kind.includes("stale")) {
+    return FALSE_ALARM_TIPS.find((t) => t.id === "unplugged") ?? FALSE_ALARM_TIPS[0]!;
+  }
+  return FALSE_ALARM_TIPS.find((t) => t.id === "threshold") ?? FALSE_ALARM_TIPS[0]!;
+}
+
+export function formatAlertWhyMeta(meta: {
+  thresholdF?: number;
+  probeLabel?: string;
+  probeTempF?: number;
+  outdoorTempF?: number | null;
+  deltaTF?: number | null;
+  runwayHours?: number | null;
+  doorOpen?: boolean;
+  reasonSummary?: string;
+}): string | null {
+  if (meta.reasonSummary?.trim()) return meta.reasonSummary.trim();
+  const parts: string[] = [];
+  if (meta.probeLabel && meta.probeTempF != null) {
+    parts.push(`${meta.probeLabel} at ${meta.probeTempF.toFixed(1)}°F`);
+  } else if (meta.probeTempF != null) {
+    parts.push(`Probe at ${meta.probeTempF.toFixed(1)}°F`);
+  }
+  if (meta.thresholdF != null) {
+    parts.push(`threshold ${meta.thresholdF}°F`);
+  }
+  if (meta.outdoorTempF != null) {
+    parts.push(`outdoor ${meta.outdoorTempF.toFixed(0)}°F`);
+  }
+  if (meta.deltaTF != null) {
+    parts.push(`ΔT ${meta.deltaTF >= 0 ? "+" : ""}${meta.deltaTF.toFixed(1)}°F`);
+  }
+  if (meta.runwayHours != null) {
+    parts.push(`~${meta.runwayHours.toFixed(1)}h runway`);
+  }
+  if (meta.doorOpen) parts.push("door open nearby");
+  return parts.length > 0 ? parts.join(" · ") : null;
+}

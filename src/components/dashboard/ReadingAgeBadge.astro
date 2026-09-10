@@ -1,0 +1,62 @@
+---
+import { formatRelativeAge } from "../../lib/relativeTime";
+
+interface Props {
+  iso: string | null | undefined;
+  emptyLabel?: string;
+  class?: string;
+}
+
+const { iso, emptyLabel = "Never", class: className } = Astro.props;
+const age = formatRelativeAge(iso, emptyLabel);
+const tone =
+  !iso
+    ? "neutral"
+    : age.stale
+      ? "danger"
+      : age.lagging
+        ? "warning"
+        : "ok";
+---
+
+<span
+  class:list={[
+    "reading-age-badge",
+    `reading-age-badge--${tone}`,
+    className,
+  ]}
+  title={iso ? new Date(iso).toLocaleString() : undefined}
+>
+  {age.label}
+</span>
+
+<style>
+  .reading-age-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.2;
+    padding: 0.15rem 0.45rem;
+    border-radius: 0.25rem;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface-elevated);
+    color: var(--color-text-muted);
+    white-space: nowrap;
+  }
+
+  .reading-age-badge--ok {
+    color: var(--color-success, #16a34a);
+    border-color: color-mix(in srgb, var(--color-success, #16a34a) 35%, transparent);
+  }
+
+  .reading-age-badge--warning {
+    color: var(--color-warning, #d97706);
+    border-color: color-mix(in srgb, var(--color-warning, #d97706) 35%, transparent);
+  }
+
+  .reading-age-badge--danger {
+    color: var(--color-danger, #dc2626);
+    border-color: color-mix(in srgb, var(--color-danger, #dc2626) 35%, transparent);
+  }
+</style>

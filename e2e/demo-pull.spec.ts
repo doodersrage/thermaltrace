@@ -16,7 +16,7 @@ test.describe("demo pull feed", () => {
   test("save example feed, discover probes, fetch readings, then clean up", async ({ page }) => {
     test.skip(!getE2ECredentials(), "Set E2E_TEST_EMAIL and E2E_TEST_PASSWORD");
 
-    await signIn(page, "/dashboard/temperature?tab=pull");
+    await signIn(page, "/dashboard/devices?tab=pull");
 
     const exampleFeedUrl = exampleFeedUrlForE2E(new URL(page.url()).origin);
     const feedId = `e2e-demo-${Date.now()}`;
@@ -24,7 +24,7 @@ test.describe("demo pull feed", () => {
     const saveRes = await page.request.post("/api/user/pull-setup", {
       headers: { "Content-Type": "application/json" },
       data: {
-        redirect: "/dashboard/temperature?tab=pull",
+        redirect: "/dashboard/devices?tab=pull",
         feeds: [
           {
             id: feedId,
@@ -54,14 +54,14 @@ test.describe("demo pull feed", () => {
     expect(fetchBody.feeds?.some((row) => row.ok)).toBeTruthy();
 
     await page.goto(
-      `/dashboard/temperature?tab=pull&pull_saved=1&probes_discovered=${saveBody.discoveredProbes ?? 0}`,
+      `/dashboard/devices?tab=pull&pull_saved=1&probes_discovered=${saveBody.discoveredProbes ?? 0}`,
     );
     await expect(page.getByText(/Pull setup saved/i)).toBeVisible();
 
     const deleteRes = await page.request.post("/api/user/pull-setup/delete", {
       form: {
         feed_id: feedId,
-        redirect: "/dashboard/temperature?tab=pull",
+        redirect: "/dashboard/devices?tab=pull",
       },
     });
     expect(deleteRes.ok()).toBeTruthy();

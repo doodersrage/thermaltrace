@@ -24,9 +24,9 @@ describe("formRedirectPath", () => {
 
   it("uses a safe redirect field", () => {
     const formData = new FormData();
-    formData.set("redirect", "/dashboard/temperature");
+    formData.set("redirect", "/dashboard/devices");
     expect(formRedirectPath(formData, "/dashboard/share")).toBe(
-      "/dashboard/temperature",
+      "/dashboard/devices",
     );
   });
 });

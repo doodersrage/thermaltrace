@@ -15,7 +15,7 @@ const { show, nestEntitled } = Astro.props;
         : "Thermostat OAuth for Nest/Ecobee is on Pro. Free/Member can still push climate temperature from Home Assistant as an Indoor reference."}
     </p>
     <div class="flex flex-wrap gap-3">
-      <a class="btn-secondary" href="/dashboard/temperature?tab=pull#thermostat-connect">
+      <a class="btn-secondary" href="/dashboard/devices?tab=pull#thermostat-connect">
         Open Pull feeds & thermostats
       </a>
       {nestEntitled ? (

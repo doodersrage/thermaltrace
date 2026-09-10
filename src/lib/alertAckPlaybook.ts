@@ -1,4 +1,4 @@
-import { acknowledgeAlertEvent, getAlertEventForUser } from "./alertEvents";
+import { acknowledgeAlertEvent, getAlertEventForUser, updateAlertEventMeta } from "./alertEvents";
 import { getUserHouseholdId } from "./households";
 import { createServerClient } from "./supabase";
 import { snoozeAlertsForUser } from "./alertSnooze";
@@ -6,6 +6,7 @@ import { sendTenantFreezeRelay } from "./tenantRelay";
 import { deliverWebhookPost } from "./webhookDeliveries";
 import { getAlertSettingsForUser } from "./notify";
 import { resolveSiteUrl } from "./schemaMarkup";
+import { suggestFalseAlarmTip } from "./falseAlarmHints";
 
 export type AckPlaybookAction =
   | "ack"
@@ -37,6 +38,17 @@ export async function executeAlertAckPlaybook(input: {
     const hours =
       input.action === "snooze_1h" ? 1 : input.action === "snooze_4h" ? 4 : 24;
     await snoozeAlertsForUser(input.userId, hours);
+  }
+
+  let suggestedTipId: string | undefined;
+  if (input.action === "false_alarm") {
+    const tip = suggestFalseAlarmTip(event.kind);
+    suggestedTipId = tip.id;
+    await updateAlertEventMeta(input.userId, input.eventId, {
+      feedback: "false_alarm",
+      feedbackAt: new Date().toISOString(),
+      suggestedTipId: tip.id,
+    });
   }
 
   if (input.action === "notify_tenant") {
@@ -102,6 +114,15 @@ export async function executeAlertAckPlaybook(input: {
   const ack = await acknowledgeAlertEvent(input.userId, input.eventId);
   if (!ack.ok) {
     return { ok: false, message: ack.error ?? "Could not acknowledge alert." };
+  }
+
+  if (input.action === "false_alarm" && suggestedTipId) {
+    const tip = suggestFalseAlarmTip(event.kind);
+    const tipHref = tip.href ?? "/dashboard/alerts#alert-section-essentials";
+    return {
+      ok: true,
+      message: `Marked as false alarm: alerts snoozed 24h. Suggested fix: ${tip.title}. Open ${tipHref}`,
+    };
   }
 
   const messages: Record<AckPlaybookAction, string> = {

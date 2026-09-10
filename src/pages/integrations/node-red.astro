@@ -48,7 +48,7 @@ const schema = [
       <a slot="actions" class="btn-primary" href={NODERED_FLOW_URL} download>
         Download flow JSON
       </a>
-      <a slot="actions" class="btn-secondary" href={user ? "/dashboard/temperature" : "/register?next=/dashboard/temperature"}>
+      <a slot="actions" class="btn-secondary" href={user ? "/dashboard/devices" : "/register?next=/dashboard/devices"}>
         {user ? "Create a push device" : "Start free → Devices"}
       </a>
       <a slot="actions" class="btn-ghost" href={INTEGRATIONS_HUB_PAGE}>All integrations</a>
@@ -60,7 +60,7 @@ const schema = [
       <ol class="text-sm space-y-2 pl-5 list-decimal mb-4">
         <li>
           Create a <strong>push device</strong> under
-          <a class="text-link" href="/dashboard/temperature">Dashboard → Devices</a>
+          <a class="text-link" href="/dashboard/devices">Dashboard → Devices</a>
           and copy the ingest key.
         </li>
         <li>

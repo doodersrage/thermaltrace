@@ -83,7 +83,7 @@ beforeEach(() => {
   });
   mockRequireHouseholdEditor.mockReset().mockResolvedValue({ ok: true, ctx: {} });
   mockRedirectUnlessEditor.mockReset().mockReturnValue(null);
-  mockFormRedirectPath.mockReset().mockReturnValue("/dashboard/temperature?tab=pull");
+  mockFormRedirectPath.mockReset().mockReturnValue("/dashboard/devices?tab=pull");
   mockSanitizeTempFeeds.mockReset().mockImplementation((feeds: unknown) => feeds);
   mockSanitizeTempProbes.mockReset().mockImplementation((probes: unknown) => probes);
   mockParseTempFeedsFromFormData.mockReset().mockReturnValue([sampleFeed]);
@@ -161,7 +161,7 @@ describe("POST /api/user/pull-setup (JSON)", () => {
     );
     expect(json).toEqual({
       ok: true,
-      redirect: "/dashboard/temperature?pull_saved=1&tab=pull&probes_discovered=2",
+      redirect: "/dashboard/devices?pull_saved=1&tab=pull&probes_discovered=2",
       discoveredProbes: 2,
     });
   });
@@ -197,7 +197,7 @@ describe("POST /api/user/pull-setup (form)", () => {
   });
 
   it("returns the editor-guard redirect when blocked", async () => {
-    const blocked = fakeRedirect("/dashboard/temperature?error=viewer");
+    const blocked = fakeRedirect("/dashboard/devices?error=viewer");
     mockRequireHouseholdEditor.mockResolvedValue({ ok: false, error: "viewer" });
     mockRedirectUnlessEditor.mockReturnValue(blocked);
     const { POST } = await import("./pull-setup");
@@ -217,7 +217,7 @@ describe("POST /api/user/pull-setup (form)", () => {
 
     expect(mockParseTempFeedsFromFormData).toHaveBeenCalled();
     expect(context.redirect).toHaveBeenCalledWith(
-      "/dashboard/temperature?pull_saved=1&tab=pull&probes_discovered=2",
+      "/dashboard/devices?pull_saved=1&tab=pull&probes_discovered=2",
     );
     expect(response.status).toBe(302);
   });

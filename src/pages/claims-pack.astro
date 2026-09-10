@@ -81,7 +81,7 @@ const schema = [
       title="Proof your monitoring caught it"
       lede="A pipe freeze or a leak doesn't wait for a good time. The claims pack turns your ThermalTrace history into a single report: freeze-exposure stats, device and probe tables, and a timeline of every alert: built for a claim, a dispute, or just having the paper trail before you need it."
     >
-      <a slot="actions" class="btn-primary" href={user ? "/dashboard/history#claims-pack" : "/register?next=/dashboard/temperature"}>
+      <a slot="actions" class="btn-primary" href={user ? "/dashboard/history#claims-pack" : "/register?next=/dashboard/devices"}>
         {user ? "Generate a claims pack" : "Start free: build your pack"}
       </a>
       <a slot="actions" class="btn-secondary" href="/samples/claims-pack-example.pdf">Download sample PDF</a>
@@ -202,7 +202,7 @@ const schema = [
         <li>From <a class="text-link" href="/dashboard/history#claims-pack">History → claims pack</a>, pick a date range and download the pack, or send it straight to an adjuster's email.</li>
       </ol>
       <p class="mt-4 mb-0 flex flex-wrap gap-3">
-        <a class="btn-primary" href={user ? "/dashboard/history#claims-pack" : "/register?next=/dashboard/temperature"}>
+        <a class="btn-primary" href={user ? "/dashboard/history#claims-pack" : "/register?next=/dashboard/devices"}>
           {user ? "Generate a claims pack" : "Start free: build your pack"}
         </a>
         <a class="btn-secondary" href="/samples/claims-pack-example.pdf">Sample PDF</a>

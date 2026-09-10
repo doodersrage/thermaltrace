@@ -1,5 +1,5 @@
 /* ThermalTrace PWA service worker */
-const CACHE = "thermaltrace-v4";
+const CACHE = "thermaltrace-v5";
 const PRECACHE = [
   "/manifest.webmanifest",
   "/favicon.svg",
@@ -7,6 +7,11 @@ const PRECACHE = [
   "/icon-192.png",
   "/icon-512.png",
 ];
+
+const SNAPSHOT_PATHS = new Set([
+  "/api/home/readings",
+  "/api/user/dashboard-snapshot",
+]);
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -56,7 +61,7 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          if (response.ok && url.pathname === "/api/home/readings") {
+          if (response.ok && SNAPSHOT_PATHS.has(url.pathname)) {
             const copy = response.clone();
             caches.open(CACHE).then((cache) => cache.put(request, copy));
           }

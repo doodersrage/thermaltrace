@@ -123,7 +123,7 @@ beforeEach(() => {
   mockRedirectUnlessEditor.mockReset().mockReturnValue(null);
   mockHouseholdEditorCtx.mockReset().mockReturnValue({ householdId: "house-1" });
   mockRecordHouseholdActivity.mockReset().mockResolvedValue(undefined);
-  mockFormRedirectPath.mockReset().mockReturnValue("/dashboard/temperature");
+  mockFormRedirectPath.mockReset().mockReturnValue("/dashboard/devices");
   mockSetSecretFlash.mockReset();
   mockPersistEncryptedIngestKey.mockReset().mockResolvedValue(undefined);
 });
@@ -157,7 +157,7 @@ describe("POST /api/devices", () => {
 
     await POST(context);
 
-    expect(context.redirect).toHaveBeenCalledWith("/dashboard/temperature?error=1");
+    expect(context.redirect).toHaveBeenCalledWith("/dashboard/devices?error=1");
   });
 
   it("transfers a device between households", async () => {
@@ -177,7 +177,7 @@ describe("POST /api/devices", () => {
       action: "device_transfer",
       detail: "d1 → house-2",
     });
-    expect(context.redirect).toHaveBeenCalledWith("/dashboard/temperature?device_transferred=1");
+    expect(context.redirect).toHaveBeenCalledWith("/dashboard/devices?device_transferred=1");
   });
 
   it("rejects a transfer when required fields are missing", async () => {
@@ -187,7 +187,7 @@ describe("POST /api/devices", () => {
     await POST(context);
 
     expect(mockTransferDeviceToHousehold).not.toHaveBeenCalled();
-    expect(context.redirect).toHaveBeenCalledWith("/dashboard/temperature?error=1");
+    expect(context.redirect).toHaveBeenCalledWith("/dashboard/devices?error=1");
   });
 
   it("redirects with an error when transfer fails", async () => {
@@ -201,7 +201,7 @@ describe("POST /api/devices", () => {
 
     await POST(context);
 
-    expect(context.redirect).toHaveBeenCalledWith("/dashboard/temperature?error=1");
+    expect(context.redirect).toHaveBeenCalledWith("/dashboard/devices?error=1");
   });
 
   it("blocks a transfer to a household the user doesn't belong to", async () => {
@@ -216,7 +216,7 @@ describe("POST /api/devices", () => {
     await POST(context);
 
     expect(mockTransferDeviceToHousehold).not.toHaveBeenCalled();
-    expect(context.redirect).toHaveBeenCalledWith("/dashboard/temperature?error=1");
+    expect(context.redirect).toHaveBeenCalledWith("/dashboard/devices?error=1");
   });
 
   it("deletes a device", async () => {
@@ -226,7 +226,7 @@ describe("POST /api/devices", () => {
     await POST(context);
 
     expect(mockFrom).toHaveBeenCalledWith("devices");
-    expect(context.redirect).toHaveBeenCalledWith("/dashboard/temperature?device_deleted=1");
+    expect(context.redirect).toHaveBeenCalledWith("/dashboard/devices?device_deleted=1");
   });
 
   it("renames a device", async () => {
@@ -236,7 +236,7 @@ describe("POST /api/devices", () => {
     await POST(context);
 
     expect(mockRenamePushDevice).toHaveBeenCalledWith("house-1", "d1", "New name");
-    expect(context.redirect).toHaveBeenCalledWith("/dashboard/temperature?device_renamed=1");
+    expect(context.redirect).toHaveBeenCalledWith("/dashboard/devices?device_renamed=1");
   });
 
   it("redirects with an error when rename fails", async () => {
@@ -246,7 +246,7 @@ describe("POST /api/devices", () => {
 
     await POST(context);
 
-    expect(context.redirect).toHaveBeenCalledWith("/dashboard/temperature?error=1");
+    expect(context.redirect).toHaveBeenCalledWith("/dashboard/devices?error=1");
   });
 
   it("sets a device's space", async () => {
@@ -256,7 +256,7 @@ describe("POST /api/devices", () => {
     await POST(context);
 
     expect(mockUpdateDeviceSpace).toHaveBeenCalledWith("house-1", "d1", "Garage");
-    expect(context.redirect).toHaveBeenCalledWith("/dashboard/temperature?device_renamed=1");
+    expect(context.redirect).toHaveBeenCalledWith("/dashboard/devices?device_renamed=1");
   });
 
   it("rotates a device's ingest key and stashes the flash secret", async () => {
@@ -273,7 +273,7 @@ describe("POST /api/devices", () => {
     );
     expect(mockSetSecretFlash).toHaveBeenCalledWith(context.cookies, "ingest_key", expect.any(String));
     expect(mockPersistEncryptedIngestKey).toHaveBeenCalledWith("d1", expect.any(String));
-    expect(context.redirect).toHaveBeenCalledWith("/dashboard/temperature?key_rotated=1");
+    expect(context.redirect).toHaveBeenCalledWith("/dashboard/devices?key_rotated=1");
   });
 
   it("redirects with an error when key rotation fails", async () => {
@@ -284,7 +284,7 @@ describe("POST /api/devices", () => {
     await POST(context);
 
     expect(mockSetSecretFlash).not.toHaveBeenCalled();
-    expect(context.redirect).toHaveBeenCalledWith("/dashboard/temperature?error=1");
+    expect(context.redirect).toHaveBeenCalledWith("/dashboard/devices?error=1");
   });
 
   it("rejects adding a sensor without required fields", async () => {
@@ -294,7 +294,7 @@ describe("POST /api/devices", () => {
     await POST(context);
 
     expect(mockFrom).not.toHaveBeenCalledWith("device_sensors");
-    expect(context.redirect).toHaveBeenCalledWith("/dashboard/temperature?error=1");
+    expect(context.redirect).toHaveBeenCalledWith("/dashboard/devices?error=1");
   });
 
   it("adds a sensor to an owned device", async () => {
@@ -310,7 +310,7 @@ describe("POST /api/devices", () => {
     await POST(context);
 
     expect(mockFrom).toHaveBeenCalledWith("device_sensors");
-    expect(context.redirect).toHaveBeenCalledWith("/dashboard/temperature?sensor_added=1");
+    expect(context.redirect).toHaveBeenCalledWith("/dashboard/devices?sensor_added=1");
   });
 
   it("rejects adding a sensor to a device the household doesn't own", async () => {
@@ -325,7 +325,7 @@ describe("POST /api/devices", () => {
 
     await POST(context);
 
-    expect(context.redirect).toHaveBeenCalledWith("/dashboard/temperature?error=1");
+    expect(context.redirect).toHaveBeenCalledWith("/dashboard/devices?error=1");
   });
 
   it("adds a temperature/humidity sensor pair", async () => {
@@ -335,7 +335,7 @@ describe("POST /api/devices", () => {
     await POST(context);
 
     expect(mockFrom).toHaveBeenCalledWith("device_sensors");
-    expect(context.redirect).toHaveBeenCalledWith("/dashboard/temperature?sensor_added=1");
+    expect(context.redirect).toHaveBeenCalledWith("/dashboard/devices?sensor_added=1");
   });
 
   it("returns an error when adding a sensor pair fails", async () => {
@@ -345,7 +345,7 @@ describe("POST /api/devices", () => {
 
     await POST(context);
 
-    expect(context.redirect).toHaveBeenCalledWith("/dashboard/temperature?error=1");
+    expect(context.redirect).toHaveBeenCalledWith("/dashboard/devices?error=1");
   });
 
   it("updates a sensor", async () => {
@@ -370,7 +370,7 @@ describe("POST /api/devices", () => {
       offsetNum: 1.5,
       visible: true,
     });
-    expect(context.redirect).toHaveBeenCalledWith("/dashboard/temperature?sensor_updated=1");
+    expect(context.redirect).toHaveBeenCalledWith("/dashboard/devices?sensor_updated=1");
   });
 
   it("redirects with an error when sensor update fails", async () => {
@@ -386,7 +386,7 @@ describe("POST /api/devices", () => {
 
     await POST(context);
 
-    expect(context.redirect).toHaveBeenCalledWith("/dashboard/temperature?error=1");
+    expect(context.redirect).toHaveBeenCalledWith("/dashboard/devices?error=1");
   });
 
   it("rejects deleting a sensor from a device the household doesn't own", async () => {
@@ -397,7 +397,7 @@ describe("POST /api/devices", () => {
     await POST(context);
 
     expect(mockDeleteDeviceSensor).not.toHaveBeenCalled();
-    expect(context.redirect).toHaveBeenCalledWith("/dashboard/temperature?error=1");
+    expect(context.redirect).toHaveBeenCalledWith("/dashboard/devices?error=1");
   });
 
   it("deletes a sensor from an owned device", async () => {
@@ -407,7 +407,7 @@ describe("POST /api/devices", () => {
     await POST(context);
 
     expect(mockDeleteDeviceSensor).toHaveBeenCalledWith("s1", "d1");
-    expect(context.redirect).toHaveBeenCalledWith("/dashboard/temperature?sensor_deleted=1");
+    expect(context.redirect).toHaveBeenCalledWith("/dashboard/devices?sensor_deleted=1");
   });
 
   it("blocks device creation past the plan's device limit", async () => {
@@ -418,7 +418,7 @@ describe("POST /api/devices", () => {
     await POST(context);
 
     expect(mockCreatePushDevice).not.toHaveBeenCalled();
-    expect(context.redirect).toHaveBeenCalledWith("/dashboard/temperature?error=device_limit");
+    expect(context.redirect).toHaveBeenCalledWith("/dashboard/devices?error=device_limit");
   });
 
   it("creates a push device and stashes the flash secret", async () => {
@@ -435,7 +435,7 @@ describe("POST /api/devices", () => {
     );
     expect(mockSetSecretFlash).toHaveBeenCalledWith(context.cookies, "ingest_key", expect.any(String));
     expect(context.redirect).toHaveBeenCalledWith(
-      "/dashboard/temperature?device_created=1&focus_device=new-device",
+      "/dashboard/devices?device_created=1&focus_device=new-device",
     );
   });
 
@@ -446,6 +446,6 @@ describe("POST /api/devices", () => {
 
     await POST(context);
 
-    expect(context.redirect).toHaveBeenCalledWith("/dashboard/temperature?error=1");
+    expect(context.redirect).toHaveBeenCalledWith("/dashboard/devices?error=1");
   });
 });

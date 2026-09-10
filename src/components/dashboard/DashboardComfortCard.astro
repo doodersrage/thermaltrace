@@ -1,0 +1,126 @@
+---
+import DashboardCard from "./DashboardCard.astro";
+import {
+  PINNABLE_OVERVIEW_METRICS,
+  PINNED_METRICS_MAX,
+  type PinnableOverviewMetric,
+} from "../../lib/dashboardComfort";
+
+interface Props {
+  pinnedMetrics: PinnableOverviewMetric[];
+  quietUntil: string | null;
+  quietActive: boolean;
+  forceSimpleNote?: boolean;
+}
+
+const labels: Record<PinnableOverviewMetric, string> = {
+  last_reading: "Last reading",
+  sensors: "Sensors",
+  feeds: "Feeds",
+  alerts: "Alerts",
+  house: "House",
+  freeze_hours: "Freeze hours (7d)",
+  coldest_margin: "Coldest margin",
+  indoor_outdoor: "Indoor − outdoor",
+  probe_spread: "Probe spread",
+  condensation: "Condensation (7d)",
+  feed_health: "Feed health",
+};
+
+const { pinnedMetrics, quietUntil, quietActive, forceSimpleNote = false } =
+  Astro.props;
+const pinnedSet = new Set(pinnedMetrics);
+---
+
+<DashboardCard>
+  <h2 class="card-title">Dashboard comfort</h2>
+  <p class="card-subtitle mb-4">
+    Quiet recommendation noise, pin Status metrics (max {PINNED_METRICS_MAX}), and
+    keyboard shortcuts.
+  </p>
+
+  {forceSimpleNote && (
+    <p class="alert-warning" role="status">
+      Viewers and alert-only members stay on Simple overview (Insights is hidden).
+    </p>
+  )}
+
+  <div class="space-y-4">
+    <div>
+      <h3 class="text-sm font-semibold mb-2">Quiet mode</h3>
+      <p class="text-sm text-[var(--color-text-muted)] mb-2">
+        Hides non-critical overview recommendations for 7 days. Low battery, stale
+        sensors, and unacked alerts still appear.
+      </p>
+      {quietActive && quietUntil ? (
+        <form action="/api/user/dashboard-quiet" method="post" class="flex flex-wrap gap-2 items-center">
+          <input type="hidden" name="redirect" value="/dashboard/settings" />
+          <input type="hidden" name="action" value="clear" />
+          <span class="text-sm">
+            Quiet until {new Date(quietUntil).toLocaleString()}
+          </span>
+          <button type="submit" class="btn-secondary btn-sm">End quiet</button>
+        </form>
+      ) : (
+        <form action="/api/user/dashboard-quiet" method="post">
+          <input type="hidden" name="redirect" value="/dashboard/settings" />
+          <input type="hidden" name="action" value="quiet_7d" />
+          <button type="submit" class="btn-secondary btn-sm">Quiet for 7 days</button>
+        </form>
+      )}
+    </div>
+
+    <form action="/api/user/dashboard-pinned-metrics" method="post">
+      <input type="hidden" name="redirect" value="/dashboard/settings" />
+      <h3 class="text-sm font-semibold mb-2">Pinned Status metrics</h3>
+      <p class="text-sm text-[var(--color-text-muted)] mb-3">
+        Choose up to {PINNED_METRICS_MAX}. Others stay behind “Show all metrics”.
+      </p>
+      <div class="dashboard-comfort-metrics">
+        {PINNABLE_OVERVIEW_METRICS.map((id) => (
+          <label class="dashboard-comfort-metric">
+            <input
+              type="checkbox"
+              name="metrics"
+              value={id}
+              checked={pinnedSet.has(id)}
+            />
+            <span>{labels[id]}</span>
+          </label>
+        ))}
+      </div>
+      <button type="submit" class="btn-primary btn-sm mt-3">Save pinned metrics</button>
+    </form>
+
+    <div>
+      <h3 class="text-sm font-semibold mb-2">Keyboard shortcuts</h3>
+      <p class="text-sm text-[var(--color-text-muted)] mb-0">
+        Press <kbd>?</kbd> on any dashboard page for the cheat sheet. Navigation:
+        <kbd>g</kbd> then <kbd>o</kbd>/<kbd>d</kbd>/<kbd>a</kbd>/<kbd>h</kbd>.
+      </p>
+    </div>
+  </div>
+</DashboardCard>
+
+<style>
+  .dashboard-comfort-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+    gap: 0.5rem 1rem;
+  }
+
+  .dashboard-comfort-metric {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+  }
+
+  kbd {
+    font-size: 0.75rem;
+    padding: 0.1rem 0.35rem;
+    border-radius: 0.25rem;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface-elevated);
+  }
+</style>

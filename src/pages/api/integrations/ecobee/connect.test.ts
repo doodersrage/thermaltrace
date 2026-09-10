@@ -103,7 +103,7 @@ describe("GET /api/integrations/ecobee/connect", () => {
     await GET(context);
 
     expect(context.redirect).toHaveBeenCalledWith(
-      "/dashboard/temperature?error=manager_required",
+      "/dashboard/devices?error=manager_required",
     );
   });
 
@@ -115,7 +115,7 @@ describe("GET /api/integrations/ecobee/connect", () => {
     await GET(context);
 
     expect(context.redirect).toHaveBeenCalledWith(
-      "/dashboard/temperature?thermostat_error=not_configured",
+      "/dashboard/devices?thermostat_error=not_configured",
     );
   });
 

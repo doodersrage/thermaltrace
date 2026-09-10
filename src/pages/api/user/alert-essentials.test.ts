@@ -58,7 +58,7 @@ beforeEach(() => {
   });
   mockRequireHouseholdEditor.mockReset().mockResolvedValue({ ok: true, ctx: {} });
   mockRedirectUnlessEditor.mockReset().mockReturnValue(null);
-  mockFormRedirectPath.mockReset().mockReturnValue("/dashboard/temperature");
+  mockFormRedirectPath.mockReset().mockReturnValue("/dashboard/devices");
   mockGetAlertSettingsForUser.mockReset().mockResolvedValue({
     enabled: false,
     channelEmail: false,
@@ -86,7 +86,7 @@ describe("POST /api/user/alert-essentials", () => {
   });
 
   it("returns the editor-guard redirect when blocked", async () => {
-    const blocked = fakeRedirect("/dashboard/temperature?error=viewer");
+    const blocked = fakeRedirect("/dashboard/devices?error=viewer");
     mockRequireHouseholdEditor.mockResolvedValue({ ok: false, error: "viewer" });
     mockRedirectUnlessEditor.mockReturnValue(blocked);
     const { POST } = await import("./alert-essentials");
@@ -123,7 +123,7 @@ describe("POST /api/user/alert-essentials", () => {
       action: "alert_settings_saved",
       detail: "essentials from devices",
     });
-    expect(context.redirect).toHaveBeenCalledWith("/dashboard/temperature?alert_saved=1");
+    expect(context.redirect).toHaveBeenCalledWith("/dashboard/devices?alert_saved=1");
     expect(response.status).toBe(302);
   });
 
@@ -134,7 +134,7 @@ describe("POST /api/user/alert-essentials", () => {
 
     await POST(context);
 
-    expect(context.redirect).toHaveBeenCalledWith("/dashboard/temperature?alert_error=1");
+    expect(context.redirect).toHaveBeenCalledWith("/dashboard/devices?alert_error=1");
   });
 
   it("sends a test alert when also_test is set", async () => {
@@ -146,7 +146,7 @@ describe("POST /api/user/alert-essentials", () => {
     expect(mockNotifyUser).toHaveBeenCalled();
     expect(mockMarkCooldown).toHaveBeenCalledWith("user-1", "last_alert_sent_at");
     expect(context.redirect).toHaveBeenCalledWith(
-      "/dashboard/temperature?alert_saved=1&test_sent=1&sent=email",
+      "/dashboard/devices?alert_saved=1&test_sent=1&sent=email",
     );
   });
 
@@ -158,7 +158,7 @@ describe("POST /api/user/alert-essentials", () => {
     await POST(context);
 
     expect(context.redirect).toHaveBeenCalledWith(
-      "/dashboard/temperature?alert_saved=1&test_error=1&test_reason=incomplete",
+      "/dashboard/devices?alert_saved=1&test_error=1&test_reason=incomplete",
     );
   });
 });

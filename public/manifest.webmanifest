@@ -40,9 +40,16 @@
   ],
   "shortcuts": [
     {
-      "name": "Dashboard",
-      "short_name": "Dashboard",
-      "url": "/dashboard"
+      "name": "Overview",
+      "short_name": "Overview",
+      "url": "/dashboard",
+      "description": "Freeze risk and live status"
+    },
+    {
+      "name": "Devices",
+      "short_name": "Devices",
+      "url": "/dashboard/devices",
+      "description": "Probes, feeds, and ingest keys"
     },
     {
       "name": "Alerts",
@@ -50,14 +57,14 @@
       "url": "/dashboard/alerts"
     },
     {
-      "name": "Portfolio",
-      "short_name": "Portfolio",
-      "url": "/dashboard/portfolio"
-    },
-    {
       "name": "History",
       "short_name": "History",
       "url": "/dashboard/history"
+    },
+    {
+      "name": "Portfolio",
+      "short_name": "Portfolio",
+      "url": "/dashboard/portfolio"
     }
   ]
 }

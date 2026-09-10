@@ -4,6 +4,7 @@ import {
   executeAlertAckPlaybook,
   type AckPlaybookAction,
 } from "../../../../lib/alertAckPlaybook";
+import { acknowledgeLatestUnackedAlert } from "../../../../lib/alertEvents";
 import { formRedirectPath } from "../../../../lib/siteUrl";
 import { getSiteUrl } from "../../../../lib/stripe";
 
@@ -23,8 +24,9 @@ function wantsJson(request: Request): boolean {
   return accept.includes("application/json") || contentType.includes("application/json");
 }
 
-function parseAction(raw: unknown): AckPlaybookAction {
+function parseAction(raw: unknown): AckPlaybookAction | "ack_latest" {
   const value = typeof raw === "string" ? raw.trim() : "";
+  if (value === "ack_latest") return "ack_latest";
   if (VALID_ACTIONS.has(value as AckPlaybookAction)) {
     return value as AckPlaybookAction;
   }
@@ -45,7 +47,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
 
   let eventId: number | null = null;
   let redirectTo = "/dashboard/alerts";
-  let action: AckPlaybookAction = "ack";
+  let action: AckPlaybookAction | "ack_latest" = "ack";
 
   if ((request.headers.get("content-type") ?? "").includes("application/json")) {
     try {
@@ -63,9 +65,30 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
     }
   } else {
     const formData = await request.formData();
-    eventId = Number(formData.get("event_id"));
+    const rawId = formData.get("event_id");
+    eventId = rawId != null && String(rawId).trim() !== "" ? Number(rawId) : null;
     action = parseAction(formData.get("action")?.toString());
     redirectTo = formRedirectPath(formData, redirectTo);
+  }
+
+  if (action === "ack_latest") {
+    const ack = await acknowledgeLatestUnackedAlert(user.id);
+    if (!ack.ok) {
+      if (wantsJson(request)) {
+        return new Response(JSON.stringify({ error: ack.error ?? "Nothing to acknowledge" }), {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      return redirect(`${redirectTo}?ack_error=1`);
+    }
+    if (wantsJson(request)) {
+      return new Response(
+        JSON.stringify({ ok: true, event_id: ack.eventId, action: "ack_latest" }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      );
+    }
+    return redirect(`${redirectTo}?ack_ok=1`);
   }
 
   if (!Number.isFinite(eventId)) {
@@ -82,7 +105,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   const result = await executeAlertAckPlaybook({
     userId: user.id,
     userEmail: user.email,
-    eventId,
+    eventId: eventId as number,
     action,
     siteUrl,
   });

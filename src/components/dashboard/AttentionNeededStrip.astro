@@ -1,0 +1,87 @@
+---
+interface Props {
+  count: number;
+  quietActive: boolean;
+  quietUntil: string | null;
+}
+
+const { count, quietActive, quietUntil } = Astro.props;
+const quietLabel =
+  quietActive && quietUntil
+    ? `Quiet until ${new Date(quietUntil).toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+      })}`
+    : null;
+---
+
+{(count > 0 || quietActive) && (
+  <div class="attention-needed card">
+    <div class="attention-needed-row">
+      {count > 0 ? (
+        <details class="attention-needed-details">
+          <summary class="attention-needed-summary">
+            Attention needed ({count})
+          </summary>
+          <div class="attention-needed-body" data-attention-slot>
+            <slot />
+          </div>
+        </details>
+      ) : (
+        <p class="mb-0 text-sm text-[var(--color-text-muted)]">
+          Recommendations quieted. Critical alerts still show above.
+        </p>
+      )}
+      <div class="attention-needed-actions">
+        {quietActive ? (
+          <form action="/api/user/dashboard-quiet" method="post">
+            <input type="hidden" name="redirect" value="/dashboard" />
+            <input type="hidden" name="action" value="clear" />
+            <button type="submit" class="btn-ghost btn-sm">
+              {quietLabel ?? "End quiet"}
+            </button>
+          </form>
+        ) : (
+          <form action="/api/user/dashboard-quiet" method="post">
+            <input type="hidden" name="redirect" value="/dashboard" />
+            <input type="hidden" name="action" value="quiet_7d" />
+            <button type="submit" class="btn-ghost btn-sm">Quiet for 7 days</button>
+          </form>
+        )}
+      </div>
+    </div>
+  </div>
+)}
+
+<style>
+  .attention-needed-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  .attention-needed-details {
+    flex: 1 1 16rem;
+    min-width: 0;
+  }
+
+  .attention-needed-summary {
+    cursor: pointer;
+    font-weight: 600;
+    list-style: none;
+  }
+
+  .attention-needed-summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .attention-needed-body {
+    margin-top: 0.75rem;
+  }
+
+  .attention-needed-actions {
+    flex: 0 0 auto;
+  }
+</style>

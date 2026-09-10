@@ -6,7 +6,7 @@ Runs in production at [thermaltrace.dev](https://thermaltrace.dev) with 15-minut
 
 [![App](https://img.shields.io/badge/app-thermaltrace.dev-f97316)](https://thermaltrace.dev)
 [![Live demo](https://img.shields.io/badge/demo-no%20account-0ea5e9)](https://thermaltrace.dev/demo)
-[![Start free](https://img.shields.io/badge/start-free%20(no%20card)-22c55e)](https://thermaltrace.dev/register?next=/dashboard/temperature)
+[![Start free](https://img.shields.io/badge/start-free%20(no%20card)-22c55e)](https://thermaltrace.dev/register?next=/dashboard/devices)
 [![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-0ea5e9)](https://doodersrage.github.io/thermaltrace/)
 [![CI](https://github.com/doodersrage/thermaltrace/actions/workflows/ci.yml/badge.svg)](https://github.com/doodersrage/thermaltrace/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-slategray)](./LICENSE)
@@ -15,7 +15,7 @@ Runs in production at [thermaltrace.dev](https://thermaltrace.dev) with 15-minut
 |---|---|
 | **App** | [thermaltrace.dev](https://thermaltrace.dev) |
 | **Live demo** | [thermaltrace.dev/demo](https://thermaltrace.dev/demo) — no account |
-| **Start free** | [Create account → Devices](https://thermaltrace.dev/register?next=/dashboard/temperature) — no credit card |
+| **Start free** | [Create account → Devices](https://thermaltrace.dev/register?next=/dashboard/devices) — no credit card |
 | **Developer docs** | [doodersrage.github.io/thermaltrace](https://doodersrage.github.io/thermaltrace/) |
 | **Product guides** | [thermaltrace.dev/guides](https://thermaltrace.dev/guides) |
 | **OpenAPI** | [thermaltrace.dev/openapi.yaml](https://thermaltrace.dev/openapi.yaml) |
@@ -79,7 +79,7 @@ docs/               VitePress developer docs (GitHub Pages)
 
 ## Connecting hardware
 
-1. **[Create a free account](https://thermaltrace.dev/register?next=/dashboard/temperature)** (no credit card)  
+1. **[Create a free account](https://thermaltrace.dev/register?next=/dashboard/devices)** (no credit card)  
 2. **Dashboard → Devices** → create a push device and copy the ingest key from the callout  
 3. `POST` to `/api/ingest/<key>` — sensor keys **auto-import** on first POST; rename on Devices afterward  
 4. **Overview → Try without hardware** saves the demo pull feed if you have no ESP or Pico yet  

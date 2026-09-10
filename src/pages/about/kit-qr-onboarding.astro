@@ -23,7 +23,7 @@ const hero = getAboutHeroPhoto(page.slug);
       Buy an ESP32 + waterproof DS18B20.      <a class="text-link" href="/about/esp32-freeze-kit">parts list</a>
       (Adafruit / Amazon; ThermalTrace does not sell hardware).
     </li>
-    <li>Create a push device on <a class="text-link" href="/dashboard/temperature">Dashboard → Devices</a> (one click: named Workshop probe by default).</li>
+    <li>Create a push device on <a class="text-link" href="/dashboard/devices">Dashboard → Devices</a> (one click: named Workshop probe by default).</li>
     <li>Copy or scan the ingest QR (visible for 30 minutes after create/rotate).</li>
     <li>Flash firmware or point Home Assistant at that URL: sensors auto-import on first POST.</li>
     <li>Set freeze °F + email on the inline first-alert card on Devices, or open <a class="text-link" href="/dashboard/alerts#alert-section-essentials">Alerts → Essentials</a>, then send a test.</li>
@@ -32,7 +32,7 @@ const hero = getAboutHeroPhoto(page.slug);
 
   <h2>What to encode</h2>
   <p>
-    After creating or rotating a push key on <a class="text-link" href="/dashboard/temperature">Dashboard → Devices</a>,
+    After creating or rotating a push key on <a class="text-link" href="/dashboard/devices">Dashboard → Devices</a>,
     the key callout shows a QR for the full ingest URL (visible for 30 minutes, survives refresh):
   </p>
   <pre><code>{`https://your-domain/api/ingest/YOUR_DEVICE_KEY`}</code></pre>

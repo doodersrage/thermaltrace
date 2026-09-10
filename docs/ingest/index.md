@@ -1,6 +1,6 @@
 # Push ingest
 
-Create a **push** device under **[Dashboard → Devices](https://thermaltrace.dev/dashboard/temperature)** on the live app. You receive a per-device ingest key in a **30-minute callout** (survives refresh until dismissed). **Lost it later?** Use **Reveal ingest key** on the device card when key recovery is enabled on the server, or **Rotate key** for a new one.
+Create a **push** device under **[Dashboard → Devices](https://thermaltrace.dev/dashboard/devices)** on the live app. You receive a per-device ingest key in a **30-minute callout** (survives refresh until dismissed). **Lost it later?** Use **Reveal ingest key** on the device card when key recovery is enabled on the server, or **Rotate key** for a new one.
 
 Full UI walkthrough (push **and** pull): [Adding push and pull devices](https://thermaltrace.dev/about/adding-devices).
 

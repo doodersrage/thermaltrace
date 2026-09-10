@@ -19,16 +19,16 @@ export const POST: APIRoute = async ({ params, request, cookies, redirect }) => 
   }
 
   if (!isThermostatProvider(params.provider)) {
-    return redirect("/dashboard/temperature?thermostat_error=1");
+    return redirect("/dashboard/devices?thermostat_error=1");
   }
 
   const manager = await requireHouseholdManager(user.id);
-  const blocked = redirectUnlessManager(manager, "/dashboard/temperature", redirect);
+  const blocked = redirectUnlessManager(manager, "/dashboard/devices", redirect);
   if (blocked) return blocked;
   const ctx = householdManagerCtx(manager);
 
   const formData = await request.formData();
-  const redirectTo = formRedirectPath(formData, "/dashboard/temperature");
+  const redirectTo = formRedirectPath(formData, "/dashboard/devices");
 
   await deleteConnection(ctx.householdId, params.provider);
 

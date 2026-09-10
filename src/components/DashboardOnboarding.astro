@@ -36,7 +36,7 @@ const ingestVerified = hasLiveSensors || hasHistory;
 const essentialSteps = [
   {
     done: hasDevices,
-    href: "/dashboard/temperature",
+    href: "/dashboard/devices",
     title: "Connect a push device",
     detail: "Step 1 of 3: create a push ingest URL for ESP/Arduino (or open Devices for demo/HA paths).",
   },
@@ -57,13 +57,13 @@ const essentialSteps = [
 const kitSteps = [
   {
     done: hasLiveSensors || hasSensors,
-    href: "/dashboard/temperature?tab=push",
+    href: "/dashboard/devices?tab=push",
     title: "Verify first POST",
     detail: "Create a push device, POST JSON once, and confirm sensors auto-import on the Devices page.",
   },
   {
     done: ingestVerified,
-    href: "/dashboard/temperature#verify-ingest-step",
+    href: "/dashboard/devices#verify-ingest-step",
     title: "Rename imported sensors",
     detail: "Accept suggested names on the device card so Home and alerts read clearly.",
   },
@@ -79,7 +79,7 @@ const nextSteps = [
   {
     done: hasFloodSensor,
     required: false,
-    href: "/dashboard/temperature",
+    href: "/dashboard/devices",
     title: "Add a flood / leak contact",
     detail: "Wet/dry under a water heater or sump auto-alerts when wet, same ingest path as your temp probe.",
   },

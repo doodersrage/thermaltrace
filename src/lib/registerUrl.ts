@@ -1,5 +1,5 @@
 /** Default post-auth destination for new accounts — connect a probe first. */
-export const REGISTER_NEXT_DEVICES = "/dashboard/temperature";
+export const REGISTER_NEXT_DEVICES = "/dashboard/devices";
 
 export type RegisterUrlOptions = {
   next?: string | null;

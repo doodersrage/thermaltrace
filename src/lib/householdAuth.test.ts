@@ -148,15 +148,15 @@ describe("redirectUnlessEditor", () => {
   it.each(["viewer", "alert_only"] as const)("redirects with ?error=viewer for %s", async (error) => {
     const { redirectUnlessEditor } = await import("./householdAuth");
     const redirect = makeRedirect();
-    redirectUnlessEditor({ ok: false, error }, "/dashboard/temperature", redirect);
-    expect(redirect).toHaveBeenCalledWith("/dashboard/temperature?error=viewer");
+    redirectUnlessEditor({ ok: false, error }, "/dashboard/devices", redirect);
+    expect(redirect).toHaveBeenCalledWith("/dashboard/devices?error=viewer");
   });
 
   it("redirects with ?error=manager_required for that failure", async () => {
     const { redirectUnlessEditor } = await import("./householdAuth");
     const redirect = makeRedirect();
-    redirectUnlessEditor({ ok: false, error: "manager_required" }, "/dashboard/temperature", redirect);
-    expect(redirect).toHaveBeenCalledWith("/dashboard/temperature?error=manager_required");
+    redirectUnlessEditor({ ok: false, error: "manager_required" }, "/dashboard/devices", redirect);
+    expect(redirect).toHaveBeenCalledWith("/dashboard/devices?error=manager_required");
   });
 
   it("returns null when the check passed", async () => {
@@ -164,7 +164,7 @@ describe("redirectUnlessEditor", () => {
     const redirect = makeRedirect();
     const result = redirectUnlessEditor(
       { ok: true, ctx: { householdId: "house-1", role: "member" } },
-      "/dashboard/temperature",
+      "/dashboard/devices",
       redirect,
     );
     expect(result).toBeNull();

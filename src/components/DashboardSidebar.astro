@@ -47,9 +47,11 @@ const monitorItems: NavItem[] = [
     Icon: Building2,
   },
   {
-    href: "/dashboard/temperature",
+    href: "/dashboard/devices",
     label: "Devices",
-    isActive: currentPath.startsWith("/dashboard/temperature"),
+    isActive:
+      currentPath.startsWith("/dashboard/devices") ||
+      currentPath.startsWith("/dashboard/temperature"),
     Icon: Cpu,
   },
   {

@@ -134,10 +134,24 @@ export async function sendThresholdAlertsIfNeeded(
 
   const baseMessages = messages.join("\n");
   const body = contextBlock ? `${baseMessages}\n\n${contextBlock}` : baseMessages;
+  const doorOpen = Boolean(
+    context?.latestSensors?.some(
+      (row) =>
+        row.sensor.kind === "door" &&
+        (row.value_bool === true || row.value_text === "open"),
+    ),
+  );
   await notifyUser(userId, email, settings, {
     title: "Temperature alert",
     body,
     kind: "threshold",
+    meta: {
+      thresholdF: settings.freezeThresholdF,
+      probeLabel: coldest.label ?? coldest.space ?? undefined,
+      probeTempF: coldest.tempf,
+      doorOpen,
+      reasonSummary: contextBlock ?? undefined,
+    },
   }, { space: alertSpace });
   await markCooldown(userId, "last_alert_sent_at");
 }

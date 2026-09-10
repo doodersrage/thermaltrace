@@ -36,7 +36,7 @@ export function computeGarageRiskStatus(input: {
       title: "Add a probe to start",
       detail: "Create a push device, then POST a reading, or try the demo feed without hardware.",
       actionLabel: "Connect a device",
-      actionHref: "/dashboard/temperature",
+      actionHref: "/dashboard/devices",
     };
   }
 
@@ -47,7 +47,7 @@ export function computeGarageRiskStatus(input: {
       detail:
         "Your device is set up but has not reported yet. Finish ingest, then confirm freeze and flood alerts.",
       actionLabel: "Finish device setup",
-      actionHref: "/dashboard/temperature",
+      actionHref: "/dashboard/devices",
     };
   }
 
@@ -68,7 +68,7 @@ export function computeGarageRiskStatus(input: {
       title: "Probe may be unplugged",
       detail: staleProbeDetail(input.staleSensorCount),
       actionLabel: "Check devices",
-      actionHref: "/dashboard/temperature",
+      actionHref: "/dashboard/devices",
     };
   }
 

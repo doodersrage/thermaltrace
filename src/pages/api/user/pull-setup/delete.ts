@@ -15,7 +15,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   }
 
   const formData = await request.formData();
-  const redirectTo = formRedirectPath(formData, "/dashboard/temperature?tab=pull");
+  const redirectTo = formRedirectPath(formData, "/dashboard/devices?tab=pull");
 
   const editor = await requireHouseholdEditor(user.id);
   const blocked = redirectUnlessEditor(editor, redirectTo, redirect);

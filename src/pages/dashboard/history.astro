@@ -39,6 +39,7 @@ import { formatHistoryRetention, getUserEntitlements } from "../../lib/entitleme
 import { getAlertSettingsForUser } from "../../lib/notify";
 import { listAlertEventsInRange } from "../../lib/alertEvents";
 import { toChartAlertMarkers } from "../../lib/chartAlertMarkers";
+import { listHistorySavedViews } from "../../lib/historySavedViews";
 
 const { session, user } = await getAuthFromCookies(Astro.cookies);
 
@@ -66,8 +67,12 @@ const requestedDays = daysParam === 90 ? 90 : daysParam === 30 ? 30 : 7;
 const chartDays = Math.min(requestedDays, historyDays);
 const overlayColdest =
   Astro.url.searchParams.get("overlay") === "coldest" && historyDays >= 365;
+const compareFromParam = Astro.url.searchParams.get("compare_from")?.trim() ?? "";
+const compareToParam = Astro.url.searchParams.get("compare_to")?.trim() ?? "";
+const hasCustomCompare = Boolean(compareFromParam && compareToParam);
 const compareYoy =
   !overlayColdest &&
+  !hasCustomCompare &&
   Astro.url.searchParams.get("yoy") === "1" &&
   historyDays >= 365;
 const needPriorYear = compareYoy || overlayColdest;
@@ -116,11 +121,13 @@ const [
   history,
   chartData,
   priorYearBundle,
+  comparePeriodData,
   filterOptions,
   canDownloadCsv,
   subscription,
   insights,
   alertSettings,
+  savedViews,
 ] = await Promise.all([
   fetchGarageTempHistory(user.id, pageParam, undefined, filters),
   fetchGarageTempChartData(user.id, chartWindowDays, chartFilters),
@@ -137,11 +144,23 @@ const [
         outdoorLocationLabel: null,
         earliestLocalReadingAt: null,
       }),
+  hasCustomCompare
+    ? fetchGarageTempChartData(user.id, historyDays, {
+        feedName: feedFilter || undefined,
+        probeKey: probeFilter || undefined,
+        from: clampIsoToHistoryWindow(
+          new Date(`${compareFromParam}T00:00:00`).toISOString(),
+          historyDays,
+        ),
+        to: new Date(`${compareToParam}T23:59:59`).toISOString(),
+      })
+    : Promise.resolve({ points: [], error: null }),
   fetchHistoryFilterOptions(user.id),
   canDownloadHistoryCsv(user.id),
   getUserSubscription(user.id),
   computeSeasonalInsights(user.id, Math.min(30, historyDays), user),
   getAlertSettingsForUser(user.id, user.user_metadata as Record<string, unknown>),
+  listHistorySavedViews(user.id),
 ]);
 
 const priorYearData = { points: priorYearBundle.points, error: null };
@@ -182,9 +201,11 @@ const coldestOverlay = overlayColdest
 
 const overlayPoints = overlayColdest
   ? coldestOverlay.overlay
-  : compareYoy
-    ? shiftSeriesOntoCurrentWindow(priorYearData.points, chartData.points)
-    : [];
+  : hasCustomCompare
+    ? shiftSeriesOntoCurrentWindow(comparePeriodData.points, chartData.points)
+    : compareYoy
+      ? shiftSeriesOntoCurrentWindow(priorYearData.points, chartData.points)
+      : [];
 
 const overlayLegend = overlayColdest
   ? coldestOverlay.coldestDay
@@ -198,11 +219,13 @@ const overlayLegend = overlayColdest
     : priorYearBundle.earliestLocalReadingAt
       ? `Gray = no prior-year probe data (history starts ${new Date(priorYearBundle.earliestLocalReadingAt).toLocaleDateString()})`
       : "Gray = coldest day last year (no prior-year data)"
-  : compareYoy
-    ? priorYearBundle.source === "outdoor_estimate"
-      ? `Gray = outdoor estimate last year${priorYearBundle.outdoorLocationLabel ? ` (${priorYearBundle.outdoorLocationLabel})` : ""}`
-      : "Gray = same window last year (time-aligned)"
-    : null;
+  : hasCustomCompare
+    ? `Gray = compare window ${compareFromParam} → ${compareToParam}`
+    : compareYoy
+      ? priorYearBundle.source === "outdoor_estimate"
+        ? `Gray = outdoor estimate last year${priorYearBundle.outdoorLocationLabel ? ` (${priorYearBundle.outdoorLocationLabel})` : ""}`
+        : "Gray = same window last year (time-aligned)"
+      : null;
 
 if (history.totalPages > 0 && pageParam > history.totalPages) {
   return Astro.redirect(`/dashboard/history?page=${history.totalPages}`);
@@ -444,6 +467,8 @@ const historyUpgradeFeature =
           probeFilter={probeFilter}
           fromDate={fromDate}
           toDate={toDate}
+          compareFrom={compareFromParam}
+          compareTo={compareToParam}
           days={chartDays}
           maxHistoryDays={historyDays}
           canCompareYoy={historyDays >= 365}
@@ -454,6 +479,8 @@ const historyUpgradeFeature =
           houseLegend={houseChartLegend}
           viewMode={historyTab === "chart" ? "chart" : "table"}
           hideTitle
+          savedViews={savedViews}
+          canShareChart={canDownloadCsv}
           alertMarkers={chartAlertMarkers}
           highlightAlertId={highlightAlertId}
           canUseClaimsPack={entitlements.canUseClaimsPack}

@@ -50,7 +50,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   }
 
   const formData = await request.formData();
-  const redirectTo = formRedirectPath(formData, "/dashboard/temperature");
+  const redirectTo = formRedirectPath(formData, "/dashboard/devices");
   const action = formData.get("action")?.toString() ?? "create_push";
 
   const editor = await requireHouseholdEditor(user.id);
@@ -100,6 +100,74 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
         .eq("household_id", householdId);
     }
     return redirect(`${redirectTo}?device_deleted=1`);
+  }
+
+  if (action === "bulk") {
+    const bulkOp = formData.get("bulk_op")?.toString() ?? "";
+    const ids = formData
+      .getAll("ids")
+      .map((v) => String(v).trim())
+      .filter(Boolean);
+    if (ids.length === 0 || !["enable", "disable", "delete", "set_space"].includes(bulkOp)) {
+      return redirect(`${redirectTo}?error=1`);
+    }
+
+    const owned = await listHouseholdDevices(householdId);
+    const ownedIds = new Set(owned.devices.map((d) => d.id));
+    const targetIds = ids.filter((id) => ownedIds.has(id));
+    if (targetIds.length === 0) {
+      return redirect(`${redirectTo}?error=1`);
+    }
+
+    const supabase = createServerClient();
+
+    if (bulkOp === "delete") {
+      await supabase
+        .from("devices")
+        .delete()
+        .in("id", targetIds)
+        .eq("household_id", householdId);
+      await recordHouseholdActivity({
+        householdId,
+        userId: user.id,
+        action: "device_bulk_delete",
+        detail: `${targetIds.length} devices`,
+      });
+      return redirect(`${redirectTo}?bulk_deleted=${targetIds.length}`);
+    }
+
+    if (bulkOp === "enable" || bulkOp === "disable") {
+      await supabase
+        .from("devices")
+        .update({ enabled: bulkOp === "enable" })
+        .in("id", targetIds)
+        .eq("household_id", householdId);
+      await recordHouseholdActivity({
+        householdId,
+        userId: user.id,
+        action: `device_bulk_${bulkOp}`,
+        detail: `${targetIds.length} devices`,
+      });
+      return redirect(`${redirectTo}?bulk_updated=${targetIds.length}`);
+    }
+
+    if (bulkOp === "set_space") {
+      const space = (formData.get("space")?.toString() ?? "").trim();
+      await supabase
+        .from("devices")
+        .update({ space: space || null })
+        .in("id", targetIds)
+        .eq("household_id", householdId);
+      await recordHouseholdActivity({
+        householdId,
+        userId: user.id,
+        action: "device_bulk_set_space",
+        detail: `${targetIds.length} → ${space || "(none)"}`,
+      });
+      return redirect(`${redirectTo}?bulk_updated=${targetIds.length}`);
+    }
+
+    return redirect(`${redirectTo}?error=1`);
   }
 
   if (action === "rename") {

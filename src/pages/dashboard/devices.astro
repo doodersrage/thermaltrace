@@ -1,0 +1,806 @@
+---
+import DashboardLayout from "../../layouts/DashboardLayout.astro";
+import DeviceSetupWizard from "../../components/DeviceSetupWizard.astro";
+import IngestFirmwarePanel from "../../components/dashboard/IngestFirmwarePanel.astro";
+import DevicesFirstRunCard from "../../components/dashboard/DevicesFirstRunCard.astro";
+import DeviceHealthPanel from "../../components/dashboard/DeviceHealthPanel.astro";
+import PushDevicesPanel from "../../components/dashboard/PushDevicesPanel.astro";
+import PullFeedsPanel from "../../components/dashboard/PullFeedsPanel.astro";
+import DeviceIntegrationsStrip from "../../components/DeviceIntegrationsStrip.astro";
+import FirstAlertSetupCard from "../../components/FirstAlertSetupCard.astro";
+import DemoPullNudge from "../../components/DemoPullNudge.astro";
+import { getAuthFromCookies } from "../../lib/auth";
+import { getUserPreferences } from "../../lib/userPreferences";
+import { checkFeedHealth } from "../../lib/collectHistory";
+import { getUserDevicesAsTempConfig, listHouseholdDevices, SENSOR_KIND_LABELS } from "../../lib/devices";
+import { getOrCreateHouseholdForUser, listUserHouseholds, getUserHouseholdRole, canEditHousehold, canManageHousehold } from "../../lib/households";
+import { listConnectionsForHousehold } from "../../lib/thermostatConnections";
+import { getIndoorReferenceSensorId, listIndoorReferenceOptions } from "../../lib/indoorReference";
+import { fetchThermostatContextWithStatus } from "../../lib/thermostatCorrelation";
+import { listConfiguredThermostatProviders } from "../../lib/thermostatOAuth";
+import { getUserEntitlements } from "../../lib/entitlements";
+import { fetchLatestSensorValues } from "../../lib/sensorReadings";
+import UpgradeNudge from "../../components/UpgradeNudge.astro";
+import { renderIngestQrSvg } from "../../lib/qrSvg";
+import {
+  buildWaitingIngestCurl,
+  buildWaitingIngestPayload,
+} from "../../lib/waitingIngest";
+import ProductAnalyticsTracker from "../../components/ProductAnalyticsTracker.astro";
+import { FLASH_INGEST_KEY, peekSecretFlash } from "../../lib/secretFlash";
+import { ingestKeyVaultConfigured } from "../../lib/ingestKeyVault";
+import { getAlertSettingsForUser } from "../../lib/notify";
+
+const { session, user } = await getAuthFromCookies(Astro.cookies);
+
+if (!session || !user) {
+  return Astro.redirect("/signin");
+}
+
+const [preferences, feedHealth, deviceConfig, entitlements, household, userHouseholds, alertSettings] = await Promise.all([
+  getUserPreferences(user),
+  checkFeedHealth(user.id),
+  getUserDevicesAsTempConfig(user.id, user.email),
+  getUserEntitlements(user.id),
+  getOrCreateHouseholdForUser(user.id, user.email),
+  listUserHouseholds(user.id),
+  getAlertSettingsForUser(user.id, user.user_metadata as Record<string, unknown>),
+]);
+
+const householdRole = household.householdId
+  ? await getUserHouseholdRole(user.id, household.householdId)
+  : null;
+const canEdit = canEditHousehold(householdRole);
+const canManageThermostat = canManageHousehold(householdRole);
+const transferTargets = userHouseholds.households.filter(
+  (h) => h.household_id !== household.householdId,
+);
+
+const thermostatConnections =
+  entitlements.canUseThermostatIntegration && household.householdId
+    ? await listConnectionsForHousehold(household.householdId)
+    : [];
+const availableThermostatProviders = listConfiguredThermostatProviders();
+const thermostatConnectionsWithSnapshots = await Promise.all(
+  thermostatConnections.map(async (connection) => {
+    const result =
+      household.householdId
+        ? await fetchThermostatContextWithStatus(household.householdId, connection.provider)
+        : { snapshot: null as const };
+    return {
+      provider: connection.provider,
+      snapshot: result.snapshot,
+      fetchError: "fetchError" in result ? result.fetchError : undefined,
+      fetchHint: "fetchHint" in result ? result.fetchHint : undefined,
+    };
+  }),
+);
+
+const devices = household.householdId
+  ? (await listHouseholdDevices(household.householdId)).devices
+  : deviceConfig.devices;
+
+const indoorReferenceSensorId = household.householdId
+  ? await getIndoorReferenceSensorId(household.householdId)
+  : null;
+const indoorReferenceOptions = listIndoorReferenceOptions(devices);
+const indoorRefSaved = Astro.url.searchParams.get("indoor_ref_saved") === "1";
+const indoorRefErrorCode = Astro.url.searchParams.get("indoor_ref_error");
+const indoorRefError =
+  indoorRefErrorCode === "save_failed"
+    ? "Couldn't save the indoor reference, try again."
+    : indoorRefErrorCode === "forbidden"
+      ? "You don't have permission to change this setting."
+      : indoorRefErrorCode === "no_household"
+        ? "No household found."
+        : null;
+
+const latest = household.householdId
+  ? await fetchLatestSensorValues(household.householdId)
+  : [];
+
+const redirectTo = "/dashboard/devices";
+const activeTab =
+  Astro.url.searchParams.get("tab") === "pull"
+    ? "pull"
+    : Astro.url.searchParams.get("tab") === "push"
+      ? "push"
+      : "push";
+const ingestKey = peekSecretFlash(Astro.cookies, FLASH_INGEST_KEY);
+const focusDevice = Astro.url.searchParams.get("focus_device") ?? "";
+const atDeviceLimit =
+  devices.filter((d) => d.source === "push").length >= entitlements.maxDevices;
+
+const noticeParam = Astro.url.searchParams.get("error");
+const deviceNotice =
+  Astro.url.searchParams.get("device_deleted")
+    ? "Device deleted."
+    : Astro.url.searchParams.get("device_renamed")
+      ? "Device renamed."
+      : Astro.url.searchParams.get("sensor_added")
+      ? "Sensor added."
+      : Astro.url.searchParams.get("sensor_updated")
+        ? "Sensor updated."
+        : Astro.url.searchParams.get("sensor_deleted")
+          ? "Sensor deleted."
+          : Astro.url.searchParams.get("feeds_saved") || Astro.url.searchParams.get("pull_saved")
+            ? Astro.url.searchParams.get("probes_discovered")
+              ? `Pull setup saved: imported ${Astro.url.searchParams.get("probes_discovered")} probe key(s). Rename below if needed.`
+              : "Pull setup saved."
+            : Astro.url.searchParams.get("probes_saved")
+              ? "Probe labels saved."
+              : Astro.url.searchParams.get("sensors_renamed")
+                ? "Sensor names saved."
+              : Astro.url.searchParams.get("feed_deleted")
+                ? "Feed deleted."
+                : Astro.url.searchParams.get("probe_deleted")
+                  ? "Probe deleted."
+                  : Astro.url.searchParams.get("feeds_error") ||
+                      Astro.url.searchParams.get("probes_error")
+                    ? "Could not save changes. Please try again."
+                    : noticeParam === "device_limit"
+                      ? `Push device limit reached (${entitlements.maxDevices} per property). Upgrade to add more.`
+                      : noticeParam === "viewer"
+                        ? "View-only access: you cannot change devices or feeds."
+                      : noticeParam === "1" || noticeParam === "true"
+                        ? "Could not complete that device action. Check the form and try again."
+                        : noticeParam
+                          ? `Could not complete that action (${noticeParam}). Please try again.`
+                          : null;
+
+const noticeIsError =
+  Astro.url.searchParams.has("error") ||
+  Boolean(Astro.url.searchParams.get("feeds_error")) ||
+  Boolean(Astro.url.searchParams.get("probes_error"));
+
+const keyCalloutTitle = Astro.url.searchParams.get("key_rotated")
+  ? "Save your new ingest key"
+  : "Save your ingest key";
+const showAddSensorNudge = false;
+
+const pushDevices = devices.filter((d) => d.source === "push");
+const waitingPushDevices = pushDevices.filter(
+  (d) => !d.last_seen_at && d.sensors.length > 0,
+);
+const waitingPushNoSensors = pushDevices.filter(
+  (d) => !d.last_seen_at && d.sensors.length === 0,
+);
+const neverSeenWithSensors = waitingPushDevices.length > 0;
+const showVerifyIngest =
+  Boolean(Astro.url.searchParams.get("sensor_added")) ||
+  neverSeenWithSensors ||
+  waitingPushNoSensors.length > 0;
+const showReceivingData =
+  !showAddSensorNudge &&
+  pushDevices.some((d) => Boolean(d.last_seen_at)) &&
+  latest.length > 0 &&
+  !neverSeenWithSensors;
+const kindLabels = SENSOR_KIND_LABELS;
+
+const waitingSensors = waitingPushDevices.flatMap((d) =>
+  d.sensors.map((s) => ({ key: s.key, kind: s.kind, deviceName: d.name })),
+);
+const waitingPayload = buildWaitingIngestPayload(waitingSensors);
+const waitingCurl = buildWaitingIngestCurl(
+  Astro.url.origin,
+  waitingSensors,
+  ingestKey || "YOUR_KEY",
+);
+const waitingKeyList = [...new Set(waitingSensors.map((s) => s.key))];
+const ingestOk = Astro.url.searchParams.get("ingest_ok") === "1";
+const deviceCreated = Astro.url.searchParams.get("device_created") === "1";
+const pullSaved = Astro.url.searchParams.get("pull_saved") === "1";
+const demoPullStarted = Astro.url.searchParams.get("demo_pull") === "1";
+const alertSaved = Astro.url.searchParams.get("alert_saved") === "1";
+const testSent = Astro.url.searchParams.get("test_sent") === "1";
+const testError = Astro.url.searchParams.get("test_error") === "1";
+const analyticsEvents = [
+  ...(ingestOk ? [{ name: "first_ingest" as const }] : []),
+  ...(deviceCreated ? [{ name: "device_created" as const }] : []),
+  ...(pullSaved ? [{ name: "pull_setup_saved" as const }] : []),
+  ...(demoPullStarted ? [{ name: "demo_pull_started" as const }] : []),
+  ...(alertSaved ? [{ name: "alert_essentials_saved" as const }] : []),
+];
+
+const ingestCurlExample = ingestKey
+  ? waitingKeyList.length > 0
+    ? waitingCurl
+    : `curl -X POST "${Astro.url.origin}/api/ingest/${ingestKey}" \\\n  -H "Content-Type: application/json" \\\n  -d '{"door1": true, "temp1": 42.5}'`
+  : "";
+const ingestUrl = ingestKey
+  ? `${Astro.url.origin}/api/ingest/${ingestKey}`
+  : "";
+const ingestQrSvg = ingestUrl ? renderIngestQrSvg(ingestUrl, 180) : "";
+const ingestKeyDeviceName =
+  (focusDevice && devices.find((d) => d.id === focusDevice)?.name) ||
+  pushDevices[0]?.name ||
+  "Push device";
+
+const showAllDevices = Astro.url.searchParams.get("view") === "all";
+const hasLiveIngest =
+  latest.length > 0 || pushDevices.some((d) => Boolean(d.last_seen_at));
+const showDeviceWizard =
+  canEdit &&
+  !showAllDevices &&
+  !hasLiveIngest &&
+  (devices.length === 0 || pushDevices.length > 0);
+const wizardStep =
+  devices.length === 0
+    ? 1
+    : pushDevices.some((d) => !d.last_seen_at)
+      ? 2
+      : 2;
+const ingestKeyVaultLive = ingestKeyVaultConfigured();
+const pullFeedIds = preferences.tempFeeds.filter((f) => f.url).map((f) => f.id);
+const showRenameBatch =
+  Boolean(Astro.url.searchParams.get("rename_sensors")) ||
+  Number(Astro.url.searchParams.get("sensors_created") ?? "0") > 0;
+const alertsEssentialsDone =
+  alertSettings.enabled &&
+  alertSettings.channelEmail &&
+  Boolean(alertSettings.email || user.email);
+const postSetupFunnel = ingestOk && canEdit;
+const showFirstAlertSetup =
+  canEdit &&
+  (ingestOk || hasLiveIngest) &&
+  (!alertsEssentialsDone || alertSaved || testError);
+const showPowerFeatures = hasLiveIngest || showAllDevices;
+const showZeroHardwareCta = canEdit && devices.length === 0 && activeTab === "push";
+const firmwareSensors =
+  waitingSensors.length > 0
+    ? waitingSensors.map((s) => ({ key: s.key, kind: s.kind }))
+    : [{ key: "temp1", kind: "temperature" }];
+---
+<DashboardLayout title="Devices">
+  <ProductAnalyticsTracker events={analyticsEvents} />
+  <div class="space-y-6">
+    <section class="card">
+      <h2 class="card-title">Devices & sensors</h2>
+      <p class="card-subtitle">
+        Create a <strong>push</strong> device, copy the ingest URL into your ESP/Arduino, and sensors appear on first POST.
+        Pull feeds, thermostats, and Home Assistant live under other connection options.
+      </p>
+      {deviceNotice && (
+        <p class:list={[noticeIsError ? "alert-warning" : "alert-success", "mt-0"]}>
+          {deviceNotice}
+          {noticeParam === "device_limit" && (
+            <>
+              {" "}
+              <a class="text-link" href="/dashboard/plans">View plans</a>
+            </>
+          )}
+        </p>
+      )}
+    </section>
+
+    {activeTab === "push" && devices.length === 0 && (
+      <DevicesFirstRunCard
+        canEdit={canEdit}
+        atDeviceLimit={atDeviceLimit}
+        redirectTo={redirectTo}
+        nestEntitled={entitlements.canUseThermostatIntegration}
+      />
+    )}
+
+    {activeTab === "push" ? (
+      <p class="form-hint mb-0">
+        Prefer a scheduled HTTPS JSON feed or thermostat?
+        <a class="text-link" href="/dashboard/devices?tab=pull">Other ways to connect</a>
+      </p>
+    ) : (
+      <nav class="flex flex-wrap gap-2" aria-label="Device source">
+        <a class="btn-secondary" href="/dashboard/devices?tab=push">
+          ← Back to push devices
+        </a>
+        <a
+          class:list={["btn-secondary", "ring-2 ring-[var(--color-accent)]"]}
+          href="/dashboard/devices?tab=pull"
+        >
+          Pull feeds & thermostats
+        </a>
+      </nav>
+    )}
+
+    {activeTab === "push" && showPowerFeatures && <DeviceIntegrationsStrip />}
+
+    <DeviceSetupWizard show={postSetupFunnel} alertsDone={alertsEssentialsDone || alertSaved} />
+
+    <FirstAlertSetupCard
+      show={showFirstAlertSetup}
+      freezeThresholdF={alertSettings.freezeThresholdF}
+      email={alertSettings.email || user.email}
+      alertSaved={alertSaved}
+      testSent={testSent}
+      testError={testError}
+    />
+
+    {showZeroHardwareCta && (
+      <DemoPullNudge show redirectTo="/dashboard" />
+    )}
+
+    {(noticeParam === "device_limit" || atDeviceLimit) && (
+      <UpgradeNudge feature="device_limit" tier={entitlements.tier} compact />
+    )}
+
+    {ingestKey && (
+      <section class="card ingest-key-callout" id="ingest-key-callout">
+        <h2 class="card-title">{keyCalloutTitle}</h2>
+        <p class="card-subtitle">
+          Scan the QR, download a pre-filled ESP32 sketch, or copy the URL. This key stays available for
+          30 minutes and survives refresh until you dismiss it.
+        </p>
+        <div class="flex flex-wrap gap-6 items-start mb-4">
+          <div
+            class="ingest-key-qr shrink-0 rounded-lg bg-white p-2"
+            id="ingest-key-qr"
+            aria-label="Ingest URL QR code"
+            set:html={ingestQrSvg}
+          />
+          <div class="min-w-0 flex-1">
+            <p class="form-label mb-1">Ingest URL</p>
+            <p class="ingest-key-value break-all font-mono text-sm mb-2" id="ingest-url-value">{ingestUrl}</p>
+            <p class="ingest-key-value break-all font-mono text-sm mb-0" id="ingest-key-value">{ingestKey}</p>
+            <p class="text-sm text-[var(--color-text-muted)] mt-2 mb-0">
+              POST JSON to <code>/api/ingest/{ingestKey}</code>
+            </p>
+          </div>
+        </div>
+        <div class="flex flex-wrap gap-3 mb-4">
+          <button
+            type="button"
+            class="btn-primary"
+            data-copy={ingestUrl}
+            data-copy-label="Copy URL"
+          >
+            Copy URL
+          </button>
+          <button
+            type="button"
+            class="btn-secondary"
+            data-copy={ingestKey}
+            data-copy-label="Copy key"
+          >
+            Copy key
+          </button>
+          <a
+            class="btn-secondary"
+            id="ingest-qr-download"
+            href="#"
+            download="thermaltrace-ingest-qr.svg"
+          >
+            Download SVG
+          </a>
+          <button type="button" class="btn-secondary" id="ingest-qr-print">
+            Print label
+          </button>
+          <button type="button" class="btn-ghost" id="ingest-key-dismiss">
+            I've saved this
+          </button>
+        </div>
+        <IngestFirmwarePanel
+          ingestUrl={ingestUrl}
+          ingestKey={ingestKey}
+          origin={Astro.url.origin}
+          sensors={firmwareSensors}
+          presetsOpen
+        />
+      </section>
+    )}
+
+    {showReceivingData && !postSetupFunnel && !showFirstAlertSetup && (
+      <section class="card alert-success" id="receiving-data">
+        <h2 class="card-title">Receiving data</h2>
+        <p class="mb-4">
+          Ingest looks healthy: readings are showing up.
+        </p>
+        <div class="flex flex-wrap gap-3">
+          <a class="btn-primary" href="/dashboard">Overview</a>
+          <a class="btn-secondary" href="/">Open Home</a>
+        </div>
+      </section>
+    )}
+
+    {showVerifyIngest && (
+      <section
+        class="card ingest-waiting-callout"
+        id="verify-ingest-step"
+        data-waiting-ingest
+        data-waiting={neverSeenWithSensors || waitingPushNoSensors.length > 0 ? "1" : "0"}
+      >
+        <h2 class="card-title">
+          {neverSeenWithSensors
+            ? "Waiting for first POST"
+            : waitingPushNoSensors.length > 0
+              ? "Waiting for first POST"
+              : "Next: verify ingest"}
+        </h2>
+        <p class="card-subtitle mb-4">
+          Point firmware at your ingest URL and POST JSON. Sensors auto-import on first POST: rename later if you want.
+        </p>
+
+        {ingestUrl && (
+          <div class="flex flex-wrap gap-6 items-start mb-4">
+            <div
+              class="ingest-key-qr shrink-0 rounded-lg bg-white p-2"
+              aria-label="Ingest URL QR code"
+              set:html={renderIngestQrSvg(ingestUrl, 140)}
+            />
+            <div class="min-w-0 flex-1">
+              <p class="form-label mb-1">Ingest URL</p>
+              <p class="break-all font-mono text-sm mb-3">{ingestUrl}</p>
+              <button
+                type="button"
+                class="btn-primary"
+                data-copy={ingestUrl}
+                data-copy-label="Copy URL"
+              >
+                Copy URL
+              </button>
+            </div>
+          </div>
+        )}
+
+        <ol class="waiting-ingest-checklist mb-4">
+          <li class="waiting-ingest-done">Push device created</li>
+          <li
+            class="waiting-ingest-pending"
+            data-waiting-step="post"
+          >
+            First ingest POST
+            <span class="waiting-ingest-status" data-waiting-status>
+              {neverSeenWithSensors || waitingPushNoSensors.length > 0
+                ? ": listening…"
+                : ", send a test POST"}
+            </span>
+          </li>
+        </ol>
+
+        <details class="rounded-lg border border-[var(--color-border)] p-3 mb-4">
+          <summary class="cursor-pointer font-medium text-sm">Sample curl / payload</summary>
+          <div class="mt-3 space-y-3">
+            {waitingKeyList.length > 0 ? (
+              <>
+                <pre class="ingest-key-curl text-xs overflow-x-auto mb-0"><code>{JSON.stringify(waitingPayload, null, 2)}</code></pre>
+                <pre class="ingest-key-curl text-xs overflow-x-auto mb-0"><code>{waitingCurl}</code></pre>
+              </>
+            ) : (
+              <pre class="ingest-key-curl text-xs overflow-x-auto mb-0"><code>{ingestCurlExample || waitingCurl}</code></pre>
+            )}
+          </div>
+        </details>
+
+        {ingestUrl && ingestKey && (
+          <IngestFirmwarePanel
+            ingestUrl={ingestUrl}
+            ingestKey={ingestKey}
+            origin={Astro.url.origin}
+            sensors={firmwareSensors}
+            presetsOpen={false}
+          />
+        )}
+
+        <div class="flex flex-wrap gap-3 items-center mt-4">
+          <a class="btn-secondary" href="/about/kit-qr-onboarding">Hardware kit QR guide</a>
+          <button type="button" class="btn-ghost" data-waiting-refresh>
+            Check now
+          </button>
+        </div>
+        <p class="mt-3 mb-0 text-sm text-[var(--color-text-muted)]" data-waiting-meta>
+          {neverSeenWithSensors || waitingPushNoSensors.length > 0
+            ? "Auto-checking every 5 seconds while this page is open."
+            : "Send a POST, then click Check now or refresh."}
+        </p>
+      </section>
+    )}
+
+    {showDeviceWizard && activeTab === "push" && devices.length > 0 && (
+      <section class="card" id="device-setup-wizard">
+        <h2 class="card-title">Device setup</h2>
+        <p class="card-subtitle mb-4">
+          Step {wizardStep} of 2: create a push device, POST JSON (sensors auto-import), then verify readings.
+        </p>
+        <ol class="waiting-ingest-checklist mb-4">
+          <li class:list={[wizardStep > 1 && "waiting-ingest-done"]}>Create push device</li>
+          <li class:list={[wizardStep >= 2 && "waiting-ingest-pending"]}>
+            POST JSON: sensors auto-import; rename afterward if needed
+          </li>
+        </ol>
+        <a class="btn-ghost" href="/dashboard/devices?view=all&tab=push">Show all device settings</a>
+      </section>
+    )}
+
+    {!showDeviceWizard && showPowerFeatures && (
+      <DeviceHealthPanel devices={devices} latest={latest} feedHealth={feedHealth} />
+    )}
+
+    <PushDevicesPanel
+      activeTab={activeTab}
+      entitlements={entitlements}
+      ingestKeyVaultLive={ingestKeyVaultLive}
+      pushDevices={pushDevices}
+      canEdit={canEdit}
+      atDeviceLimit={atDeviceLimit}
+      redirectTo={redirectTo}
+      devices={devices}
+      showRenameBatch={showRenameBatch}
+      focusDevice={focusDevice}
+      ingestKey={ingestKey}
+      transferTargets={transferTargets}
+    />
+
+    {!showDeviceWizard && (
+      <>
+    <PullFeedsPanel
+      activeTab={activeTab}
+      showPowerFeatures={showPowerFeatures}
+      canEdit={canEdit}
+      canManageThermostat={canManageThermostat}
+      entitlements={entitlements}
+      availableThermostatProviders={availableThermostatProviders}
+      thermostatConnectionsWithSnapshots={thermostatConnectionsWithSnapshots}
+      indoorReferenceOptions={indoorReferenceOptions}
+      indoorReferenceSensorId={indoorReferenceSensorId}
+      indoorRefSaved={indoorRefSaved}
+      indoorRefError={indoorRefError}
+      preferences={preferences}
+      pullFeedIds={pullFeedIds}
+      redirectTo={redirectTo}
+      demoPullStarted={demoPullStarted}
+      pullSaved={pullSaved}
+    />
+      </>
+    )}
+  </div>
+  <datalist id="space-suggestions">
+    <option value="garage" />
+    <option value="attic" />
+    <option value="crawlspace" />
+    <option value="greenhouse" />
+    <option value="workshop" />
+    <option value="shop" />
+    <option value="basement" />
+  </datalist>
+</DashboardLayout>
+
+{ingestKey && (
+  <script is:inline define:vars={{ ingestQrSvg, ingestUrl, ingestKeyDeviceName }}>
+    (() => {
+      const dismiss = document.getElementById("ingest-key-dismiss");
+      dismiss?.addEventListener("click", () => {
+        void fetch("/api/devices/dismiss-ingest-key", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { Accept: "application/json" },
+        });
+        const url = new URL(window.location.href);
+        url.searchParams.delete("device_created");
+        url.searchParams.delete("key_rotated");
+        window.history.replaceState({}, "", url.pathname + (url.search || ""));
+        document.getElementById("ingest-key-callout")?.remove();
+      });
+
+      const download = document.getElementById("ingest-qr-download");
+      download?.addEventListener("click", (event) => {
+        event.preventDefault();
+        const blob = new Blob([ingestQrSvg], { type: "image/svg+xml;charset=utf-8" });
+        const href = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = href;
+        a.download = "thermaltrace-ingest-qr.svg";
+        a.click();
+        URL.revokeObjectURL(href);
+      });
+
+      document.getElementById("ingest-qr-print")?.addEventListener("click", () => {
+        const w = window.open("", "_blank", "noopener,noreferrer,width=480,height=640");
+        if (!w) return;
+        w.document.write(`<!doctype html><html><head><title>Ingest label</title>
+          <style>
+            body { font-family: system-ui, sans-serif; padding: 1.5rem; text-align: center; }
+            h1 { font-size: 1.1rem; margin: 0 0 1rem; }
+            .qr { display: inline-block; margin: 0 auto 1rem; }
+            .url { font-family: ui-monospace, monospace; font-size: 0.75rem; word-break: break-all; }
+          </style></head><body>
+          <h1>${String(ingestKeyDeviceName).replace(/</g, "&lt;")}</h1>
+          <div class="qr">${ingestQrSvg}</div>
+          <p class="url">${String(ingestUrl).replace(/</g, "&lt;")}</p>
+          <script>window.onload=()=>{window.print();};<\/script>
+          </body></html>`);
+        w.document.close();
+      });
+
+      document.getElementById("ingest-key-callout")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    })();
+  </script>
+)}
+
+{!ingestKey && (Astro.url.searchParams.get("sensor_added") || neverSeenWithSensors || waitingPushNoSensors.length > 0) && (
+  <script is:inline>
+    (() => {
+      document.getElementById("verify-ingest-step")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    })();
+  </script>
+)}
+
+{(neverSeenWithSensors || waitingPushNoSensors.length > 0) && (
+  <script is:inline>
+    (() => {
+      const root = document.querySelector("[data-waiting-ingest]");
+      if (!(root instanceof HTMLElement)) return;
+
+      const statusEl = root.querySelector("[data-waiting-status]");
+      const metaEl = root.querySelector("[data-waiting-meta]");
+      const stepEl = root.querySelector('[data-waiting-step="post"]');
+      const refreshBtn = root.querySelector("[data-waiting-refresh]");
+      let timer = 0;
+      let inFlight = false;
+
+      async function checkOnce() {
+        if (inFlight) return;
+        inFlight = true;
+        try {
+          const response = await fetch("/api/devices/ingest-status", {
+            credentials: "same-origin",
+            headers: { Accept: "application/json" },
+          });
+          if (!response.ok) throw new Error("status " + response.status);
+          const payload = await response.json();
+          const checked = payload.checkedAt
+            ? new Date(payload.checkedAt).toLocaleTimeString()
+            : new Date().toLocaleTimeString();
+          if (metaEl) {
+            metaEl.textContent = payload.waiting
+              ? `Still waiting: last check ${checked}. Auto-checking every 5 seconds.`
+              : `Last check ${checked}.`;
+          }
+          if (!payload.waiting && (payload.seenCount > 0 || payload.latestCount > 0)) {
+            if (statusEl) statusEl.textContent = ": received!";
+            if (stepEl) {
+              stepEl.classList.remove("waiting-ingest-pending");
+              stepEl.classList.add("waiting-ingest-done");
+            }
+            const url = new URL(window.location.href);
+            url.searchParams.set("ingest_ok", "1");
+            url.searchParams.set("rename_sensors", "1");
+            url.searchParams.delete("sensor_added");
+            window.location.replace(url.pathname + "?" + url.searchParams.toString());
+            return;
+          }
+          if (statusEl) statusEl.textContent = ": listening…";
+        } catch {
+          if (metaEl) metaEl.textContent = "Could not check status, try Check now.";
+        } finally {
+          inFlight = false;
+        }
+      }
+
+      refreshBtn?.addEventListener("click", () => {
+        void checkOnce();
+      });
+
+      void checkOnce();
+      timer = window.setInterval(() => {
+        void checkOnce();
+      }, 5000);
+
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "hidden") {
+          window.clearInterval(timer);
+          timer = 0;
+        } else if (!timer) {
+          void checkOnce();
+          timer = window.setInterval(() => {
+            void checkOnce();
+          }, 5000);
+        }
+      });
+    })();
+  </script>
+)}
+
+<script>
+  import { actions } from "astro:actions";
+
+  async function handleDeviceForm(
+    form: HTMLFormElement,
+    run: (formData: FormData) => Promise<{ data?: { message?: string } | null; error?: { message?: string } | null }>,
+  ) {
+    const statusEl = form.querySelector<HTMLElement>("[data-device-status]");
+    const errorEl = form.querySelector<HTMLElement>("[data-device-error]");
+    const submitBtn = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+    statusEl?.classList.add("hidden");
+    errorEl?.classList.add("hidden");
+    if (submitBtn) submitBtn.disabled = true;
+    const { data, error } = await run(new FormData(form));
+    if (submitBtn) submitBtn.disabled = false;
+    if (error) {
+      if (errorEl) {
+        errorEl.textContent = error.message || "Could not save.";
+        errorEl.classList.remove("hidden");
+      }
+      return;
+    }
+    if (statusEl) {
+      statusEl.textContent = data?.message ?? "Saved.";
+      statusEl.classList.remove("hidden");
+    }
+  }
+
+  document.querySelectorAll<HTMLFormElement>("[data-device-rename-form]").forEach((form) => {
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      void handleDeviceForm(form, (formData) => actions.renameDevice(formData));
+    });
+  });
+
+  document.querySelectorAll<HTMLFormElement>("[data-device-space-form]").forEach((form) => {
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      void handleDeviceForm(form, (formData) => actions.updateDeviceSpaceAction(formData));
+    });
+  });
+
+  async function handleSensorForm(
+    form: HTMLFormElement,
+    run: (formData: FormData) => Promise<{ data?: { message?: string } | null; error?: { message?: string } | null }>,
+    reloadOnSuccess = false,
+  ) {
+    const statusEl = form.querySelector<HTMLElement>("[data-sensor-status]");
+    const errorEl = form.querySelector<HTMLElement>("[data-sensor-error]");
+    const submitBtn = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+    statusEl?.classList.add("hidden");
+    errorEl?.classList.add("hidden");
+    if (submitBtn) submitBtn.disabled = true;
+    const { data, error } = await run(new FormData(form));
+    if (submitBtn) submitBtn.disabled = false;
+    if (error) {
+      if (errorEl) {
+        errorEl.textContent = error.message || "Could not save.";
+        errorEl.classList.remove("hidden");
+      }
+      return;
+    }
+    if (reloadOnSuccess) {
+      window.location.reload();
+      return;
+    }
+    if (statusEl) {
+      statusEl.textContent = data?.message ?? "Saved.";
+      statusEl.classList.remove("hidden");
+    }
+  }
+
+  document.querySelectorAll<HTMLFormElement>("[data-sensor-update-form]").forEach((form) => {
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      void handleSensorForm(form, (formData) => actions.updateSensor(formData));
+    });
+  });
+
+  document.querySelectorAll<HTMLFormElement>("[data-sensor-add-form]").forEach((form) => {
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      void handleSensorForm(form, (formData) => actions.addSensor(formData), true);
+    });
+  });
+
+  document.querySelectorAll<HTMLFormElement>("[data-sensor-pair-form]").forEach((form) => {
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      void handleSensorForm(form, (formData) => actions.addSensorPair(formData), true);
+    });
+  });
+
+  document.querySelectorAll<HTMLFormElement>("[data-sensor-delete-form]").forEach((form) => {
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      void handleSensorForm(form, (formData) => actions.deleteSensor(formData), true);
+    });
+  });
+</script>

@@ -49,7 +49,7 @@ test.describe("signup", () => {
   });
 
   test("signin page shows post-register flash pointing at Devices", async ({ page }) => {
-    await page.goto("/signin?registered=1&next=/dashboard/temperature");
+    await page.goto("/signin?registered=1&next=/dashboard/devices");
     await expect(page.getByRole("status")).toContainText(/Account created/i);
     await expect(page.getByRole("status")).toContainText(/Devices/i);
   });

@@ -131,7 +131,7 @@ describe("GET /api/integrations/nest/callback", () => {
     await GET(context);
 
     expect(context.redirect).toHaveBeenCalledWith(
-      "/dashboard/temperature?thermostat_error=state_mismatch",
+      "/dashboard/devices?thermostat_error=state_mismatch",
     );
     expect(mockGetUserEntitlements).not.toHaveBeenCalled();
   });
@@ -145,7 +145,7 @@ describe("GET /api/integrations/nest/callback", () => {
 
     await GET(context);
 
-    expect(context.redirect).toHaveBeenCalledWith("/dashboard/temperature?thermostat_error=denied");
+    expect(context.redirect).toHaveBeenCalledWith("/dashboard/devices?thermostat_error=denied");
   });
 
   it("redirects to plans when the plan cannot use thermostat integrations", async () => {
@@ -172,7 +172,7 @@ describe("GET /api/integrations/nest/callback", () => {
     await GET(context);
 
     expect(context.redirect).toHaveBeenCalledWith(
-      "/dashboard/temperature?error=manager_required",
+      "/dashboard/devices?error=manager_required",
     );
   });
 
@@ -187,7 +187,7 @@ describe("GET /api/integrations/nest/callback", () => {
     await GET(context);
 
     expect(context.redirect).toHaveBeenCalledWith(
-      "/dashboard/temperature?thermostat_error=not_configured",
+      "/dashboard/devices?thermostat_error=not_configured",
     );
   });
 
@@ -202,7 +202,7 @@ describe("GET /api/integrations/nest/callback", () => {
     await GET(context);
 
     expect(context.redirect).toHaveBeenCalledWith(
-      "/dashboard/temperature?thermostat_error=exchange_failed",
+      "/dashboard/devices?thermostat_error=exchange_failed",
     );
   });
 
@@ -217,7 +217,7 @@ describe("GET /api/integrations/nest/callback", () => {
     await GET(context);
 
     expect(context.redirect).toHaveBeenCalledWith(
-      "/dashboard/temperature?thermostat_error=save_failed",
+      "/dashboard/devices?thermostat_error=save_failed",
     );
   });
 
@@ -235,7 +235,7 @@ describe("GET /api/integrations/nest/callback", () => {
     await GET(context);
 
     expect(context.redirect).toHaveBeenCalledWith(
-      "/dashboard/temperature?thermostat_connected=nest&thermostat_error=sdm_api_disabled",
+      "/dashboard/devices?thermostat_connected=nest&thermostat_error=sdm_api_disabled",
     );
   });
 
@@ -264,7 +264,7 @@ describe("GET /api/integrations/nest/callback", () => {
       }),
     );
     expect(context.redirect).toHaveBeenCalledWith(
-      "/dashboard/temperature?thermostat_connected=nest",
+      "/dashboard/devices?thermostat_connected=nest",
     );
   });
 });

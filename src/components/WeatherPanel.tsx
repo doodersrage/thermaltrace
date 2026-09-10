@@ -85,7 +85,7 @@ export default function WeatherPanel({
               Retry
             </button>
             {guest ? (
-              <a class="btn-ghost" href="/register?next=/dashboard/temperature">
+              <a class="btn-ghost" href="/register?next=/dashboard/devices">
                 Create account to set location
               </a>
             ) : (

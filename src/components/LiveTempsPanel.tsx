@@ -354,7 +354,7 @@ export default function LiveTempsPanel({ intervalMs = 30000 }: Props) {
             </ul>
           )}
           <p class="mb-0 mt-3 text-sm">
-            <a class="text-link" href="/dashboard/temperature">Check Devices</a>
+            <a class="text-link" href="/dashboard/devices">Check Devices</a>
             {" · "}
             <a class="text-link" href="/about/debugging-stale-readings">Debug stale readings</a>
           </p>
@@ -440,7 +440,7 @@ export default function LiveTempsPanel({ intervalMs = 30000 }: Props) {
       ) : !hasAnySensors ? (
         <div class="empty-state">
           <p class="mb-4">No sensors available yet.</p>
-          <a class="btn-primary" href="/dashboard/temperature">
+          <a class="btn-primary" href="/dashboard/devices">
             Configure devices
           </a>
         </div>

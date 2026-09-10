@@ -56,7 +56,7 @@ describe("product email templates", () => {
     expect(drip.subject.toLowerCase()).toContain("probe");
     expect(drip.html).toContain("Open Devices");
     expect(drip.html).toContain("adding-devices");
-    expect(drip.text).toContain("https://thermaltrace.dev/dashboard/temperature");
+    expect(drip.text).toContain("https://thermaltrace.dev/dashboard/devices");
 
     const trial = buildTrialReminderEmail({
       plan: "Pro",

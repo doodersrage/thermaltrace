@@ -56,6 +56,8 @@ interface Props {
   highlightAlertId?: number | null;
   /** Show claims-pack deep-link for the visible window (History only). */
   canUseClaimsPack?: boolean;
+  /** Allow uploading a PNG snapshot to a public share URL. */
+  canShareChart?: boolean;
 }
 
 const PROBE_COLORS = ["#60a5fa", "#34d399", "#f472b6", "#fbbf24", "#a78bfa", "#fb7185"];
@@ -125,6 +127,7 @@ export default function HistoryChart({
   alertMarkers = [],
   highlightAlertId = null,
   canUseClaimsPack = false,
+  canShareChart = false,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -159,6 +162,8 @@ export default function HistoryChart({
   );
   const [houseVisible, setHouseVisible] = useState(true);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [shareBusy, setShareBusy] = useState(false);
+  const [shareMessage, setShareMessage] = useState<string | null>(null);
 
   const byProbe = useMemo(() => {
     const map = new Map<string, Point[]>();
@@ -780,6 +785,41 @@ export default function HistoryChart({
     }
   }
 
+  async function shareChartSnapshot() {
+    if (!canShareChart || shareBusy) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    setShareBusy(true);
+    setShareMessage(null);
+    try {
+      const pngBase64 = canvas.toDataURL("image/png");
+      const res = await fetch("/api/user/chart-share", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({ pngBase64, title }),
+      });
+      const data = (await res.json()) as { url?: string; error?: string };
+      if (!res.ok || !data.url) {
+        setShareMessage(data.error ?? "Share failed");
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(data.url);
+        setShareMessage("Share link copied");
+      } catch {
+        setShareMessage(data.url);
+      }
+      window.setTimeout(() => setShareMessage(null), 4000);
+    } catch {
+      setShareMessage("Share failed");
+    } finally {
+      setShareBusy(false);
+    }
+  }
+
   function claimsPackHrefForView(): string | null {
     if (!canUseClaimsPack) return null;
     const range = shareRangeDates();
@@ -809,7 +849,7 @@ export default function HistoryChart({
           Not enough readings yet for a chart.
         </p>
         <p class="mt-3 mb-0 text-sm">
-          <a class="text-link" href="/dashboard/temperature">Add a device</a>
+          <a class="text-link" href="/dashboard/devices">Add a device</a>
           {" → "}
           verify ingest
           {" → "}
@@ -895,6 +935,17 @@ export default function HistoryChart({
           >
             {linkCopied ? "Copied" : "Link"}
           </button>
+          {canShareChart && (
+            <button
+              type="button"
+              class="history-chart-zoom-btn history-chart-expand-btn"
+              aria-label="Share chart snapshot"
+              disabled={shareBusy}
+              onClick={() => void shareChartSnapshot()}
+            >
+              {shareBusy ? "…" : shareMessage ? "Shared" : "Share"}
+            </button>
+          )}
           {claimsPackHrefForView() && (
             <a
               class="history-chart-zoom-btn history-chart-expand-btn"

@@ -62,7 +62,7 @@ describe("POST /api/household/indoor-reference", () => {
 
     expect(mockUpdateIndoorReferenceSensor).not.toHaveBeenCalled();
     expect(context.redirect).toHaveBeenCalledWith(
-      "/dashboard/temperature?indoor_ref_error=no_household",
+      "/dashboard/devices?indoor_ref_error=no_household",
     );
   });
 
@@ -76,7 +76,7 @@ describe("POST /api/household/indoor-reference", () => {
     expect(mockGetUserHouseholdRole).toHaveBeenCalledWith("user-1", "house-1");
     expect(mockUpdateIndoorReferenceSensor).not.toHaveBeenCalled();
     expect(context.redirect).toHaveBeenCalledWith(
-      "/dashboard/temperature?indoor_ref_error=forbidden",
+      "/dashboard/devices?indoor_ref_error=forbidden",
     );
   });
 
@@ -88,7 +88,7 @@ describe("POST /api/household/indoor-reference", () => {
 
     expect(mockUpdateIndoorReferenceSensor).toHaveBeenCalledWith("house-1", null);
     expect(context.redirect).toHaveBeenCalledWith(
-      "/dashboard/temperature?indoor_ref_saved=1#indoor-reference",
+      "/dashboard/devices?indoor_ref_saved=1#indoor-reference",
     );
   });
 
@@ -96,14 +96,14 @@ describe("POST /api/household/indoor-reference", () => {
     const { POST } = await import("./indoor-reference");
     const context = makeContext({
       sensor_id: "sensor-1",
-      redirect: "/dashboard/temperature#indoor-reference",
+      redirect: "/dashboard/devices#indoor-reference",
     });
 
     await POST(context);
 
     expect(mockUpdateIndoorReferenceSensor).toHaveBeenCalledWith("house-1", "sensor-1");
     expect(context.redirect).toHaveBeenCalledWith(
-      "/dashboard/temperature?indoor_ref_saved=1#indoor-reference",
+      "/dashboard/devices?indoor_ref_saved=1#indoor-reference",
     );
   });
 
@@ -115,7 +115,7 @@ describe("POST /api/household/indoor-reference", () => {
     await POST(context);
 
     expect(context.redirect).toHaveBeenCalledWith(
-      "/dashboard/temperature?indoor_ref_error=save_failed#indoor-reference",
+      "/dashboard/devices?indoor_ref_error=save_failed#indoor-reference",
     );
   });
 });

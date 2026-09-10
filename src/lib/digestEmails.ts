@@ -208,6 +208,46 @@ export async function sendWeeklyDigestsForAllUsers(): Promise<{
         kind: "digest",
       });
 
+      // Fan-out to household members who opted into digests.
+      try {
+        const { data: ownerMemberships } = await admin
+          .from("household_members")
+          .select("household_id")
+          .eq("user_id", userId);
+        const ownerHouseholdIds = [
+          ...new Set(
+            (ownerMemberships ?? []).map((row) => row.household_id as string),
+          ),
+        ];
+
+        if (ownerHouseholdIds.length > 0) {
+          const { data: sharedMembers } = await admin
+            .from("household_members")
+            .select("user_id")
+            .in("household_id", ownerHouseholdIds)
+            .eq("digest_opt_in", true)
+            .neq("user_id", userId);
+
+          const fanOutIds = [
+            ...new Set((sharedMembers ?? []).map((row) => row.user_id as string)),
+          ];
+
+          for (const memberId of fanOutIds) {
+            const { data: memberData } = await admin.auth.admin.getUserById(memberId);
+            const memberEmail = memberData.user?.email;
+            if (!memberEmail) continue;
+            await sendDigestEmail(memberEmail, subject, parts.text, parts.html);
+            sent += 1;
+          }
+        }
+      } catch (fanOutError) {
+        errors.push(
+          `${userId} fan-out: ${
+            fanOutError instanceof Error ? fanOutError.message : "Unknown error"
+          }`,
+        );
+      }
+
       sent += 1;
     } catch (e) {
       errors.push(`${userId}: ${e instanceof Error ? e.message : "Unknown error"}`);

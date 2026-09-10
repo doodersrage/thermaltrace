@@ -64,7 +64,7 @@ beforeEach(() => {
     ctx: { householdId: "house-1", role: "owner" },
   });
   mockDeleteConnection.mockReset().mockResolvedValue(undefined);
-  mockFormRedirectPath.mockReset().mockReturnValue("/dashboard/temperature");
+  mockFormRedirectPath.mockReset().mockReturnValue("/dashboard/devices");
 });
 
 describe("POST /api/integrations/[provider]/disconnect", () => {
@@ -82,7 +82,7 @@ describe("POST /api/integrations/[provider]/disconnect", () => {
 
     const response = await POST(makeContext({ provider: "honeywell" }));
 
-    expect(response.headers.get("Location")).toBe("/dashboard/temperature?thermostat_error=1");
+    expect(response.headers.get("Location")).toBe("/dashboard/devices?thermostat_error=1");
     expect(mockDeleteConnection).not.toHaveBeenCalled();
   });
 
@@ -93,7 +93,7 @@ describe("POST /api/integrations/[provider]/disconnect", () => {
     const response = await POST(makeContext());
 
     expect(response.headers.get("Location")).toBe(
-      "/dashboard/temperature?error=manager_required",
+      "/dashboard/devices?error=manager_required",
     );
     expect(mockDeleteConnection).not.toHaveBeenCalled();
   });
@@ -105,18 +105,18 @@ describe("POST /api/integrations/[provider]/disconnect", () => {
 
     expect(mockDeleteConnection).toHaveBeenCalledWith("house-1", "ecobee");
     expect(response.headers.get("Location")).toBe(
-      "/dashboard/temperature?thermostat_disconnected=ecobee",
+      "/dashboard/devices?thermostat_disconnected=ecobee",
     );
   });
 
   it("appends thermostat_disconnected when the redirect path already has a query", async () => {
-    mockFormRedirectPath.mockReturnValue("/dashboard/temperature?tab=integrations");
+    mockFormRedirectPath.mockReturnValue("/dashboard/devices?tab=integrations");
     const { POST } = await import("./disconnect");
 
     const response = await POST(makeContext({ provider: "nest" }));
 
     expect(response.headers.get("Location")).toBe(
-      "/dashboard/temperature?tab=integrations&thermostat_disconnected=nest",
+      "/dashboard/devices?tab=integrations&thermostat_disconnected=nest",
     );
   });
 });

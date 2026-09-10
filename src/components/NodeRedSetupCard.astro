@@ -7,7 +7,7 @@ import DashboardCard from "./dashboard/DashboardCard.astro";
     Import a flow to mirror Mosquitto readings (and optional door state) to ThermalTrace over HTTPS.
   </p>
   <ol class="text-sm space-y-2 mb-4">
-    <li>Create a push device under <a class="text-link" href="/dashboard/temperature">Devices</a> and copy the ingest key.</li>
+    <li>Create a push device under <a class="text-link" href="/dashboard/devices">Devices</a> and copy the ingest key.</li>
     <li>In Node-RED: Menu → Import → paste URL or upload JSON.</li>
     <li>Set env <code class="text-xs">THERMALTRACE_INGEST_KEY</code> (or edit the function node).</li>
     <li>Point the MQTT nodes at your broker; deploy and watch for HTTP 200 on the debug node.</li>

@@ -102,7 +102,7 @@ export default function DemoTempsPanel({ intervalMs = 90000 }: Props) {
       {!error && groups.length === 0 ? (
         <div class="empty-state">
           <p class="mb-4">No temperature feeds are available yet.</p>
-          <a class="btn-primary" href="/register?next=/dashboard/temperature">
+          <a class="btn-primary" href="/register?next=/dashboard/devices">
             Create free account — connect probes
           </a>
         </div>
@@ -152,7 +152,7 @@ export default function DemoTempsPanel({ intervalMs = 90000 }: Props) {
           ? `Updated ${new Date(updatedAt).toLocaleTimeString()}. Next refresh in ${countdown}s.`
           : `Next refresh in ${countdown}s.`}
         {" "}
-        <a class="text-link" href="/register?next=/dashboard/temperature">
+        <a class="text-link" href="/register?next=/dashboard/devices">
           Free account — connect your probes
         </a>
       </p>

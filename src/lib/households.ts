@@ -20,6 +20,7 @@ export type HouseholdMember = {
   role: HouseholdRole;
   created_at: string;
   email?: string | null;
+  digest_opt_in?: boolean;
 };
 
 export type UserHousehold = {
@@ -221,7 +222,7 @@ export async function listHouseholdMembers(
   const supabase = createServerClient();
   const { data, error } = await supabase
     .from("household_members")
-    .select("id, household_id, user_id, role, created_at")
+    .select("id, household_id, user_id, role, created_at, digest_opt_in")
     .eq("household_id", householdId)
     .order("created_at", { ascending: true });
 

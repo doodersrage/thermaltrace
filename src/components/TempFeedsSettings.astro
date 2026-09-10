@@ -86,7 +86,7 @@ const canAddMore = existingFeeds.length < MAX_TEMP_FEEDS;
             />
             <form action="/api/user/pull-setup/delete" method="post">
               <input type="hidden" name="feed_id" value={feed.id} />
-              <input type="hidden" name="redirect" value="/dashboard/temperature?tab=pull" />
+              <input type="hidden" name="redirect" value="/dashboard/devices?tab=pull" />
               <button
                 type="submit"
                 class="btn-ghost"

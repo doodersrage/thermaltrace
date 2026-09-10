@@ -41,7 +41,7 @@ const schema = [
       lede={guide.lede}
     >
       <a slot="actions" class="btn-primary" href="/pricing">See plans &amp; pricing</a>
-      <a slot="actions" class="btn-secondary" href="/register?next=/dashboard/temperature">Start free</a>
+      <a slot="actions" class="btn-secondary" href="/register?next=/dashboard/devices">Start free</a>
     </PageHeader>
 
     {guide.photoId && <AboutCcFigure photoId={guide.photoId} />}
@@ -105,7 +105,7 @@ const schema = [
       </p>
       <div class="flex flex-wrap gap-3 mb-4">
         <a class="btn-primary" href="/pricing">See plans &amp; pricing</a>
-        <a class="btn-secondary" href="/register?next=/dashboard/temperature">Start free</a>
+        <a class="btn-secondary" href="/register?next=/dashboard/devices">Start free</a>
         {guide.slug === "diy-mqtt" && (
           <a class="btn-secondary" href="/integrations/home-assistant">Home Assistant (HACS)</a>
         )}
@@ -113,7 +113,7 @@ const schema = [
           <a class="btn-secondary" href="/about/mqtt-bridge">MQTT bridge recipe</a>
         )}
         {(guide.slug === "nest" || guide.slug === "ecobee") && (
-          <a class="btn-secondary" href="/dashboard/temperature#thermostat-integration">
+          <a class="btn-secondary" href="/dashboard/devices#thermostat-integration">
             Connect your {guide.competitor.replace(" Thermostat", "")} (Pro)
           </a>
         )}

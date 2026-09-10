@@ -75,7 +75,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   }
 
   const editor = await requireHouseholdEditor(user.id);
-  let redirectTo = "/dashboard/temperature?tab=pull";
+  let redirectTo = "/dashboard/devices?tab=pull";
   let feeds: TempFeedConfig[] | null = null;
   let probes: TempProbeConfig[] = [];
 

@@ -23,7 +23,7 @@ const reddit = `I built ThermalTrace for freeze alerts and wet leak contacts in 
 Public freeze-risk map (opt-in city aggregates): ${siteUrl}/freeze-map
 Interactive probe simulator (cause a cold snap / door draft): ${siteUrl}/about/probe-demo
 Live demo feed (no account): ${siteUrl}/demo
-Start free (no card) → Devices: ${siteUrl}/register?next=/dashboard/temperature
+Start free (no card) → Devices: ${siteUrl}/register?next=/dashboard/devices
 Freeze season checklist: ${siteUrl}/freeze-season
 
 Happy to answer hardware / Home Assistant webhook questions.`;
@@ -33,7 +33,7 @@ const homeAssistant = `**ThermalTrace**: hosted freeze + flood/leak monitoring f
 - Official HACS integration: ${siteUrl}/integrations/home-assistant
 - HTTPS ingest (device key); optional MQTT→HTTP bridge if you already run Mosquitto/HA
 - Free family live share link for HA polling; Pro expands scopes + SMS / push / webhooks
-- Free plan, no credit card: ${siteUrl}/register?next=/dashboard/temperature
+- Free plan, no credit card: ${siteUrl}/register?next=/dashboard/devices
 - Interactive probe simulator: ${siteUrl}/about/probe-demo
 - Public community freeze map: ${siteUrl}/freeze-map
 - Embed: \`${siteUrl}/embed/freeze-map?compact=1\`
@@ -45,7 +45,7 @@ const bluesky = `Unheated spaces freeze quietly until they do not.
 ThermalTrace: DIY probes → freeze alerts, wet leak contacts, and a public opt-in freeze map.
 Simulator (no account): ${siteUrl}/about/probe-demo
 Map: ${siteUrl}/freeze-map
-Start free: ${siteUrl}/register?next=/dashboard/temperature`;
+Start free: ${siteUrl}/register?next=/dashboard/devices`;
 
 const hackerNewsTitle = `Show HN: ThermalTrace – freeze + leak alerts for ESP/Arduino probes in garages and crawlspaces`;
 
@@ -68,7 +68,7 @@ const discord = `Built a hosted freeze/flood alert dashboard for DIY probes (ESP
 
 Interactive simulator (no signup): ${siteUrl}/about/probe-demo
 Live demo feed: ${siteUrl}/demo
-Free account → Devices: ${siteUrl}/register?next=/dashboard/temperature
+Free account → Devices: ${siteUrl}/register?next=/dashboard/devices
 Freeze map: ${siteUrl}/freeze-map`;
 
 const embed = `<iframe src="${siteUrl}/embed/freeze-map?compact=1" title="ThermalTrace freeze map" width="100%" height="320" style="border:0;border-radius:12px" loading="lazy"></iframe>`;
@@ -209,7 +209,7 @@ const embed = `<iframe src="${siteUrl}/embed/freeze-map?compact=1" title="Therma
       <ul class="text-sm space-y-2 mb-0">
         <li><a class="text-link" href="/about/probe-demo">/about/probe-demo</a>: interactive simulator (strongest no-account hook)</li>
         <li><a class="text-link" href="/demo">/demo</a>, live readings + simulator promo</li>
-        <li><a class="text-link" href="/register?next=/dashboard/temperature">/register</a>: free, no card → Devices</li>
+        <li><a class="text-link" href="/register?next=/dashboard/devices">/register</a>: free, no card → Devices</li>
         <li><a class="text-link" href="/freeze-map">/freeze-map</a>: opt-in city aggregates</li>
         <li><a class="text-link" href="/freeze-season">/freeze-season</a>: seasonal checklist</li>
         <li><a class="text-link" href="/integrations/home-assistant">/integrations/home-assistant</a>. HACS</li>

@@ -39,7 +39,7 @@ vi.mock("../../../../lib/referrals", () => ({
 }));
 
 vi.mock("../../../../lib/registerUrl", () => ({
-  REGISTER_NEXT_DEVICES: "/dashboard/temperature",
+  REGISTER_NEXT_DEVICES: "/dashboard/devices",
 }));
 
 const mockSanitizeNextPath = vi.fn();
@@ -154,7 +154,7 @@ describe("GET /api/auth/github/callback", () => {
     expect(mockApplySessionCookiesAfterAuth).toHaveBeenCalledWith(
       expect.anything(),
       expect.anything(),
-      "/dashboard/temperature",
+      "/dashboard/devices",
     );
   });
 
