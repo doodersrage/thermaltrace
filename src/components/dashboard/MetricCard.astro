@@ -6,6 +6,11 @@ interface Props {
   href?: string | null;
   tone?: "neutral" | "success" | "warning" | "danger";
   class?: string;
+  metricId?: string | null;
+  pinned?: boolean;
+  canPin?: boolean;
+  snapshotField?: string | null;
+  liveAgeIso?: string | null;
 }
 
 const {
@@ -15,6 +20,11 @@ const {
   href = null,
   tone = "neutral",
   class: className,
+  metricId = null,
+  pinned = false,
+  canPin = false,
+  snapshotField = null,
+  liveAgeIso = null,
 } = Astro.props;
 
 const toneClass =
@@ -26,18 +36,95 @@ const toneClass =
         ? "text-[var(--color-danger)]"
         : "text-foreground";
 
-const Tag = href ? "a" : "article";
+const Tag = href && !canPin ? "a" : "article";
 ---
 <Tag
-  href={href ?? undefined}
+  href={href && !canPin ? href : undefined}
   class:list={[
     "metric-card",
     `metric-card--${tone}`,
     href && "metric-card--link",
     className,
   ]}
+  data-metric-id={metricId ?? undefined}
+  data-snapshot-field={snapshotField ?? undefined}
 >
-  <span class="metric-card-label">{label}</span>
-  <p class:list={["metric-card-value", toneClass]}>{value}</p>
-  {detail && <p class="metric-card-detail">{detail}</p>}
+  <span class="metric-card-head">
+    {href && canPin ? (
+      <a class="metric-card-label metric-card-label-link" href={href}>{label}</a>
+    ) : (
+      <span class="metric-card-label">{label}</span>
+    )}
+    {canPin && metricId && (
+      <button
+        type="button"
+        class="metric-card-pin"
+        data-pin-metric={metricId}
+        data-pinned={pinned ? "1" : "0"}
+        aria-label={pinned ? `Unpin ${label}` : `Pin ${label}`}
+        title={pinned ? "Unpin from Status" : "Pin to Status"}
+      >
+        {pinned ? "★" : "☆"}
+      </button>
+    )}
+  </span>
+  {href && canPin ? (
+    <a class="metric-card-value-link" href={href}>
+      <p
+        class:list={["metric-card-value", toneClass]}
+        data-metric-value
+        data-live-age-iso={liveAgeIso ?? undefined}
+        data-live-age-tone={liveAgeIso ? "1" : undefined}
+      >
+        {value}
+      </p>
+      {detail && <p class="metric-card-detail" data-metric-detail>{detail}</p>}
+    </a>
+  ) : (
+    <>
+      <p
+        class:list={["metric-card-value", toneClass]}
+        data-metric-value
+        data-live-age-iso={liveAgeIso ?? undefined}
+        data-live-age-tone={liveAgeIso ? "1" : undefined}
+      >
+        {value}
+      </p>
+      {detail && <p class="metric-card-detail" data-metric-detail>{detail}</p>}
+    </>
+  )}
 </Tag>
+
+<style>
+  .metric-card-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.35rem;
+  }
+
+  .metric-card-label-link,
+  .metric-card-value-link {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .metric-card-value-link {
+    display: block;
+  }
+
+  .metric-card-pin {
+    flex: 0 0 auto;
+    border: 0;
+    background: transparent;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    font-size: 0.85rem;
+  }
+
+  .metric-card-pin[data-pinned="1"] {
+    color: var(--color-accent, #ca8a04);
+  }
+</style>

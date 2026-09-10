@@ -8,8 +8,9 @@ import { formatRelativeAge } from "../../../lib/relativeTime";
 import { summarizeStaleSensors } from "../../../lib/sensorFreshness";
 import { computeGarageRiskStatus } from "../../../lib/garageRiskStatus";
 import { countUnacknowledgedAlerts } from "../../../lib/alertEvents";
+import { isSnoozeActive, isVacationActive } from "../../../lib/alertSnooze";
 
-export const GET: APIRoute = async ({ request, cookies }) => {
+export const GET: APIRoute = async ({ cookies }) => {
   const { session, user } = await getAuthFromCookies(cookies);
   if (!session || !user) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -47,6 +48,14 @@ export const GET: APIRoute = async ({ request, cookies }) => {
   const wetFloodCount = latest.filter(
     (row) => row.sensor.kind === "flood" && row.value_bool === true,
   ).length;
+  const sensorCount = devices.reduce((sum, device) => sum + device.sensors.length, 0);
+  const liveSensorCount = latest.filter(
+    (row) => row.recorded_at && !formatRelativeAge(row.recorded_at).stale,
+  ).length;
+  const coldestMarginF =
+    coldestProbeTempF != null
+      ? coldestProbeTempF - alertSettings.freezeThresholdF
+      : null;
 
   const risk = computeGarageRiskStatus({
     hasDevices: devices.length > 0,
@@ -75,9 +84,17 @@ export const GET: APIRoute = async ({ request, cookies }) => {
     lastReadingAge: lastAge.label,
     lastReadingLagging: lastAge.lagging,
     staleSensors: staleSummary.total,
+    sensorCount,
+    liveSensorCount,
     unackedAlerts: unacked,
     coldestProbeTempF,
+    coldestMarginF,
     freezeThresholdF: alertSettings.freezeThresholdF,
+    alertsEnabled: alertSettings.enabled,
+    snoozeActive: isSnoozeActive(alertSettings),
+    vacationActive: isVacationActive(alertSettings),
+    snoozeUntil: alertSettings.snoozeUntil,
+    vacationUntil: alertSettings.vacationUntil,
   };
 
   return new Response(JSON.stringify(body), {

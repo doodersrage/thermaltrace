@@ -20,6 +20,7 @@ import {
 } from "../lib/notify";
 import {
   snoozeUntilFromHours,
+  vacationUntilFromDate,
   vacationUntilFromDays,
 } from "../lib/alertSnooze";
 import { getUserEntitlements } from "../lib/entitlements";
@@ -231,9 +232,11 @@ export const server = {
       action: z.enum([
         "snooze_24",
         "vacation_7",
+        "vacation_until",
         "clear_snooze",
         "clear_vacation",
       ]),
+      until: z.string().optional(),
       redirect: z.string().optional(),
     }),
     handler: async (input, context) => {
@@ -266,6 +269,25 @@ export const server = {
           ok: true as const,
           kind: "vacation" as const,
           message: "Vacation mode on for 7 days.",
+        };
+      }
+
+      if (input.action === "vacation_until") {
+        const vacationUntil = vacationUntilFromDate(input.until ?? "");
+        if (!vacationUntil) {
+          throw new ActionError({
+            code: "BAD_REQUEST",
+            message: "Pick a future return date.",
+          });
+        }
+        await saveAlertSettingsForUser(user.id, {
+          ...settings,
+          vacationUntil,
+        });
+        return {
+          ok: true as const,
+          kind: "vacation" as const,
+          message: `Vacation until ${input.until}.`,
         };
       }
 

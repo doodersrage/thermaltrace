@@ -7,8 +7,9 @@ import {
 import { getUserEntitlements } from "../../../lib/entitlements";
 import { listUserHouseholds, canEditHousehold } from "../../../lib/households";
 import { formRedirectPath } from "../../../lib/siteUrl";
+import { vacationUntilFromDate } from "../../../lib/alertSnooze";
 
-const VACATION_MAX_DAYS = 30;
+const VACATION_MAX_DAYS = 90;
 
 function wantsJson(request: Request): boolean {
   const accept = request.headers.get("accept") ?? "";
@@ -55,17 +56,44 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
 
   if (asJson) {
     try {
-      const body = (await request.json()) as { action?: string; days?: number };
+      const body = (await request.json()) as {
+        action?: string;
+        days?: number;
+        until?: string;
+      };
       action = body.action?.trim() ?? "";
-      days = Math.min(Math.max(Number(body.days) || 7, 1), VACATION_MAX_DAYS);
+      if (body.until) {
+        const untilIso = vacationUntilFromDate(body.until);
+        if (!untilIso) {
+          return jsonResponse({ error: "Pick a future return date." }, 400);
+        }
+        days = Math.max(
+          1,
+          Math.ceil((Date.parse(untilIso) - Date.now()) / (24 * 60 * 60 * 1000)),
+        );
+      } else {
+        days = Math.min(Math.max(Number(body.days) || 7, 1), VACATION_MAX_DAYS);
+      }
     } catch {
       return jsonResponse({ error: "Invalid JSON" }, 400);
     }
   } else {
     const formData = await request.formData();
     action = formData.get("action")?.toString().trim() ?? "";
-    const parsed = Number.parseInt(String(formData.get("days") ?? "7"), 10);
-    days = Math.min(Math.max(Number.isFinite(parsed) ? parsed : 7, 1), VACATION_MAX_DAYS);
+    const until = formData.get("until")?.toString().trim() ?? "";
+    if (until) {
+      const untilIso = vacationUntilFromDate(until);
+      if (!untilIso) {
+        return redirect(withFlashParams(redirectTo, { vacation_error: 1 }));
+      }
+      days = Math.max(
+        1,
+        Math.ceil((Date.parse(untilIso) - Date.now()) / (24 * 60 * 60 * 1000)),
+      );
+    } else {
+      const parsed = Number.parseInt(String(formData.get("days") ?? "7"), 10);
+      days = Math.min(Math.max(Number.isFinite(parsed) ? parsed : 7, 1), VACATION_MAX_DAYS);
+    }
     redirectTo = formRedirectPath(formData, redirectTo);
   }
 

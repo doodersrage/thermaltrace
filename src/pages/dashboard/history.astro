@@ -683,3 +683,26 @@ const historyUpgradeFeature =
     )}
   </div>
 </DashboardLayout>
+
+<script>
+  const flashKeys = [
+    "claims_emailed",
+    "claims_error",
+    "subscription",
+    "view_saved",
+    "view_deleted",
+    "view_default",
+    "view_error",
+  ];
+  const url = new URL(window.location.href);
+  let changed = false;
+  for (const key of flashKeys) {
+    if (url.searchParams.has(key)) {
+      url.searchParams.delete(key);
+      changed = true;
+    }
+  }
+  if (changed) {
+    window.history.replaceState({}, "", url.pathname + (url.search || "") + url.hash);
+  }
+</script>

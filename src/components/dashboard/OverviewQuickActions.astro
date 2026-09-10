@@ -24,35 +24,40 @@ const spaces = deviceSpaces.filter(Boolean);
 ---
 
 {canEdit && (
-  <section class="card overview-quick-actions" aria-labelledby="overview-quick-actions-title">
+  <section
+    class="card overview-quick-actions"
+    aria-labelledby="overview-quick-actions-title"
+    data-overview-quick-actions
+    data-unacked={String(unackedCount)}
+    data-snooze-active={snoozeActive ? "1" : "0"}
+  >
     <div class="overview-quick-actions-head">
       <h2 class="card-title mb-0" id="overview-quick-actions-title">Quick actions</h2>
       <p class="card-subtitle mb-0">
         Acknowledge, snooze alerts, or mark that you checked a space.
       </p>
     </div>
-    <div class="overview-quick-actions-row">
+    <p class="alert-success mt-0 mb-3 hidden" data-qa-status role="status"></p>
+    <p class="alert-warning mt-0 mb-3 hidden" data-qa-error role="alert"></p>
+    <div class="overview-quick-actions-row" data-qa-row>
       {unackedCount > 0 ? (
         <>
-          <form action="/api/user/alert-events/ack" method="post">
-            <input type="hidden" name="redirect" value="/dashboard" />
-            <input type="hidden" name="action" value="ack_latest" />
-            <button type="submit" class="btn-secondary btn-sm">
-              Acknowledge latest
-            </button>
-          </form>
+          <button
+            type="button"
+            class="btn-secondary btn-sm"
+            data-qa-action="ack_latest"
+          >
+            Acknowledge latest
+          </button>
           {unackedCount > 1 && (
-            <form
-              action="/api/user/alert-events/ack"
-              method="post"
-              onsubmit={`return confirm('Mark all ${unackedCount} unhandled alerts as handled?');`}
+            <button
+              type="button"
+              class="btn-ghost btn-sm"
+              data-qa-action="ack_all"
+              data-qa-confirm={`Mark all ${unackedCount} unhandled alerts as handled?`}
             >
-              <input type="hidden" name="redirect" value="/dashboard" />
-              <input type="hidden" name="action" value="ack_all" />
-              <button type="submit" class="btn-ghost btn-sm">
-                Handle remaining ({unackedCount})
-              </button>
-            </form>
+              Handle remaining (<span data-overview-field="unackedCount">{unackedCount}</span>)
+            </button>
           )}
         </>
       ) : (
@@ -60,48 +65,47 @@ const spaces = deviceSpaces.filter(Boolean);
       )}
 
       {snoozeActive ? (
-        <form action="/api/user/alert-snooze" method="post">
-          <input type="hidden" name="redirect" value="/dashboard" />
-          <input type="hidden" name="action" value="clear_snooze" />
-          <button type="submit" class="btn-ghost btn-sm" id="overview-snooze-action">
-            Clear snooze
-          </button>
-        </form>
+        <button
+          type="button"
+          class="btn-ghost btn-sm"
+          id="overview-snooze-action"
+          data-qa-snooze="clear_snooze"
+        >
+          Clear snooze
+        </button>
       ) : (
         <div class="overview-snooze-presets inline-flex flex-wrap items-center gap-1">
           <span class="text-sm text-[var(--color-text-muted)]">Snooze</span>
           {[1, 4, 24].map((hours) => (
-            <form action="/api/user/alert-snooze" method="post">
-              <input type="hidden" name="redirect" value="/dashboard" />
-              <input type="hidden" name="action" value="snooze" />
-              <input type="hidden" name="hours" value={String(hours)} />
-              <button
-                type="submit"
-                class="btn-secondary btn-sm"
-                id={hours === 24 ? "overview-snooze-action" : undefined}
-              >
-                {hours}h
-              </button>
-            </form>
+            <button
+              type="button"
+              class="btn-secondary btn-sm"
+              id={hours === 24 ? "overview-snooze-action" : undefined}
+              data-qa-snooze="snooze"
+              data-qa-hours={String(hours)}
+            >
+              {hours}h
+            </button>
           ))}
         </div>
       )}
 
-      <form action="/api/user/space-checked" method="post" class="inline-flex flex-wrap items-center gap-2">
-        <input type="hidden" name="redirect" value="/dashboard" />
-        {householdId && <input type="hidden" name="household_id" value={householdId} />}
+      <div class="inline-flex flex-wrap items-center gap-2">
+        {householdId && (
+          <input type="hidden" data-qa-household value={householdId} />
+        )}
         {spaces.length > 0 && (
-          <select class="form-input text-sm py-1" name="space" aria-label="Space checked">
+          <select class="form-input text-sm py-1" data-qa-space aria-label="Space checked">
             <option value="">Whole property</option>
             {spaces.map((space) => (
               <option value={space}>{space}</option>
             ))}
           </select>
         )}
-        <button type="submit" class="btn-ghost btn-sm" id="overview-checked-space">
+        <button type="button" class="btn-ghost btn-sm" id="overview-checked-space" data-qa-checked>
           I checked the space
         </button>
-      </form>
+      </div>
       <span
         class="overview-checked-status text-sm text-[var(--color-text-muted)]"
         id="overview-checked-status"
@@ -114,29 +118,127 @@ const spaces = deviceSpaces.filter(Boolean);
 )}
 
 <script>
-  const status = document.getElementById("overview-checked-status");
+  const root = document.querySelector("[data-overview-quick-actions]");
+  const statusEl = root?.querySelector<HTMLElement>("[data-qa-status]");
+  const errorEl = root?.querySelector<HTMLElement>("[data-qa-error]");
+  const checkedStatus = document.getElementById("overview-checked-status");
+
+  function showStatus(message: string) {
+    if (statusEl) {
+      statusEl.textContent = message;
+      statusEl.classList.remove("hidden");
+    }
+    errorEl?.classList.add("hidden");
+  }
+
+  function showError(message: string) {
+    if (errorEl) {
+      errorEl.textContent = message;
+      errorEl.classList.remove("hidden");
+    }
+    statusEl?.classList.add("hidden");
+  }
+
   function renderChecked() {
-    if (!status) return;
-    const raw = status.getAttribute("data-checked-at") || "";
+    if (!checkedStatus) return;
+    const raw = checkedStatus.getAttribute("data-checked-at") || "";
     if (!raw) {
-      status.hidden = true;
-      status.textContent = "";
+      checkedStatus.hidden = true;
+      checkedStatus.textContent = "";
       return;
     }
     const ts = Date.parse(raw);
     if (!Number.isFinite(ts)) {
-      status.hidden = true;
+      checkedStatus.hidden = true;
       return;
     }
     const mins = Math.max(0, Math.round((Date.now() - ts) / 60000));
-    status.hidden = false;
-    status.textContent =
+    checkedStatus.hidden = false;
+    checkedStatus.textContent =
       mins < 1
         ? "Checked just now"
         : mins < 60
           ? `Checked ${mins}m ago`
           : `Checked ${Math.round(mins / 60)}h ago`;
   }
+
+  async function postJson(url: string, body: Record<string, unknown>) {
+    const res = await fetch(url, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+    const data = (await res.json().catch(() => ({}))) as {
+      ok?: boolean;
+      error?: string;
+      message?: string;
+      checked_at?: string;
+      count?: number;
+    };
+    if (!res.ok) {
+      throw new Error(data.error || "Request failed");
+    }
+    return data;
+  }
+
+  root?.addEventListener("click", async (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    const btn = target.closest("button");
+    if (!(btn instanceof HTMLButtonElement) || btn.disabled) return;
+
+    const ack = btn.getAttribute("data-qa-action");
+    const snooze = btn.getAttribute("data-qa-snooze");
+    const checked = btn.hasAttribute("data-qa-checked");
+    if (!ack && !snooze && !checked) return;
+
+    if (ack === "ack_all") {
+      const confirmMsg = btn.getAttribute("data-qa-confirm");
+      if (confirmMsg && !window.confirm(confirmMsg)) return;
+    }
+
+    btn.disabled = true;
+    try {
+      if (ack) {
+        const data = await postJson("/api/user/alert-events/ack", { action: ack });
+        showStatus(data.message ?? (ack === "ack_all" ? "Alerts handled." : "Alert acknowledged."));
+        window.setTimeout(() => {
+          window.dispatchEvent(new CustomEvent("overview:soft-refresh"));
+        }, 200);
+      } else if (snooze) {
+        const hours = Number(btn.getAttribute("data-qa-hours") || "24");
+        const data = await postJson("/api/user/alert-snooze", {
+          action: snooze,
+          hours,
+        });
+        showStatus(data.message ?? "Snooze updated.");
+        window.setTimeout(() => location.reload(), 500);
+      } else if (checked) {
+        const household =
+          root.querySelector<HTMLInputElement>("[data-qa-household]")?.value ?? "";
+        const space =
+          root.querySelector<HTMLSelectElement>("[data-qa-space]")?.value ?? "";
+        const data = await postJson("/api/user/space-checked", {
+          household_id: household || undefined,
+          space: space || undefined,
+        });
+        if (data.checked_at) {
+          checkedStatus?.setAttribute("data-checked-at", data.checked_at);
+          renderChecked();
+        }
+        showStatus("Marked as checked.");
+      }
+    } catch (error) {
+      showError(error instanceof Error ? error.message : "Could not complete action.");
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
   renderChecked();
 </script>
 

@@ -63,6 +63,15 @@
       btn.disabled = true;
       const formData = new FormData();
       formData.set("action", action);
+      if (action === "vacation_until") {
+        const until = document.querySelector<HTMLInputElement>("[data-vacation-until-date]")?.value;
+        if (!until) {
+          btn.disabled = false;
+          showError("Pick a vacation return date.");
+          return;
+        }
+        formData.set("until", until);
+      }
       const { data, error } = await actions.updateAlertSnooze(formData);
       btn.disabled = false;
       if (error) {

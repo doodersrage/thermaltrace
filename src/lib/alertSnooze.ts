@@ -55,6 +55,20 @@ export function vacationUntilFromDays(days: number, now = Date.now()): string {
   return new Date(now + clamped * 24 * 60 * 60 * 1000).toISOString();
 }
 
+/** End-of-day ISO for a YYYY-MM-DD vacation return date (local calendar day). */
+export function vacationUntilFromDate(
+  dateYmd: string,
+  now = Date.now(),
+): string | null {
+  const trimmed = dateYmd.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return null;
+  const end = new Date(`${trimmed}T23:59:59`);
+  const ms = end.getTime();
+  if (!Number.isFinite(ms) || ms <= now) return null;
+  const max = now + 90 * 24 * 60 * 60 * 1000;
+  return new Date(Math.min(ms, max)).toISOString();
+}
+
 /** Persist snooze on alert_settings for a user (used by ack playbook). */
 export async function snoozeAlertsForUser(
   userId: string,

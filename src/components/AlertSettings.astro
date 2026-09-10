@@ -310,7 +310,7 @@ const rulesJson = JSON.stringify(settings.alertRules ?? []);
       <summary>Snooze & vacation</summary>
       <div class="alert-settings-nested-body">
         <p class="form-hint mb-3">
-          Snooze pauses most alerts for 24h (outage and flood still fire). Vacation suppresses non-critical alerts for 7 days.
+          Snooze pauses most alerts (outage and flood still fire). Vacation suppresses non-critical alerts until a return date or for a set number of days.
           {settings.snoozeUntil && (
             <span class="block mt-1">Snoozed until {new Date(settings.snoozeUntil).toLocaleString()}.</span>
           )}
@@ -318,7 +318,7 @@ const rulesJson = JSON.stringify(settings.alertRules ?? []);
             <span class="block mt-1">Vacation until {new Date(settings.vacationUntil).toLocaleString()}.</span>
           )}
         </p>
-        <div class="flex flex-wrap gap-2">
+        <div class="flex flex-wrap gap-2 items-end mb-3">
           <button type="button" class="btn-secondary" data-snooze-action="snooze_24">Snooze 24h</button>
           <button type="button" class="btn-secondary" data-snooze-action="vacation_7">Vacation 7d</button>
           {settings.snoozeUntil && (
@@ -327,6 +327,21 @@ const rulesJson = JSON.stringify(settings.alertRules ?? []);
           {settings.vacationUntil && (
             <button type="button" class="btn-secondary" data-snooze-action="clear_vacation">End vacation</button>
           )}
+        </div>
+        <div class="flex flex-wrap gap-2 items-end">
+          <div class="form-field mb-0">
+            <label class="form-label" for="vacation_until_date">Vacation until</label>
+            <input
+              class="form-input"
+              type="date"
+              id="vacation_until_date"
+              data-vacation-until-date
+              min={new Date().toISOString().slice(0, 10)}
+            />
+          </div>
+          <button type="button" class="btn-secondary" data-snooze-action="vacation_until">
+            Set vacation until date
+          </button>
         </div>
       </div>
     </details>

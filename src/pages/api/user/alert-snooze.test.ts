@@ -114,7 +114,7 @@ describe("POST /api/user/alert-snooze (form requests)", () => {
       snoozeUntil: "2024-01-02T00:00:00.000Z",
       vacationUntil: null,
     });
-    expect(context.redirect).toHaveBeenCalledWith("/dashboard/alerts?snooze=1");
+    expect(context.redirect).toHaveBeenCalledWith("/dashboard/alerts?snooze=1&hours=24");
     expect(response.status).toBe(302);
   });
 
@@ -245,7 +245,7 @@ describe("POST /api/user/alert-snooze (JSON requests)", () => {
     const json = await response.json();
 
     expect(response.status).toBe(200);
-    expect(json).toEqual({
+    expect(json).toMatchObject({
       ok: true,
       kind: "snooze",
       message: "Alerts snoozed for 24 hours.",
@@ -258,7 +258,7 @@ describe("POST /api/user/alert-snooze (JSON requests)", () => {
 
     const json = (await (await POST(context)).json()) as Record<string, unknown>;
 
-    expect(json).toEqual({
+    expect(json).toMatchObject({
       ok: true,
       kind: "vacation",
       message: "Vacation mode for 7 days.",

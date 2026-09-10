@@ -19,7 +19,7 @@ const quietLabel =
   <div class="attention-needed card">
     <div class="attention-needed-row">
       {count > 0 ? (
-        <details class="attention-needed-details" open>
+        <details class="attention-needed-details" data-attention-details open>
           <summary class="attention-needed-summary">
             Attention needed ({count})
           </summary>
@@ -52,6 +52,27 @@ const quietLabel =
     </div>
   </div>
 )}
+
+<script>
+  const KEY = "tt-attention-collapsed";
+  const details = document.querySelector<HTMLDetailsElement>("[data-attention-details]");
+  if (details) {
+    try {
+      if (localStorage.getItem(KEY) === "1") {
+        details.open = false;
+      }
+    } catch {
+      // ignore
+    }
+    details.addEventListener("toggle", () => {
+      try {
+        localStorage.setItem(KEY, details.open ? "0" : "1");
+      } catch {
+        // ignore
+      }
+    });
+  }
+</script>
 
 <style>
   .attention-needed-row {

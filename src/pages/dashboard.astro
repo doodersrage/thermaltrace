@@ -399,6 +399,12 @@ const checkedSaved = Astro.url.searchParams.get("checked_saved") === "1";
 const checkedError = Astro.url.searchParams.get("checked_error") === "1";
 const ackOk = Astro.url.searchParams.get("ack_ok") === "1";
 const ackMsg = Astro.url.searchParams.get("ack_msg");
+const snoozeFlash = Astro.url.searchParams.get("snooze") === "1";
+const snoozeCleared = Astro.url.searchParams.get("snooze_cleared") === "1";
+const vacationFlash = Astro.url.searchParams.get("vacation") === "1";
+const vacationCleared = Astro.url.searchParams.get("vacation_cleared") === "1";
+const vacationError = Astro.url.searchParams.get("vacation_error") === "1";
+const snoozeHours = Astro.url.searchParams.get("hours");
 const spaceCheckedMap =
   user.user_metadata?.space_checked_by_household &&
   typeof user.user_metadata.space_checked_by_household === "object" &&
@@ -740,8 +746,8 @@ const garageRisk = computeGarageRiskStatus({
 <DashboardLayout title="Overview">
   <ProductAnalyticsTracker events={analyticsEvents} />
   <div class="dashboard-stack">
-    {(passwordUpdated || prefsSaved || prefsError || checkedSaved || checkedError || ackOk) && (
-      <div class="dashboard-flash">
+    {(passwordUpdated || prefsSaved || prefsError || checkedSaved || checkedError || ackOk || snoozeFlash || snoozeCleared || vacationFlash || vacationCleared || vacationError) && (
+      <div class="dashboard-flash" id="overview-flash">
         {passwordUpdated && (
           <p class="alert-success mt-0 mb-0" role="status">Password updated.</p>
         )}
@@ -774,8 +780,28 @@ const garageRisk = computeGarageRiskStatus({
             {ackMsg ?? "Alert marked as handled."}
           </p>
         )}
+        {snoozeFlash && (
+          <p class="alert-success mt-0 mb-0" role="status">
+            Alerts snoozed{snoozeHours ? ` for ${snoozeHours}h` : ""}.
+          </p>
+        )}
+        {snoozeCleared && (
+          <p class="alert-success mt-0 mb-0" role="status">Snooze cleared.</p>
+        )}
+        {vacationFlash && (
+          <p class="alert-success mt-0 mb-0" role="status">Vacation mode set.</p>
+        )}
+        {vacationCleared && (
+          <p class="alert-success mt-0 mb-0" role="status">Vacation cleared.</p>
+        )}
+        {vacationError && (
+          <p class="alert-warning mt-0 mb-0" role="alert">
+            Could not set vacation. Pick a future return date.
+          </p>
+        )}
       </div>
     )}
+    <div id="overview-live-flash" class="dashboard-flash hidden" aria-live="polite"></div>
 
     <DashboardOnboarding
       hasDevices={hasDevices}
@@ -1041,6 +1067,11 @@ const garageRisk = computeGarageRiskStatus({
             value={newestReading ? lastAge.label : "None yet"}
             href="/"
             tone={!newestReading || lastAge.lagging ? "warning" : "success"}
+            metricId="last_reading"
+            pinned
+            canPin={canEdit}
+            snapshotField="last_reading"
+            liveAgeIso={newestReading}
           />
         )}
         {showPinnedMetric("sensors") && (
@@ -1050,6 +1081,10 @@ const garageRisk = computeGarageRiskStatus({
             detail={sensorCount > 0 ? `${sensorCount} total` : null}
             href="/dashboard/devices"
             tone={staleSensorCount > 0 ? "warning" : "neutral"}
+            metricId="sensors"
+            pinned
+            canPin={canEdit}
+            snapshotField="sensors"
           />
         )}
         {!firstRunFocus && showPinnedMetric("feeds") && (
@@ -1058,6 +1093,9 @@ const garageRisk = computeGarageRiskStatus({
             value={feedsValue}
             href="/dashboard/devices#pull-feeds"
             tone={feedIssueCount > 0 ? "warning" : "neutral"}
+            metricId="feeds"
+            pinned
+            canPin={canEdit}
           />
         )}
         {showPinnedMetric("alerts") && (
@@ -1067,6 +1105,10 @@ const garageRisk = computeGarageRiskStatus({
             detail={lastAlertAt ? `Last ${lastAlertAge.label}` : "Send a test"}
             href="/dashboard/alerts"
             tone={alertSettings.enabled ? "success" : "neutral"}
+            metricId="alerts"
+            pinned
+            canPin={canEdit}
+            snapshotField="alerts"
           />
         )}
         {!firstRunFocus && houseContext && showPinnedMetric("house") && (
@@ -1076,6 +1118,9 @@ const garageRisk = computeGarageRiskStatus({
             detail={houseContext.metricDetail}
             href="/dashboard/devices#indoor-reference"
             tone="neutral"
+            metricId="house"
+            pinned
+            canPin={canEdit}
           />
         )}
         {!firstRunFocus && (
@@ -1097,6 +1142,9 @@ const garageRisk = computeGarageRiskStatus({
                 }
                 href="/dashboard/history"
                 tone={freezeHours.hoursBelow34 > 0 ? "warning" : "neutral"}
+                metricId="freeze_hours"
+                pinned
+                canPin={canEdit}
               />
             )}
             {showPinnedMetric("coldest_margin") && (
@@ -1122,6 +1170,10 @@ const garageRisk = computeGarageRiskStatus({
                         ? "warning"
                         : "success"
                 }
+                metricId="coldest_margin"
+                pinned
+                canPin={canEdit}
+                snapshotField="coldest_margin"
               />
             )}
             {showPinnedMetric("indoor_outdoor") && (
@@ -1147,6 +1199,9 @@ const garageRisk = computeGarageRiskStatus({
                       ? "warning"
                       : "neutral"
                 }
+                metricId="indoor_outdoor"
+                pinned
+                canPin={canEdit}
               />
             )}
             {showPinnedMetric("probe_spread") && (
@@ -1166,6 +1221,9 @@ const garageRisk = computeGarageRiskStatus({
                       ? "warning"
                       : "neutral"
                 }
+                metricId="probe_spread"
+                pinned
+                canPin={canEdit}
               />
             )}
             {showPinnedMetric("condensation") && (
@@ -1188,6 +1246,9 @@ const garageRisk = computeGarageRiskStatus({
                     ? "warning"
                     : "neutral"
                 }
+                metricId="condensation"
+                pinned
+                canPin={canEdit}
               />
             )}
             {feedUptime && showPinnedMetric("feed_health") && (
@@ -1197,6 +1258,9 @@ const garageRisk = computeGarageRiskStatus({
                 detail={`${feedUptime.ok}/${feedUptime.total} feeds reachable now`}
                 href="/dashboard/devices#pull-feeds"
                 tone={feedUptime.pct < 100 ? "warning" : "success"}
+                metricId="feed_health"
+                pinned
+                canPin={canEdit}
               />
             )}
           </>
@@ -1356,6 +1420,11 @@ const garageRisk = computeGarageRiskStatus({
         "prefs_saved",
         "prefs_error",
         "snooze",
+        "snooze_cleared",
+        "hours",
+        "vacation",
+        "vacation_cleared",
+        "vacation_error",
       ];
 
       function stripFlashParams() {
@@ -1379,6 +1448,18 @@ const garageRisk = computeGarageRiskStatus({
           mins < 1 ? "Updated just now" : mins === 1 ? "Updated 1m ago" : "Updated " + mins + "m ago";
       }
 
+      function setMetric(field, value, detail, tone) {
+        var card = document.querySelector('[data-snapshot-field="' + field + '"]');
+        if (!card) return;
+        var valueEl = card.querySelector("[data-metric-value]");
+        var detailEl = card.querySelector("[data-metric-detail]");
+        if (valueEl && value != null) valueEl.textContent = value;
+        if (detailEl && detail != null) detailEl.textContent = detail;
+        if (tone) {
+          card.className = card.className.replace(/metric-card--\w+/g, "metric-card--" + tone);
+        }
+      }
+
       function applySnapshot(data) {
         if (!data || typeof data !== "object") return;
         loadedAt = Date.now();
@@ -1395,10 +1476,60 @@ const garageRisk = computeGarageRiskStatus({
             "garage-risk-status--" + data.risk,
           );
         }
-        var unacked = document.querySelector('[data-overview-field="unackedCount"]');
-        if (unacked && typeof data.unackedAlerts === "number") {
-          unacked.textContent = String(data.unackedAlerts);
+        var unacked = document.querySelectorAll('[data-overview-field="unackedCount"]');
+        unacked.forEach(function (el) {
+          if (typeof data.unackedAlerts === "number") el.textContent = String(data.unackedAlerts);
+        });
+
+        if (data.lastReadingAt) {
+          setMetric(
+            "last_reading",
+            data.lastReadingAge || "just now",
+            null,
+            data.lastReadingLagging ? "warning" : "success",
+          );
+          var lastValue = document.querySelector(
+            '[data-snapshot-field="last_reading"] [data-metric-value]',
+          );
+          if (lastValue) lastValue.setAttribute("data-live-age-iso", data.lastReadingAt);
+        } else {
+          setMetric("last_reading", "None yet", null, "warning");
         }
+
+        if (typeof data.sensorCount === "number") {
+          var sensorsLabel =
+            data.sensorCount === 0
+              ? "None"
+              : data.staleSensors > 0
+                ? data.staleSensors + " stale"
+                : data.sensorCount + " fresh";
+          setMetric(
+            "sensors",
+            sensorsLabel,
+            data.sensorCount > 0 ? data.sensorCount + " total" : null,
+            data.staleSensors > 0 ? "warning" : "neutral",
+          );
+        }
+
+        if (typeof data.alertsEnabled === "boolean") {
+          setMetric("alerts", data.alertsEnabled ? "On" : "Off", null, data.alertsEnabled ? "success" : "neutral");
+        }
+
+        if (typeof data.coldestMarginF === "number") {
+          var margin = data.coldestMarginF;
+          var marginLabel = (margin >= 0 ? "+" : "") + margin.toFixed(1) + "°F";
+          var marginDetail =
+            data.coldestProbeTempF != null
+              ? data.coldestProbeTempF.toFixed(1) +
+                "°F vs " +
+                data.freezeThresholdF +
+                "°F alert"
+              : null;
+          var marginTone =
+            margin <= 0 ? "danger" : margin <= 5 ? "warning" : "success";
+          setMetric("coldest_margin", marginLabel, marginDetail, marginTone);
+        }
+
         var banner = document.getElementById("overview-offline-banner");
         if (banner) banner.hidden = true;
       }
@@ -1425,6 +1556,7 @@ const garageRisk = computeGarageRiskStatus({
       }
 
       btn?.addEventListener("click", softRefresh);
+      window.addEventListener("overview:soft-refresh", softRefresh);
       stripFlashParams();
       setInterval(renderAge, 30000);
       setInterval(function () {
@@ -1432,6 +1564,37 @@ const garageRisk = computeGarageRiskStatus({
         if (Date.now() - loadedAt < 2.5 * 60 * 1000) return;
         softRefresh();
       }, 60000);
+
+      document.addEventListener("click", function (event) {
+        var target = event.target;
+        if (!(target instanceof Element)) return;
+        var pinBtn = target.closest("[data-pin-metric]");
+        if (!(pinBtn instanceof HTMLButtonElement)) return;
+        event.preventDefault();
+        event.stopPropagation();
+        var metric = pinBtn.getAttribute("data-pin-metric");
+        if (!metric) return;
+        pinBtn.disabled = true;
+        fetch("/api/user/dashboard-pinned-metrics", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ action: "toggle", metric: metric }),
+        })
+          .then(function (res) {
+            if (!res.ok) throw new Error("pin failed");
+            return res.json();
+          })
+          .then(function () {
+            location.reload();
+          })
+          .catch(function () {
+            pinBtn.disabled = false;
+          });
+      });
 
       fetch("/api/user/dashboard-snapshot", { headers: { Accept: "application/json" } })
         .then(function (res) {
