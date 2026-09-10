@@ -1,5 +1,6 @@
 ---
 import DashboardLayout from "../../layouts/DashboardLayout.astro";
+import AdminNav from "../../components/dashboard/AdminNav.astro";
 import { collectAllUsersFeedHealth } from "../../lib/collectHistory";
 import { getAuthFromCookies } from "../../lib/auth";
 import { isUserAdmin } from "../../lib/adminAccess";
@@ -24,23 +25,15 @@ const failing = statuses.filter((status) => !status.ok);
 const healthy = statuses.filter((status) => status.ok);
 ---
 
-<DashboardLayout title="Feed health" requireAdmin>
+<DashboardLayout title="Feed health" subtitle="Live status for every configured feed across accounts." requireAdmin>
   <div class="space-y-6">
-    <section class="card animate-slide-in-left">
-      <h2 class="card-title">Platform feed health</h2>
-      <p class="card-subtitle">{user.email}</p>
-      <p class="mb-0">
-        Live status for every configured feed across all accounts. Refresh this page to re-check URLs.
-      </p>
-    </section>
-
+    <AdminNav />
     {errors.length > 0 && (
       <div class="alert-warning">
         {errors.map((message) => <p class="m-0">{message}</p>)}
       </div>
     )}
-
-    <section class="card">
+    <section class="card animate-slide-in-left">
       <h2 class="card-title">Needs attention ({failing.length})</h2>
       {failing.length === 0 ? (
         <p class="m-0 stat-detail">All checked feeds are responding.</p>

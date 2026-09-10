@@ -16,7 +16,7 @@ const { count, canEdit = false } = Astro.props;
 >
   <strong data-overview-field="unackedCount">{count}</strong>
   <span data-unacked-label> unhandled alert{count === 1 ? "" : "s"}.</span>
-  <a href="/dashboard/alerts" class="text-link ml-1">Review</a>
+  <a href="/dashboard/alerts?tab=activity" class="text-link ml-1">Review</a>
   <span data-unacked-ack-all class:list={[(!canEdit || count <= 0) && "hidden"]}>
     {" · "}
     <button

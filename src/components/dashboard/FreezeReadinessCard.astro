@@ -29,7 +29,7 @@ const failed = readiness.checks.filter((c) => !c.ok);
   </ul>
   <div class="flex flex-wrap gap-2">
     {!readiness.ready && (
-      <a class="btn-secondary" href={failed.find((c) => c.id === "vacation_clear") ? "/dashboard/alerts" : "/dashboard/alerts#send-test-alert"}>
+      <a class="btn-secondary" href={failed.find((c) => c.id === "vacation_clear") ? "/dashboard/alerts?tab=settings" : "/dashboard/alerts?tab=settings#send-test-alert"}>
         {failed.find((c) => c.id === "vacation_clear") ? "Clear vacation mode" : "Send test alert"}
       </a>
     )}

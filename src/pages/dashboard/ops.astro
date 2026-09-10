@@ -1,5 +1,6 @@
 ---
 import DashboardLayout from "../../layouts/DashboardLayout.astro";
+import AdminNav from "../../components/dashboard/AdminNav.astro";
 import { fetchCheckoutAnalyticsAdmin } from "../../lib/checkoutAnalytics";
 import { fetchAppStatus } from "../../lib/appStatus";
 import { fetchReferralAdminStats } from "../../lib/referrals";
@@ -58,8 +59,9 @@ const opsDiscordConfigured = Boolean(
     import.meta.env.DISCORD_OPS_WEBHOOK_URL?.trim(),
 );
 ---
-<DashboardLayout title="Ops" requireAdmin>
+<DashboardLayout title="Ops" subtitle="Health, checkout funnel, pricing audit, and email tests." requireAdmin>
   <div class="space-y-6">
+    <AdminNav />
     <section class="card animate-slide-in-left">
       <h2 class="card-title">Ops & conversion</h2>
       <p class="card-subtitle mb-0">{user.email}: health, checkout funnel, pricing audit, and email tests.</p>
@@ -82,7 +84,7 @@ const opsDiscordConfigured = Boolean(
             <>
               {" "}
               Open{" "}
-              <a class="text-link" href="/dashboard/alerts#alert-section-channels">
+              <a class="text-link" href="/dashboard/alerts?tab=settings#alert-section-channels">
                 Alerts → Channels → Push
               </a>
               , click <strong>Enable browser push on this device</strong>, allow notifications, save

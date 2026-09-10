@@ -26,7 +26,7 @@ const analyticsEvents = Astro.url.searchParams.get("created")
   ? [{ name: "family_share_created" as const }]
   : [];
 ---
-<DashboardLayout title="Share. Links">
+<DashboardLayout title="Share" subtitle="One-click live view. Anyone with the link can see live sensors.">
   <ProductAnalyticsTracker events={analyticsEvents} />
   <ShareNav active="links">
     <div class="space-y-6">

@@ -27,7 +27,6 @@ import {
   getUserHouseholdRole,
   canEditHousehold,
 } from "../lib/households";
-import HouseholdSwitcher from "../components/HouseholdSwitcher.astro";
 import DoorDurationCard from "../components/DoorDurationCard.astro";
 import DoorEventHistory from "../components/DoorEventHistory.astro";
 import TimeToFreezeCard from "../components/TimeToFreezeCard.astro";
@@ -746,17 +745,8 @@ const activeOverviewBanners = overviewBannerQueue
 const criticalBanners = activeOverviewBanners.filter((b) =>
   isCriticalOverviewBanner(b.id),
 );
-const nonCriticalBanners = activeOverviewBanners.filter(
-  (b) => !isCriticalOverviewBanner(b.id),
-);
-/** Only ops (or Live coach) may sit as the single non-critical primary. */
-const primaryEligible = nonCriticalBanners.filter(
-  (b) => isOpsAttentionBanner(b.id) || b.id === "youreLive",
-);
 const primaryBannerIds = new Set<string>(
-  criticalBanners.length > 0
-    ? criticalBanners.map((b) => b.id)
-    : primaryEligible.slice(0, 1).map((b) => b.id),
+  criticalBanners.map((b) => b.id),
 );
 const secondaryBannerIds = new Set(
   activeOverviewBanners
@@ -806,7 +796,11 @@ const garageRisk = computeGarageRiskStatus({
   wetFloodCount,
 });
 ---
-<DashboardLayout title="Overview" liveLagging={staleSensorCount > 0 || lastAge.lagging}>
+<DashboardLayout
+  title="Overview"
+  subtitle="Space status for this property."
+  liveLagging={staleSensorCount > 0 || lastAge.lagging}
+>
   <ProductAnalyticsTracker events={analyticsEvents} />
   <div class="dashboard-stack">
     {(passwordUpdated || prefsSaved || prefsError || checkedSaved || checkedError || ackOk || snoozeFlash || snoozeCleared || vacationFlash || vacationCleared || vacationError) && (
@@ -881,19 +875,9 @@ const garageRisk = computeGarageRiskStatus({
     />
 
     <GarageRiskStatusCard status={garageRisk} />
-  <div id="overview-offline-banner" class="alert-warning mb-0" role="status" hidden>
+    <div id="overview-offline-banner" class="alert-warning mb-0" role="status" hidden>
       Showing last-known dashboard status (offline or stale cache).
     </div>
-    <div class="overview-refresh-row flex flex-wrap items-center gap-2 text-sm text-[var(--color-text-muted)]">
-      <span id="overview-refresh-label">Updated just now</span>
-      <button type="button" class="btn-ghost btn-sm" id="overview-refresh-btn">
-        Refresh
-      </button>
-    </div>
-    <HouseholdSwitcher
-      households={userHouseholds.households}
-      activeHouseholdId={activeHouseholdId}
-    />
 
     <UnackedAlertsBanner
       count={unackedAlertCount}
@@ -929,36 +913,6 @@ const garageRisk = computeGarageRiskStatus({
       </div>
     )}
 
-    <DashboardYoureLive
-      show={primaryBannerIds.has("youreLive")}
-      hasAlertsEnabled={hasAlertsEnabled}
-      hasEmailAlerts={hasEmailAlerts}
-      hasTestAlert={hasTestAlert}
-    />
-
-    <AlertSetupNudge
-      hasAlertsEnabled={hasAlertsEnabled}
-      hasEmailAlerts={hasEmailAlerts}
-      canEdit={canEdit}
-      show={primaryBannerIds.has("alertSetup")}
-    />
-
-    <TestAlertNudge
-      canEdit={canEdit}
-      show={primaryBannerIds.has("testAlert")}
-    />
-
-    <ColdSnapChecklistCard
-      show={primaryBannerIds.has("coldSnap")}
-      coldSnapEnabled={alertSettings.forecastFreezeEnabled}
-      canUseForecast={entitlements.canUseForecastAlerts}
-    />
-
-    {primaryBannerIds.has("freezeReadiness") && (
-      <FreezeReadinessCard readiness={freezeReadiness} />
-    )}
-
-
     {firstRunFocus && canEdit && (
       <section class="card" aria-labelledby="first-run-focus-title">
         <h2 class="card-title" id="first-run-focus-title">
@@ -989,19 +943,19 @@ const garageRisk = computeGarageRiskStatus({
               <a class="btn-ghost" href="/about/probe-demo">Probe simulator</a>
             </>
           ) : !hasEmailAlerts ? (
-            <a class="btn-primary" href="/dashboard/alerts#alert-section-essentials">
+            <a class="btn-primary" href="/dashboard/alerts?tab=settings#alert-section-essentials">
               Alert essentials
             </a>
           ) : (
-            <a class="btn-primary" href="/dashboard/alerts#send-test-alert">Send test alert</a>
+            <a class="btn-primary" href="/dashboard/alerts?tab=settings#send-test-alert">Send test alert</a>
           )}
           {latest.length > 0 && hasEmailAlerts && (
-            <a class="btn-ghost" href="/dashboard/alerts#alert-section-essentials">
+            <a class="btn-ghost" href="/dashboard/alerts?tab=settings#alert-section-essentials">
               Review freeze + email
             </a>
           )}
           {latest.length === 0 && (
-            <a class="btn-ghost" href="/dashboard/alerts#alert-section-essentials">Alert essentials</a>
+            <a class="btn-ghost" href="/dashboard/alerts?tab=settings#alert-section-essentials">Alert essentials</a>
           )}
         </div>
       </section>
@@ -1024,7 +978,7 @@ const garageRisk = computeGarageRiskStatus({
             <a class="btn-secondary" href="/about/esp32-freeze-kit">ESP32 parts list</a>
           )}
           <a class="btn-ghost" href="/about/probe-demo">Probe simulator</a>
-          <a class="btn-ghost" href="/dashboard/alerts#alert-section-essentials">Alert essentials</a>
+          <a class="btn-ghost" href="/dashboard/alerts?tab=settings#alert-section-essentials">Alert essentials</a>
         </div>
       </section>
     )}
@@ -1504,7 +1458,7 @@ const garageRisk = computeGarageRiskStatus({
     (function () {
       var loadedAt = Date.now();
       var label = document.getElementById("overview-refresh-label");
-      var btn = document.getElementById("overview-refresh-btn");
+      var btn = document.getElementById("dashboard-refresh-btn") || document.getElementById("overview-refresh-btn");
       var flashKeys = [
         "checked_saved",
         "checked_error",

@@ -4,7 +4,7 @@ import DeviceSetupWizard from "../../components/DeviceSetupWizard.astro";
 import IngestFirmwarePanel from "../../components/dashboard/IngestFirmwarePanel.astro";
 import DevicesFirstRunCard from "../../components/dashboard/DevicesFirstRunCard.astro";
 import DeviceHealthPanel from "../../components/dashboard/DeviceHealthPanel.astro";
-import DashboardFreshnessBar from "../../components/dashboard/DashboardFreshnessBar.astro";
+import DashboardTabNav from "../../components/dashboard/DashboardTabNav.astro";
 import PushDevicesPanel from "../../components/dashboard/PushDevicesPanel.astro";
 import PullFeedsPanel from "../../components/dashboard/PullFeedsPanel.astro";
 import DeviceIntegrationsStrip from "../../components/DeviceIntegrationsStrip.astro";
@@ -269,37 +269,61 @@ const firmwareSensors =
   waitingSensors.length > 0
     ? waitingSensors.map((s) => ({ key: s.key, kind: s.kind }))
     : [{ key: "temp1", kind: "temperature" }];
+const viewParam = Astro.url.searchParams.get("view");
+const devicesView =
+  viewParam === "setup" || viewParam === "all"
+    ? "setup"
+    : viewParam === "ops"
+      ? "ops"
+      : hasLiveIngest && !showDeviceWizard && !neverSeenWithSensors
+        ? "ops"
+        : "setup";
+const devicesSetupHref =
+  activeTab === "pull" ? "/dashboard/devices?view=setup&tab=pull" : "/dashboard/devices?view=setup";
 ---
-<DashboardLayout title="Devices">
+<DashboardLayout
+  title="Devices"
+  subtitle={
+    devicesView === "ops"
+      ? "Health and last-seen for this property."
+      : "Create a push device or pull feed, then confirm the first reading."
+  }
+>
   <ProductAnalyticsTracker events={analyticsEvents} />
   <div class="space-y-6">
-    <section class="card">
-      <h2 class="card-title">Devices & sensors</h2>
-      <p class="card-subtitle">
-        {showPowerFeatures && !showDeviceWizard
-          ? "Health and last-seen for this property. Add or wire hardware under Setup when you need it."
-          : "Create a push device, copy the ingest URL into your ESP/Arduino, and sensors appear on first POST. Pull feeds, thermostats, and Home Assistant live under other connection options."}
+    {deviceNotice && (
+      <p class:list={[noticeIsError ? "alert-warning" : "alert-success", "mt-0 mb-0"]}>
+        {deviceNotice}
+        {noticeParam === "device_limit" && (
+          <>
+            {" "}
+            <a class="text-link" href="/dashboard/plans">View plans</a>
+          </>
+        )}
       </p>
-      {deviceNotice && (
-        <p class:list={[noticeIsError ? "alert-warning" : "alert-success", "mt-0"]}>
-          {deviceNotice}
-          {noticeParam === "device_limit" && (
-            <>
-              {" "}
-              <a class="text-link" href="/dashboard/plans">View plans</a>
-            </>
-          )}
-        </p>
-      )}
-    </section>
+    )}
 
-    <DashboardFreshnessBar hint={showPowerFeatures ? "Device health" : null} />
+    <DashboardTabNav
+      tabs={[
+        { id: "ops", label: "Status", href: "/dashboard/devices?view=ops" },
+        { id: "setup", label: "Setup", href: devicesSetupHref },
+      ]}
+      activeId={devicesView}
+      ariaLabel="Device sections"
+    />
 
-    {showPowerFeatures && !showDeviceWizard && (
+    {devicesView === "ops" && showPowerFeatures && !showDeviceWizard && (
       <DeviceHealthPanel devices={devices} latest={latest} feedHealth={feedHealth} />
     )}
 
-    {activeTab === "push" && devices.length === 0 && (
+    {devicesView === "ops" && (
+      <p class="form-hint mb-0">
+        Need a new ingest URL or pull feed?
+        <a class="text-link" href={devicesSetupHref}>Open Setup</a>
+      </p>
+    )}
+
+    {devicesView === "setup" && activeTab === "push" && devices.length === 0 && (
       <DevicesFirstRunCard
         canEdit={canEdit}
         atDeviceLimit={atDeviceLimit}
@@ -308,42 +332,34 @@ const firmwareSensors =
       />
     )}
 
-    {activeTab === "push" ? (
+    {devicesView === "setup" && (activeTab === "push" ? (
       <p class="form-hint mb-0">
         Prefer a scheduled HTTPS JSON feed or thermostat?
-        <a class="text-link" href="/dashboard/devices?tab=pull">Other ways to connect</a>
+        <a class="text-link" href="/dashboard/devices?view=setup&tab=pull">Other ways to connect</a>
       </p>
     ) : (
       <nav class="flex flex-wrap gap-2" aria-label="Device source">
-        <a class="btn-secondary" href="/dashboard/devices?tab=push">
+        <a class="btn-secondary" href="/dashboard/devices?view=setup&tab=push">
           ← Back to push devices
         </a>
         <a
           class:list={["btn-secondary", "ring-2 ring-[var(--color-accent)]"]}
-          href="/dashboard/devices?tab=pull"
+          href="/dashboard/devices?view=setup&tab=pull"
         >
           Pull feeds & thermostats
         </a>
       </nav>
+    ))}
+
+    {devicesView === "setup" && activeTab === "push" && (
+      <DeviceIntegrationsStrip />
     )}
 
-    {activeTab === "push" && showPowerFeatures && !showDeviceWizard && (
-      <details class="card">
-        <summary class="cursor-pointer font-semibold">Add / wire a device</summary>
-        <div class="mt-4 space-y-4">
-          <DeviceIntegrationsStrip />
-          <p class="mb-0 text-sm text-[var(--color-text-muted)]">
-            Need a new push ingest URL, firmware sketch, or pull feed? Open the panels below or switch to
-            <a class="text-link" href="/dashboard/devices?tab=pull">Pull feeds &amp; thermostats</a>.
-          </p>
-        </div>
-      </details>
+    {devicesView === "setup" && (
+      <DeviceSetupWizard show={postSetupFunnel} alertsDone={alertsEssentialsDone || alertSaved} />
     )}
 
-    {activeTab === "push" && showPowerFeatures && showDeviceWizard && <DeviceIntegrationsStrip />}
-
-    <DeviceSetupWizard show={postSetupFunnel} alertsDone={alertsEssentialsDone || alertSaved} />
-
+    {devicesView === "setup" && (
     <FirstAlertSetupCard
       show={showFirstAlertSetup}
       freezeThresholdF={alertSettings.freezeThresholdF}
@@ -352,8 +368,9 @@ const firmwareSensors =
       testSent={testSent}
       testError={testError}
     />
+    )}
 
-    {showZeroHardwareCta && (
+    {devicesView === "setup" && showZeroHardwareCta && (
       <DemoPullNudge show redirectTo="/dashboard" />
     )}
 
@@ -361,7 +378,7 @@ const firmwareSensors =
       <UpgradeNudge feature="device_limit" tier={entitlements.tier} compact />
     )}
 
-    {ingestKey && (
+    {(devicesView === "setup" || Boolean(ingestKey)) && ingestKey && (
       <section class="card ingest-key-callout" id="ingest-key-callout">
         <h2 class="card-title">{keyCalloutTitle}</h2>
         <p class="card-subtitle">
@@ -426,7 +443,7 @@ const firmwareSensors =
       </section>
     )}
 
-    {showReceivingData && !postSetupFunnel && !showFirstAlertSetup && (
+    {devicesView === "ops" && showReceivingData && !postSetupFunnel && !showFirstAlertSetup && (
       <section class="card alert-success" id="receiving-data">
         <h2 class="card-title">Receiving data</h2>
         <p class="mb-4">
@@ -439,7 +456,7 @@ const firmwareSensors =
       </section>
     )}
 
-    {showVerifyIngest && (
+    {devicesView === "setup" && showVerifyIngest && (
       <section
         class="card ingest-waiting-callout"
         id="verify-ingest-step"
@@ -532,7 +549,7 @@ const firmwareSensors =
       </section>
     )}
 
-    {showDeviceWizard && activeTab === "push" && devices.length > 0 && (
+    {devicesView === "setup" && showDeviceWizard && activeTab === "push" && devices.length > 0 && (
       <section class="card" id="device-setup-wizard">
         <h2 class="card-title">Device setup</h2>
         <p class="card-subtitle mb-4">
@@ -563,10 +580,9 @@ const firmwareSensors =
       transferTargets={transferTargets}
     />
 
-    {!showDeviceWizard && (
-      <>
+    {((devicesView === "ops" && !showDeviceWizard) || (devicesView === "setup" && activeTab === "pull")) && (
     <PullFeedsPanel
-      activeTab={activeTab}
+      activeTab={devicesView === "setup" ? "pull" : activeTab}
       showPowerFeatures={showPowerFeatures}
       canEdit={canEdit}
       canManageThermostat={canManageThermostat}
@@ -583,7 +599,6 @@ const firmwareSensors =
       demoPullStarted={demoPullStarted}
       pullSaved={pullSaved}
     />
-      </>
     )}
   </div>
   <datalist id="space-suggestions">

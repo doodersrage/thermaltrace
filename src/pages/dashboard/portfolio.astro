@@ -74,7 +74,7 @@ const vacationDays = flash.get("days");
 const vacationProperties = flash.get("properties");
 const viewMode = Astro.url.searchParams.get("view") === "heatmap" ? "heatmap" : "list";
 ---
-<DashboardLayout title="Portfolio">
+<DashboardLayout title="Portfolio" subtitle="Cross-property freeze and flood risk at a glance.">
   <div class="space-y-6">
     {!entitlements.canUsePortfolio ? (
       <UpgradeNudge feature="multi_property" tier={entitlements.tier} />

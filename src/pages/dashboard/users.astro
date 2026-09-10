@@ -1,5 +1,6 @@
 ---
 import DashboardLayout from "../../layouts/DashboardLayout.astro";
+import AdminNav from "../../components/dashboard/AdminNav.astro";
 import UserManager from "../../components/UserManager.astro";
 import { getAuthFromCookies } from "../../lib/auth";
 import { isUserAdmin } from "../../lib/adminAccess";
@@ -41,15 +42,9 @@ if (users.totalPages > 0 && pageParam > users.totalPages) {
   return Astro.redirect(`/dashboard/users${queryString(users.totalPages)}`);
 }
 ---
-<DashboardLayout title="User Manager" requireAdmin>
+<DashboardLayout title="Users" subtitle="Manage registered accounts and admin group membership." requireAdmin>
   <div class="space-y-6">
-    <section class="card animate-slide-in-left">
-      <h2 class="card-title">User manager</h2>
-      <p class="card-subtitle">{user.email}</p>
-      <p class="mb-0">
-        Manage registered accounts and admin group membership. New signups are automatically added to the user group.
-      </p>
-    </section>
+    <AdminNav />
 
     <section class="card">
       <h2 class="card-title">Referral program</h2>

@@ -65,7 +65,7 @@ beforeEach(() => {
   mockGetUserEntitlements.mockReset().mockResolvedValue(fakeEntitlements());
   mockCountUnacknowledgedAlerts.mockReset().mockResolvedValue(0);
   mockListUserHouseholds.mockReset().mockResolvedValue({
-    households: [{ id: "hh-1", name: "Home" }],
+    households: [{ household_id: "hh-1", name: "Home", role: "owner" }],
     error: null,
   });
   mockGetOrCreateHouseholdForUser.mockReset().mockResolvedValue({
@@ -97,7 +97,7 @@ describe("loadDashboardShell", () => {
       fakeEntitlements({ canUsePortfolio: true }),
     );
     mockListUserHouseholds.mockResolvedValue({
-      households: [{ id: "hh-1", name: "Home" }],
+      households: [{ household_id: "hh-1", name: "Home", role: "owner" }],
       error: null,
     });
 
@@ -110,14 +110,15 @@ describe("loadDashboardShell", () => {
     );
     mockListUserHouseholds.mockResolvedValue({
       households: [
-        { id: "hh-1", name: "Home" },
-        { id: "hh-2", name: "Cabin" },
+        { household_id: "hh-1", name: "Home", role: "owner" },
+        { household_id: "hh-2", name: "Cabin", role: "owner" },
       ],
       error: null,
     });
     const withTwoHomes = await loadDashboardShell({} as AstroCookies);
     expect(withTwoHomes?.showPortfolioInMonitor).toBe(true);
     expect(withTwoHomes?.householdCount).toBe(2);
+    expect(withTwoHomes?.activeHouseholdName).toBe("Home");
   });
 
   it("skips latest fetch when includeLiveLag is false", async () => {
@@ -134,6 +135,8 @@ describe("loadDashboardShell", () => {
     expect(mockFetchLatestSensorValues).not.toHaveBeenCalled();
     expect(result?.latest).toBeNull();
     expect(result?.liveLagging).toBe(false);
+    expect(result?.lastReadingAt).toBeNull();
+    expect(result?.activeHouseholdName).toBe("Home");
   });
 
   it("stores latest rows when live lag is included", async () => {
@@ -156,6 +159,7 @@ describe("loadDashboardShell", () => {
     expect(result?.latest).toEqual(rows);
     expect(result?.liveLagging).toBe(false);
     expect(result?.activeHouseholdId).toBe("hh-1");
+    expect(result?.lastReadingAt).toBe(rows[0]?.recorded_at);
   });
 });
 

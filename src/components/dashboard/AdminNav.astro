@@ -1,0 +1,12 @@
+---
+import DashboardTabNav from "./DashboardTabNav.astro";
+import { ADMIN_DASHBOARD_TABS, adminTabIdFromPath } from "../../lib/dashboardNav";
+
+const currentPath = Astro.url.pathname;
+const activeId = adminTabIdFromPath(currentPath);
+---
+<DashboardTabNav
+  tabs={[...ADMIN_DASHBOARD_TABS]}
+  activeId={activeId}
+  ariaLabel="Admin sections"
+/>

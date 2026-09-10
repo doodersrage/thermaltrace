@@ -18,7 +18,7 @@ describe("computeGarageRiskStatus", () => {
   it("asks for a device when none exist", () => {
     const status = computeGarageRiskStatus({ ...base, hasDevices: false });
     expect(status.level).toBe("watch");
-    expect(status.actionHref).toContain("temperature");
+    expect(status.actionHref).toContain("devices");
   });
 
   it("flags freeze risk when coldest probe is at threshold", () => {

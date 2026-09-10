@@ -1,21 +1,25 @@
 ---
 import Layout from "./Layout.astro";
 import DashboardSidebar from "../components/DashboardSidebar.astro";
+import HouseholdSwitcher from "../components/HouseholdSwitcher.astro";
+import ReadingAgeBadge from "../components/dashboard/ReadingAgeBadge.astro";
 import KioskModeToggle from "../components/KioskModeToggle";
 import {
   loadDashboardShell,
   planLabelForEntitlements,
   type DashboardShell,
 } from "../lib/dashboardShell";
+import { newestRecordedAt } from "../lib/dashboardNav";
 
 interface Props {
   title?: string;
+  subtitle?: string;
   requireAdmin?: boolean;
   /** Override shell live-lag when the page already computed it. */
   liveLagging?: boolean;
 }
 
-const { title = "Dashboard", requireAdmin = false, liveLagging } = Astro.props;
+const { title = "Dashboard", subtitle, requireAdmin = false, liveLagging } = Astro.props;
 
 let shell: DashboardShell | null = Astro.locals.dashboardShell ?? null;
 if (!shell) {
@@ -33,6 +37,15 @@ if (requireAdmin && !shell.isAdmin) {
 const planLabel = planLabelForEntitlements(shell.entitlements);
 const currentPath = Astro.url.pathname;
 const lag = typeof liveLagging === "boolean" ? liveLagging : shell.liveLagging;
+const lastReadingAt =
+  shell.lastReadingAt ?? newestRecordedAt(shell.latest ?? []);
+const switchRedirect = `${Astro.url.pathname}${Astro.url.search}`;
+const paletteHouseholds = shell.households.map((row) => ({
+  id: row.household_id,
+  name: row.name,
+}));
+const householdSwitched = Astro.url.searchParams.get("household_switched") === "1";
+const householdError = Astro.url.searchParams.get("household_error") === "1";
 ---
 <Layout title={title}>
   <div class="dashboard-shell">
@@ -49,24 +62,78 @@ const lag = typeof liveLagging === "boolean" ? liveLagging : shell.liveLagging;
       <header class="dashboard-topbar">
         <div class="dashboard-topbar-text">
           <h1 class="dashboard-topbar-title">{title}</h1>
+          {subtitle && <p class="dashboard-topbar-meta">{subtitle}</p>}
         </div>
         <div class="dashboard-topbar-actions">
+          <HouseholdSwitcher
+            households={shell.households}
+            activeHouseholdId={shell.activeHouseholdId}
+            redirectTo={switchRedirect}
+            variant="chrome"
+          />
+          <div class="dashboard-topbar-freshness">
+            <ReadingAgeBadge iso={lastReadingAt} emptyLabel="No reading" />
+            <button
+              type="button"
+              class="btn-ghost btn-sm"
+              id="dashboard-refresh-btn"
+            >
+              Refresh
+            </button>
+          </div>
           <button
             type="button"
             class="dashboard-shortcut-hint btn-secondary btn-sm"
             data-tt-shortcut-help
-            title="Keyboard shortcuts"
-            aria-label="Show keyboard shortcuts"
+            title="Search dashboard"
+            aria-label="Search dashboard"
           >
-            <kbd>?</kbd>
+            <kbd>/</kbd>
           </button>
           <KioskModeToggle client:idle />
         </div>
       </header>
+      {householdSwitched && (
+        <p class="alert-success mt-0 mb-4" role="status">Active property switched.</p>
+      )}
+      {householdError && (
+        <p class="alert-warning mt-0 mb-4" role="alert">Could not switch property. Try again.</p>
+      )}
       <slot />
     </div>
   </div>
+  <div
+    id="tt-dashboard-command-data"
+    hidden
+    data-payload={JSON.stringify({
+      isAdmin: shell.isAdmin,
+      showPortfolio: shell.showPortfolioInMonitor,
+      households: paletteHouseholds,
+      activeHouseholdId: shell.activeHouseholdId,
+    })}
+  ></div>
   <script src="/remember-dashboard-tabs.js" defer is:inline />
   <script src="/dashboard-shortcuts.js" defer is:inline />
   <script src="/reading-age-tick.js" defer is:inline />
+  <script is:inline>
+    (() => {
+      const btn = document.getElementById("dashboard-refresh-btn");
+      btn?.addEventListener("click", () => {
+        if (btn instanceof HTMLButtonElement) btn.disabled = true;
+        if (location.pathname === "/dashboard") return;
+        location.reload();
+      });
+      const url = new URL(window.location.href);
+      let changed = false;
+      ["household_switched", "household_error"].forEach((key) => {
+        if (url.searchParams.has(key)) {
+          url.searchParams.delete(key);
+          changed = true;
+        }
+      });
+      if (changed) {
+        window.history.replaceState({}, "", url.pathname + (url.search || "") + url.hash);
+      }
+    })();
+  </script>
 </Layout>

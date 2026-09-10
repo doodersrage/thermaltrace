@@ -1,5 +1,6 @@
 ---
 import DashboardLayout from "../../layouts/DashboardLayout.astro";
+import AdminNav from "../../components/dashboard/AdminNav.astro";
 import ContactSubmissions from "../../components/ContactSubmissions.astro";
 import { fetchContactSubmissions } from "../../lib/contactSubmissions";
 import { getAuthFromCookies } from "../../lib/auth";
@@ -36,15 +37,9 @@ if (submissions.totalPages > 0 && pageParam > submissions.totalPages) {
   return Astro.redirect(`/dashboard/contacts?page=${submissions.totalPages}`);
 }
 ---
-<DashboardLayout title="Contact Submissions" requireAdmin>
+<DashboardLayout title="Contacts" subtitle="Review messages from the site contact form." requireAdmin>
   <div class="space-y-6">
-    <section class="card animate-slide-in-left">
-      <h2 class="card-title">Contact submissions</h2>
-      <p class="card-subtitle">{user.email}</p>
-      <p class="mb-0">
-        Review messages sent through the site contact form. Mark items read or spam to keep the inbox manageable.
-      </p>
-    </section>
+    <AdminNav />
 
     <ContactSubmissions
       submissions={submissions}

@@ -69,34 +69,35 @@ const planLabel =
     ? "Admin"
     : entitlements.tier.charAt(0).toUpperCase() + entitlements.tier.slice(1);
 ---
-<DashboardLayout title="Settings">
+<DashboardLayout
+  title="Settings"
+  subtitle="Live display and theme. Security, retention, and landlord relay live under Advanced."
+>
   <div class="space-y-6">
-    <section class="card">
-      <h2 class="card-title">Settings</h2>
-      <p class="card-subtitle mb-0">
-        Live display and theme. Security, retention, and landlord relay live under Advanced.
-      </p>
+    {(passwordUpdated || prefsSaved || prefsError || pinnedSaved || pinnedError || quietSaved || quietCleared) && (
+      <div>
       {passwordUpdated && (
-        <p class="alert-success" role="status">Password updated.</p>
+        <p class="alert-success mt-0 mb-0" role="status">Password updated.</p>
       )}
       {prefsSaved && (
-        <p class="alert-success" role="status">Display preferences saved.</p>
+        <p class="alert-success mt-0 mb-0" role="status">Display preferences saved.</p>
       )}
       {prefsError && (
-        <p class="alert-warning" role="alert">Could not save display preferences.</p>
+        <p class="alert-warning mt-0 mb-0" role="alert">Could not save display preferences.</p>
       )}
       {pinnedSaved && (
-        <p class="alert-success" role="status">Pinned metrics saved.</p>
+        <p class="alert-success mt-0 mb-0" role="status">Pinned metrics saved.</p>
       )}
       {pinnedError && (
-        <p class="alert-warning" role="alert">Could not save pinned metrics.</p>
+        <p class="alert-warning mt-0 mb-0" role="alert">Could not save pinned metrics.</p>
       )}
       {(quietSaved || quietCleared) && (
-        <p class="alert-success" role="status">
+        <p class="alert-success mt-0 mb-0" role="status">
           {quietCleared ? "Recommendations shown again." : "Overview recommendations hidden for 7 days."}
         </p>
       )}
-    </section>
+      </div>
+    )}
 
     <DisplayPreferences preferences={preferences} redirectTo="/dashboard/settings" />
 

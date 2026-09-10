@@ -54,15 +54,11 @@ const hasEmailAlerts =
   alertSettings.enabled && hasConfiguredAlertChannel(alertSettings);
 const panelsHidden = !showGarageTemps && !showWeather;
 ---
-<DashboardLayout title="Live">
+<DashboardLayout
+  title="Live"
+  subtitle="Probe cards and outdoor weather for what’s happening right now."
+>
   <div class="space-y-6">
-    <section class="card" aria-labelledby="live-intro-title">
-      <h2 class="card-title" id="live-intro-title">Live readings</h2>
-      <p class="card-subtitle mb-0">
-        Glanceable probe cards and outdoor weather. Overview stays the ops hub —
-        this page is for what’s happening right now.
-      </p>
-    </section>
 
     {panelsHidden && (
       <div class="empty-state">

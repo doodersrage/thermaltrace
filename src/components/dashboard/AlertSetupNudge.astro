@@ -29,11 +29,11 @@ const step = !hasAlertsEnabled ? "threshold" : "email";
   </div>
   <div class="alert-setup-nudge-actions">
     {step === "threshold" ? (
-      <a class="btn-primary" href="/dashboard/alerts#alert-section-essentials">Set freeze + email</a>
+      <a class="btn-primary" href="/dashboard/alerts?tab=settings#alert-section-essentials">Set freeze + email</a>
     ) : (
-      <a class="btn-primary" href="/dashboard/alerts#alert-section-channels">Enable email alerts</a>
+      <a class="btn-primary" href="/dashboard/alerts?tab=settings#alert-section-channels">Enable email alerts</a>
     )}
-    <a class="btn-secondary" href="/dashboard/alerts">Open alerts</a>
+    <a class="btn-secondary" href="/dashboard/alerts?tab=settings">Open alerts</a>
     <button type="button" class="btn-ghost" data-dismiss="alert_setup_nudge">
       Dismiss
     </button>

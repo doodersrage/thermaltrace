@@ -6,53 +6,99 @@ interface Props {
   households: Array<{ household_id: string; name: string; role: string }>;
   activeHouseholdId: string | null;
   redirectTo?: string;
+  variant?: "card" | "chrome";
 }
 
-const { households, activeHouseholdId, redirectTo = "/dashboard" } = Astro.props;
-
-if (households.length <= 1) {
-  return null;
-}
+const {
+  households,
+  activeHouseholdId,
+  redirectTo = "/dashboard",
+  variant = "card",
+} = Astro.props;
 
 const active = households.find((h) => h.household_id === activeHouseholdId);
+const canSwitch = households.length > 1;
+const selectId =
+  variant === "chrome" ? "dashboard-household-switch" : "household-switch";
+
+if (variant === "card" && !canSwitch) {
+  return null;
+}
 ---
-<DashboardCard class="household-switcher">
-  <div class="household-switcher-row">
-    <div>
-      <p class="household-switcher-label">Active property</p>
-      <p class="household-switcher-name mb-0">
-        {active?.name ?? "Select a household"}
-        {active && (
-          <span class="text-muted-foreground font-normal">
-            {" · "}
-            {householdRoleLabel(active.role)}
-          </span>
-        )}
-      </p>
+{variant === "card" ? (
+  <DashboardCard class="household-switcher">
+    <div class="household-switcher-row">
+      <div>
+        <p class="household-switcher-label">Active property</p>
+        <p class="household-switcher-name mb-0">
+          {active?.name ?? "Select a household"}
+          {active && (
+            <span class="text-muted-foreground font-normal">
+              {" · "}
+              {householdRoleLabel(active.role)}
+            </span>
+          )}
+        </p>
+      </div>
+      {canSwitch && (
+        <form
+          action="/api/household/switch"
+          method="post"
+          class="household-switcher-form"
+          data-household-switch-form
+        >
+          <input type="hidden" name="redirect" value={redirectTo} />
+          <label class="sr-only" for={selectId}>Switch household</label>
+          <select class="form-input" id={selectId} name="household_id" required>
+            {households.map((h) => (
+              <option value={h.household_id} selected={h.household_id === activeHouseholdId}>
+                {h.name} ({householdRoleLabel(h.role)})
+              </option>
+            ))}
+          </select>
+        </form>
+      )}
     </div>
-    <form
-      action="/api/household/switch"
-      method="post"
-      class="household-switcher-form"
-      data-household-switch-form
-    >
-      <input type="hidden" name="redirect" value={redirectTo} />
-      <label class="sr-only" for="household-switch">Switch household</label>
-      <select class="form-input" id="household-switch" name="household_id" required>
-        {households.map((h) => (
-          <option value={h.household_id} selected={h.household_id === activeHouseholdId}>
-            {h.name} ({householdRoleLabel(h.role)})
-          </option>
-        ))}
-      </select>
-    </form>
+  </DashboardCard>
+) : (
+  <div class="household-switcher household-switcher--chrome">
+    {canSwitch ? (
+      <form
+        action="/api/household/switch"
+        method="post"
+        class="household-switcher-form"
+        data-household-switch-form
+      >
+        <input type="hidden" name="redirect" value={redirectTo} />
+        <label class="sr-only" for={selectId}>Active property</label>
+        <select
+          class="form-input household-switcher-select"
+          id={selectId}
+          name="household_id"
+          required
+        >
+          {households.map((h) => (
+            <option value={h.household_id} selected={h.household_id === activeHouseholdId}>
+              {h.name}
+            </option>
+          ))}
+        </select>
+      </form>
+    ) : (
+      <p class="household-switcher-chrome-name mb-0" title={active?.name ?? undefined}>
+        {active?.name ?? "Property"}
+      </p>
+    )}
   </div>
-</DashboardCard>
+)}
 
 <script>
-  const form = document.querySelector<HTMLFormElement>("[data-household-switch-form]");
-  const select = form?.querySelector<HTMLSelectElement>("#household-switch");
-  select?.addEventListener("change", () => {
-    form?.requestSubmit();
+  document.querySelectorAll("[data-household-switch-form]").forEach((node) => {
+    if (!(node instanceof HTMLFormElement)) return;
+    const select = node.querySelector("select[name='household_id']");
+    if (!(select instanceof HTMLSelectElement)) return;
+    select.addEventListener("change", () => {
+      node.requestSubmit();
+    });
   });
 </script>

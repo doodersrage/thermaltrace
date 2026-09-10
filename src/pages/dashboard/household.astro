@@ -117,13 +117,13 @@ const digestOptIn = Boolean(digestOptInResult.data?.digest_opt_in);
 const digestSaved = Astro.url.searchParams.get("digest_saved");
 const digestError = Astro.url.searchParams.get("digest_error");
 ---
-<DashboardLayout title="Household">
+<DashboardLayout
+  title="Household"
+  subtitle="Share devices and history. Invite by email — recipients don’t need an account yet."
+>
   <div class="space-y-6">
     <DashboardCard>
       <h2 class="card-title">Household sharing</h2>
-      <p class="card-subtitle">
-        Share devices and history. Invite by email: recipients get a link and don’t need an account yet.
-      </p>
       {notice && <p class="alert-success mt-4">{notice}</p>}
       {errorMessage && <p class="alert-warning mt-4" role="alert">{errorMessage}</p>}
       {digestSaved && (

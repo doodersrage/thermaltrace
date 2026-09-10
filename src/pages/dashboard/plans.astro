@@ -40,16 +40,11 @@ const referralRewardDays = Number(
   (user.app_metadata as Record<string, unknown> | undefined)?.referral_reward_days ?? 0,
 );
 ---
-<DashboardLayout title="Plans">
+<DashboardLayout
+  title="Plans"
+  subtitle="Compare tiers and upgrade when you need longer retention, SMS, or more properties."
+>
   <div class="space-y-6">
-    <section class="card">
-      <h2 class="card-title">Plans & billing</h2>
-      <p class="card-subtitle mb-0">
-        Compare tiers, upgrade when you need longer retention, forecast freeze, CSV export, SMS, Pro share scopes, claims pack, more devices, or Portfolio-scale property limits. Free includes one family live share link.
-        {" "}
-        <a class="text-link" href="/pricing">Public comparison page</a>
-      </p>
-    </section>
 
     {upgradeTarget && (
       <UpgradeNudge

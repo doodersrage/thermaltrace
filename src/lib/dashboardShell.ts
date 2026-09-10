@@ -14,6 +14,7 @@ import {
   type LatestSensorRow,
 } from "./sensorReadings";
 import { formatRelativeAge } from "./relativeTime";
+import { newestRecordedAt } from "./dashboardNav";
 
 export type DashboardShell = {
   session: Session;
@@ -26,6 +27,8 @@ export type DashboardShell = {
   showPortfolioInMonitor: boolean;
   liveLagging: boolean;
   activeHouseholdId: string | null;
+  activeHouseholdName: string | null;
+  lastReadingAt: string | null;
   /** Present when live-lag was computed; reuse to avoid a second latest fetch. */
   latest: LatestSensorRow[] | null;
 };
@@ -68,11 +71,16 @@ export async function loadDashboardShellForUser(
   const showPortfolioInMonitor =
     entitlements.canUsePortfolio || householdCount >= 2;
   const activeHouseholdId = household.householdId;
+  const activeHouseholdName =
+    households.find((row) => row.household_id === activeHouseholdId)?.name ??
+    null;
 
   let liveLagging = false;
   let latest: LatestSensorRow[] | null = null;
+  let lastReadingAt: string | null = null;
   if (includeLiveLag && activeHouseholdId) {
     latest = await fetchLatestSensorValues(activeHouseholdId);
+    lastReadingAt = newestRecordedAt(latest);
     liveLagging =
       latest.length === 0 ||
       latest.some((row) => {
@@ -92,6 +100,8 @@ export async function loadDashboardShellForUser(
     showPortfolioInMonitor,
     liveLagging,
     activeHouseholdId,
+    activeHouseholdName,
+    lastReadingAt,
     latest,
   };
 }

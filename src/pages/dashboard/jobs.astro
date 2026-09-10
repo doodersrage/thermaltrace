@@ -1,5 +1,6 @@
 ---
 import DashboardLayout from "../../layouts/DashboardLayout.astro";
+import AdminNav from "../../components/dashboard/AdminNav.astro";
 import { listRecentJobRuns } from "../../lib/jobRuns";
 import { listRecentIngestStatsAdmin } from "../../lib/ingestStats";
 import { flagIngestAbuse } from "../../lib/ingestAbuse";
@@ -24,16 +25,9 @@ const { runs, error } = await listRecentJobRuns(40);
 const ingestStats = await listRecentIngestStatsAdmin(7);
 const ingestAbuse = flagIngestAbuse(ingestStats);
 ---
-<DashboardLayout title="Jobs" requireAdmin={true}>
+<DashboardLayout title="Jobs" subtitle="Cron history, digests, and ingest abuse watch." requireAdmin={true}>
   <div class="space-y-6">
-    <section class="card">
-      <h2 class="card-title">Background jobs</h2>
-      <p class="card-subtitle">
-        Cron history collection, weekly digests, trial/drip emails, monthly/quarterly reports,
-        freeze-map snapshots, and sensor retention runs recorded by the Worker.
-      </p>
-    </section>
-
+    <AdminNav />
     <section class="card">
       <h2 class="card-title">Ingest abuse watch</h2>
       <p class="card-subtitle mb-4">Devices with ≥50% ingest errors over the last 7 days (minimum 5 posts).</p>
@@ -52,6 +46,7 @@ const ingestAbuse = flagIngestAbuse(ingestStats);
     </section>
 
     <section class="card">
+      <h2 class="card-title">Job runs</h2>
       {error ? (
         <p class="alert-warning">Unable to load job runs: {error}</p>
       ) : runs.length === 0 ? (

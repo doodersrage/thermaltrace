@@ -380,7 +380,7 @@ const historyUpgradeFeature =
         ? ("claims_pack" as const)
         : null;
 ---
-<DashboardLayout title="Reading History">
+<DashboardLayout title="History" subtitle="Saved temperature and humidity snapshots, CSV, and claims pack.">
   {historyEmpty && (
     <section class="card mb-6" aria-labelledby="history-empty-title">
       <h2 class="card-title" id="history-empty-title">No history yet</h2>
@@ -412,7 +412,6 @@ const historyUpgradeFeature =
   )}
   <div class="space-y-6">
     <section class="card">
-      <h2 class="card-title">Reading history</h2>
       <p class="card-subtitle mb-4">
         Browse saved temperature and humidity snapshots by feed and probe.
         {canDownloadCsv

@@ -11,12 +11,8 @@ import Share2 from "@lucide/astro/icons/share-2";
 import CreditCard from "@lucide/astro/icons/credit-card";
 import Settings from "@lucide/astro/icons/settings";
 import Activity from "@lucide/astro/icons/activity";
-import Radio from "@lucide/astro/icons/radio";
-import Timer from "@lucide/astro/icons/timer";
-import UserCog from "@lucide/astro/icons/user-cog";
-import Mail from "@lucide/astro/icons/mail";
-import Ban from "@lucide/astro/icons/ban";
 import logo from "../assets/gtm.svg";
+import { isAdminDashboardPath, mobileMonitorHrefs } from "../lib/dashboardNav";
 
 interface Props {
   currentPath: string;
@@ -125,38 +121,8 @@ const adminItems: NavItem[] = isAdmin
       {
         href: "/dashboard/ops",
         label: "Ops",
-        isActive: currentPath.startsWith("/dashboard/ops"),
+        isActive: isAdminDashboardPath(currentPath),
         Icon: Activity,
-      },
-      {
-        href: "/dashboard/feeds",
-        label: "Feed health",
-        isActive: currentPath.startsWith("/dashboard/feeds"),
-        Icon: Radio,
-      },
-      {
-        href: "/dashboard/jobs",
-        label: "Jobs",
-        isActive: currentPath.startsWith("/dashboard/jobs"),
-        Icon: Timer,
-      },
-      {
-        href: "/dashboard/email-suppressions",
-        label: "Email suppressions",
-        isActive: currentPath.startsWith("/dashboard/email-suppressions"),
-        Icon: Ban,
-      },
-      {
-        href: "/dashboard/users",
-        label: "Users",
-        isActive: currentPath.startsWith("/dashboard/users"),
-        Icon: UserCog,
-      },
-      {
-        href: "/dashboard/contacts",
-        label: "Contacts",
-        isActive: currentPath.startsWith("/dashboard/contacts"),
-        Icon: Mail,
       },
     ]
   : [];
@@ -171,13 +137,10 @@ const activeLabel =
   [...monitorItems, ...accountItems, ...adminItems].find((item) => item.isActive)?.label ??
   "Dashboard";
 
-const mobileMonitor = [
-  monitorItems.find((i) => i.href === "/dashboard")!,
-  monitorItems.find((i) => i.href === "/dashboard/live")!,
-  monitorItems.find((i) => i.href === "/dashboard/devices")!,
-  monitorItems.find((i) => i.href === "/dashboard/alerts")!,
-  monitorItems.find((i) => i.href === "/dashboard/history")!,
-];
+const monitorByHref = new Map(monitorItems.map((item) => [item.href, item]));
+const mobileMonitor = mobileMonitorHrefs(showPortfolioInMonitor)
+  .map((href) => monitorByHref.get(href))
+  .filter((item): item is NavItem => Boolean(item));
 ---
 
 <aside class="dashboard-sidebar">
@@ -241,7 +204,7 @@ const mobileMonitor = [
           class="dashboard-nav-link dashboard-shortcut-help"
           data-tt-shortcut-help
         >
-          Shortcuts <kbd>?</kbd>
+          Search <kbd>/</kbd>
         </button>
         <a class="dashboard-nav-link" href="/">Back to site</a>
         <a class="dashboard-nav-link" href="/api/auth/signout">Sign out</a>

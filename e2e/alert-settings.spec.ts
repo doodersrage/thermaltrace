@@ -10,7 +10,7 @@ test.describe("alert settings", () => {
   test("organized sections render when signed in", async ({ page }) => {
     test.skip(!getE2ECredentials(), "Set E2E_TEST_EMAIL and E2E_TEST_PASSWORD");
 
-    await signIn(page, "/dashboard/alerts");
+    await signIn(page, "/dashboard/alerts?tab=settings");
     await expect(page.getByRole("heading", { name: /Alerts/i }).first()).toBeVisible();
     await expect(page.getByRole("navigation", { name: /Alert settings sections/i })).toBeVisible();
     await expect(page.locator("#alert-section-essentials")).toBeVisible();
@@ -21,7 +21,7 @@ test.describe("alert settings", () => {
   test("freeze threshold persists after save", async ({ page }) => {
     test.skip(!getE2ECredentials(), "Set E2E_TEST_EMAIL and E2E_TEST_PASSWORD");
 
-    await signIn(page, "/dashboard/alerts");
+    await signIn(page, "/dashboard/alerts?tab=settings");
 
     const threshold = page.locator("#freeze_threshold_f");
     await threshold.scrollIntoViewIfNeeded();
@@ -43,7 +43,7 @@ test.describe("alert settings", () => {
   test("email channel + freeze alerts enable and test send", async ({ page }) => {
     test.skip(!getE2ECredentials(), "Set E2E_TEST_EMAIL and E2E_TEST_PASSWORD");
 
-    await signIn(page, "/dashboard/alerts");
+    await signIn(page, "/dashboard/alerts?tab=settings");
 
     const enabled = page.locator('input[name="alerts_enabled"]');
     const emailChannel = page.locator('input[name="channel_email"]');

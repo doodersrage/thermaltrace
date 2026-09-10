@@ -1,5 +1,6 @@
 ---
 import DashboardLayout from "../../layouts/DashboardLayout.astro";
+import AdminNav from "../../components/dashboard/AdminNav.astro";
 import { getAuthFromCookies } from "../../lib/auth";
 import { isUserAdmin } from "../../lib/adminAccess";
 import { listEmailSuppressions } from "../../lib/emailSuppressions";
@@ -18,24 +19,22 @@ const added = Astro.url.searchParams.get("added") === "1";
 const formError = Astro.url.searchParams.get("error")?.trim() ?? "";
 const { rows, error } = await listEmailSuppressions(200);
 ---
-<DashboardLayout title="Email suppressions" requireAdmin>
+<DashboardLayout title="Email suppressions" subtitle="Addresses we will not send to (bounces, noreply, invalid)." requireAdmin>
   <div class="space-y-6">
-    <section class="card">
-      <h2 class="card-title">Email suppressions</h2>
-      <p class="card-subtitle mb-0">
-        Addresses we will not send to (bounces, noreply aliases, invalid). Protects Cloudflare Email bounce rate.
-        Removing a row allows mail again — only do that when the mailbox is known-good.
-      </p>
-      {added && (
-        <p class="alert-success mt-4 mb-0" role="status">Address suppressed.</p>
-      )}
-      {removed && (
-        <p class="alert-success mt-4 mb-0" role="status">Suppression removed.</p>
-      )}
-      {formError && (
-        <p class="alert-warning mt-4 mb-0" role="alert">Could not update: {formError}</p>
-      )}
-    </section>
+    <AdminNav />
+    {(added || removed || formError) && (
+      <div>
+        {added && (
+          <p class="alert-success mt-0 mb-0" role="status">Address suppressed.</p>
+        )}
+        {removed && (
+          <p class="alert-success mt-0 mb-0" role="status">Suppression removed.</p>
+        )}
+        {formError && (
+          <p class="alert-warning mt-0 mb-0" role="alert">Could not update: {formError}</p>
+        )}
+      </div>
+    )}
 
     <section class="card">
       <h2 class="card-title">Add suppression</h2>

@@ -204,6 +204,7 @@ const registerServiceWorker =
 	<body class:list={[isDashboard && "is-dashboard"]}>
 		<a class="skip-link" href="#main-content">Skip to content</a>
 		<div class="flex min-h-screen flex-col">
+			{!isDashboard && (
 			<header class="site-header">
 				<div class="site-header-inner">
 					<a href="/" class="site-logo-link">
@@ -219,18 +220,16 @@ const registerServiceWorker =
 						Menu
 					</button>
 					<nav id="site-nav" class="site-nav" aria-label="Main">
-						{!isDashboard && (
-							<div class="site-nav-primary">
-								{navItems.map(({ href, label, match }) => (
-									<a
-										href={href}
-										class:list={["nav-link", match(currentPath) && "nav-link-active"]}
-									>
-										{label}
-									</a>
-								))}
-							</div>
-						)}
+						<div class="site-nav-primary">
+							{navItems.map(({ href, label, match }) => (
+								<a
+									href={href}
+									class:list={["nav-link", match(currentPath) && "nav-link-active"]}
+								>
+									{label}
+								</a>
+							))}
+						</div>
 						<div class="site-nav-actions">
 							{user ? (
 								<>
@@ -258,15 +257,14 @@ const registerServiceWorker =
 									>
 										Sign in
 									</a>
-									{!isDashboard && (
-										<a href="/register?next=/dashboard/devices" class="nav-cta">Start free</a>
-									)}
+									<a href="/register?next=/dashboard/devices" class="nav-cta">Start free</a>
 								</>
 							)}
 						</div>
 					</nav>
 				</div>
 			</header>
+			)}
 			<main id="main-content" class="flex-grow">
 				<slot />
 			</main>
