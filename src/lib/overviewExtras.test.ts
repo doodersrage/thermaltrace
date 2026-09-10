@@ -9,10 +9,12 @@ import {
   computeIndoorOutdoorDelta,
   computeProbeSpreadF,
   doorOpenMinutesFromSessions,
+  feedHealthFromDevices,
 } from "./overviewExtras";
 import type { DoorOpenSession } from "./doorDuration";
 import type { ChartPoint } from "./garageTempsHistory";
 import type { LatestSensorRow } from "./sensorReadings";
+import type { DeviceWithSensors } from "./devices";
 
 describe("overviewExtras", () => {
   it("sums door open minutes including still-open sessions", () => {
@@ -119,6 +121,66 @@ describe("overviewExtras", () => {
       },
     ]);
     expect(uptime?.pct).toBe(50);
+  });
+
+  it("derives pull-feed health from last_seen_at without live probes", () => {
+    const fresh = new Date().toISOString();
+    const stale = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString();
+    const devices = [
+      {
+        id: "ok",
+        household_id: "hh",
+        name: "Garage JSON",
+        source: "pull_url",
+        pull_url: "https://example.test/temps.json",
+        ingest_key_prefix: null,
+        enabled: true,
+        last_seen_at: fresh,
+        sort_order: 0,
+        sensors: [{ id: "s1" }],
+      },
+      {
+        id: "stale",
+        household_id: "hh",
+        name: "Attic JSON",
+        source: "pull_url",
+        pull_url: "https://example.test/attic.json",
+        ingest_key_prefix: null,
+        enabled: true,
+        last_seen_at: stale,
+        sort_order: 1,
+        sensors: [],
+      },
+      {
+        id: "disabled",
+        household_id: "hh",
+        name: "Off",
+        source: "pull_url",
+        pull_url: "https://example.test/off.json",
+        ingest_key_prefix: null,
+        enabled: false,
+        last_seen_at: fresh,
+        sort_order: 2,
+        sensors: [],
+      },
+      {
+        id: "push",
+        household_id: "hh",
+        name: "ESP",
+        source: "push",
+        pull_url: null,
+        ingest_key_prefix: "abc",
+        enabled: true,
+        last_seen_at: fresh,
+        sort_order: 3,
+        sensors: [],
+      },
+    ] as unknown as DeviceWithSensors[];
+
+    const statuses = feedHealthFromDevices(devices);
+    expect(statuses).toHaveLength(2);
+    expect(statuses.find((s) => s.feedId === "ok")?.ok).toBe(true);
+    expect(statuses.find((s) => s.feedId === "stale")?.ok).toBe(false);
   });
 
   it("flags air quality watches and power-off cooling", () => {

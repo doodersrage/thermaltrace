@@ -11,6 +11,8 @@ import {
   fetchGarageTempChartData,
   fetchGarageTempHistory,
   fetchHistoryFilterOptions,
+  GARAGE_TEMPS_PAGE_SIZE,
+  type PaginatedGarageTemps,
 } from "../../lib/garageTempsHistory";
 import { fetchPriorYearCompareBundle } from "../../lib/priorYearCompare";
 import { detectTemperatureAnomalies } from "../../lib/anomalyDetection";
@@ -18,12 +20,11 @@ import { getUserSubscription } from "../../lib/stripeSubscriptions";
 import {
   compareProbeAverages,
   compareSpaceAverages,
-  computeSeasonalInsights,
+  compareYearOverYear,
+  summarizeSeasonal,
 } from "../../lib/seasonalInsights";
-import { getUserDevicesAsTempConfig } from "../../lib/devices";
-import { getUserPreferences } from "../../lib/userPreferences";
+import { listHouseholdDevices } from "../../lib/devices";
 import { fetchIndoorOutdoorDelta, buildIndoorOutdoorSeries } from "../../lib/indoorOutdoorDelta";
-import { getOrCreateHouseholdForUser } from "../../lib/households";
 import { getIndoorReferenceSensorId, findReferenceSensorLabel } from "../../lib/indoorReference";
 import { fetchHouseChartOverlay } from "../../lib/houseContext";
 import { listConnectionsForHousehold } from "../../lib/thermostatConnections";
@@ -149,7 +150,24 @@ const chartFilters = {
   to: toDate ? new Date(`${toDate}T23:59:59`).toISOString() : undefined,
 };
 
-const preferences = await getUserPreferences(user);
+const historyTabRaw = Astro.url.searchParams.get("tab")?.trim() ?? "chart";
+const historyTab =
+  historyTabRaw === "table" || historyTabRaw === "exports" ? historyTabRaw : "chart";
+const loadTable = historyTab === "table";
+const loadChart = historyTab === "chart" || historyTab === "exports";
+const loadChartExtras = historyTab === "chart";
+const loadExportsSummary = historyTab === "exports";
+const loadFiltersUi = historyTab === "chart" || historyTab === "table";
+const householdId = shell?.activeHouseholdId ?? null;
+
+const emptyHistory: PaginatedGarageTemps = {
+  readings: [],
+  page: pageParam,
+  pageSize: GARAGE_TEMPS_PAGE_SIZE,
+  totalCount: 0,
+  totalPages: 0,
+  error: null,
+};
 
 const chartWindowDays =
   fromDate && toDate
@@ -165,84 +183,105 @@ const chartWindowDays =
       )
     : chartDays;
 
-const [history, chartData, filterOptions, canDownloadCsv, alertSettings, savedViews] =
-  await Promise.all([
-    fetchGarageTempHistory(user.id, pageParam, undefined, filters),
-    fetchGarageTempChartData(user.id, chartWindowDays, chartFilters),
-    fetchHistoryFilterOptions(user.id),
-    canDownloadHistoryCsv(user.id),
-    getAlertSettingsForUser(user.id, user.user_metadata as Record<string, unknown>),
-    listHistorySavedViews(user.id),
-  ]);
+const [
+  history,
+  chartData,
+  filterOptions,
+  canDownloadCsv,
+  alertSettings,
+  savedViews,
+] = await Promise.all([
+  loadTable ? fetchGarageTempHistory(user.id, pageParam, undefined, filters) : Promise.resolve(emptyHistory),
+  loadChart
+    ? fetchGarageTempChartData(user.id, chartWindowDays, chartFilters)
+    : Promise.resolve({
+        points: [] as Awaited<ReturnType<typeof fetchGarageTempChartData>>["points"],
+        error: null as string | null,
+      }),
+  loadFiltersUi
+    ? fetchHistoryFilterOptions(user.id)
+    : Promise.resolve({ feeds: [] as string[], probes: [] as { key: string; label: string }[], error: null }),
+  canDownloadHistoryCsv(user.id),
+  getAlertSettingsForUser(user.id, user.user_metadata as Record<string, unknown>),
+  loadFiltersUi ? listHistorySavedViews(user.id) : Promise.resolve([] as Awaited<ReturnType<typeof listHistorySavedViews>>),
+]);
 
 const historyEmpty =
-  !history.error && history.totalCount === 0 && !feedFilter && !probeFilter && !fromDate && !toDate;
+  !feedFilter &&
+  !probeFilter &&
+  !fromDate &&
+  !toDate &&
+  (loadTable
+    ? !history.error && history.totalCount === 0
+    : !chartData.error && chartData.points.length === 0);
 
-const [priorYearBundle, comparePeriodData, subscription, insights] = historyEmpty
-  ? [
-      {
+const loadPriorYear = loadChartExtras && !historyEmpty && needPriorYear;
+const loadCustomCompare = loadChartExtras && !historyEmpty && hasCustomCompare;
+const chartMarkerTimes = chartData.points
+  .map((p) => Date.parse(p.timestamp))
+  .filter((ts) => Number.isFinite(ts));
+
+const [
+  priorYearBundle,
+  comparePeriodData,
+  subscription,
+  alertEvents,
+  outdoorDelta,
+  householdDevicesResult,
+  indoorReferenceSensorId,
+  thermostatConnections,
+] = await Promise.all([
+  loadPriorYear
+    ? fetchPriorYearCompareBundle(
+        user.id,
+        overlayColdest ? Math.max(chartWindowDays, 30) : chartWindowDays,
+        chartFilters,
+        user,
+      )
+    : Promise.resolve({
         points: [],
         source: "none" as const,
         outdoorLocationLabel: null,
         earliestLocalReadingAt: null,
-      },
-      { points: [] as Awaited<ReturnType<typeof fetchGarageTempChartData>>["points"], error: null },
-      await getUserSubscription(user.id),
-      [] as Awaited<ReturnType<typeof computeSeasonalInsights>>,
-    ]
-  : await Promise.all([
-      needPriorYear
-        ? fetchPriorYearCompareBundle(
-            user.id,
-            overlayColdest ? Math.max(chartWindowDays, 30) : chartWindowDays,
-            chartFilters,
-            user,
-          )
-        : Promise.resolve({
-            points: [],
-            source: "none" as const,
-            outdoorLocationLabel: null,
-            earliestLocalReadingAt: null,
-          }),
-      hasCustomCompare
-        ? fetchGarageTempChartData(user.id, historyDays, {
-            feedName: feedFilter || undefined,
-            probeKey: probeFilter || undefined,
-            from: clampIsoToHistoryWindow(
-              new Date(`${compareFromParam}T00:00:00`).toISOString(),
-              historyDays,
-            ),
-            to: new Date(`${compareToParam}T23:59:59`).toISOString(),
-          })
-        : Promise.resolve({ points: [], error: null }),
-      getUserSubscription(user.id),
-      computeSeasonalInsights(user.id, Math.min(30, historyDays), user),
-    ]);
+      }),
+  loadCustomCompare
+    ? fetchGarageTempChartData(user.id, historyDays, {
+        feedName: feedFilter || undefined,
+        probeKey: probeFilter || undefined,
+        from: clampIsoToHistoryWindow(
+          new Date(`${compareFromParam}T00:00:00`).toISOString(),
+          historyDays,
+        ),
+        to: new Date(`${compareToParam}T23:59:59`).toISOString(),
+      })
+    : Promise.resolve({ points: [], error: null }),
+  loadExportsSummary ? getUserSubscription(user.id) : Promise.resolve(null),
+  loadChart && chartMarkerTimes.length > 0
+    ? listAlertEventsInRange(
+        user.id,
+        new Date(Math.min(...chartMarkerTimes)).toISOString(),
+        new Date(Math.max(...chartMarkerTimes)).toISOString(),
+        200,
+      )
+    : Promise.resolve([] as Awaited<ReturnType<typeof listAlertEventsInRange>>),
+  loadChartExtras && !historyEmpty
+    ? fetchIndoorOutdoorDelta(chartData.points, null, user)
+    : Promise.resolve(null),
+  (loadChartExtras || loadExportsSummary) && !historyEmpty && householdId
+    ? listHouseholdDevices(householdId)
+    : Promise.resolve({ devices: [] as Awaited<ReturnType<typeof listHouseholdDevices>>["devices"] }),
+  loadChartExtras && !historyEmpty && householdId
+    ? getIndoorReferenceSensorId(householdId)
+    : Promise.resolve(null),
+  loadChartExtras && !historyEmpty && householdId && entitlements.canUseThermostatIntegration
+    ? listConnectionsForHousehold(householdId)
+    : Promise.resolve([] as Awaited<ReturnType<typeof listConnectionsForHousehold>>),
+]);
 
 const priorYearData = { points: priorYearBundle.points, error: null };
 
-const chartMarkerTimes = chartData.points
-  .map((p) => Date.parse(p.timestamp))
-  .filter((ts) => Number.isFinite(ts));
-const chartAlertMarkers =
-  chartMarkerTimes.length > 0
-    ? toChartAlertMarkers(
-        await listAlertEventsInRange(
-          user.id,
-          new Date(Math.min(...chartMarkerTimes)).toISOString(),
-          new Date(Math.max(...chartMarkerTimes)).toISOString(),
-          200,
-        ),
-      )
-    : [];
+const chartAlertMarkers = toChartAlertMarkers(alertEvents);
 
-const outdoorDelta = historyEmpty
-  ? null
-  : await fetchIndoorOutdoorDelta(
-  chartData.points,
-  preferences.weatherCityId,
-  user,
-);
 const indoorOutdoorSeries = outdoorDelta
   ? buildIndoorOutdoorSeries(chartData.points, outdoorDelta.outdoorF)
   : [];
@@ -289,7 +328,7 @@ const overlayLegend = overlayColdest
         : "Gray = same window last year (time-aligned)"
       : null;
 
-if (history.totalPages > 0 && pageParam > history.totalPages) {
+if (loadTable && history.totalPages > 0 && pageParam > history.totalPages) {
   return Astro.redirect(`/dashboard/history?page=${history.totalPages}`);
 }
 
@@ -297,32 +336,24 @@ const subscriptionNotice = Astro.url.searchParams.get("subscription");
 const anomalies = detectTemperatureAnomalies(chartData.points);
 const probeCompare = compareProbeAverages(chartData.points);
 
-const deviceConfig = await getUserDevicesAsTempConfig(user.id, user.email);
-const household = await getOrCreateHouseholdForUser(user.id, user.email);
-const indoorReferenceSensorId = household.householdId
-  ? await getIndoorReferenceSensorId(household.householdId)
-  : null;
-const thermostatConnections =
-  household.householdId && entitlements.canUseThermostatIntegration
-    ? await listConnectionsForHousehold(household.householdId)
-    : [];
-const houseChartOverlay = household.householdId
-  ? await fetchHouseChartOverlay({
-      householdId: household.householdId,
-      days: chartWindowDays,
-      hasThermostatConnection: thermostatConnections.length > 0,
-      referenceSensorId: indoorReferenceSensorId,
-      filters: { from: chartFilters.from, to: chartFilters.to },
-    })
-  : { points: [], source: null };
+const houseChartOverlay =
+  loadChartExtras && !historyEmpty && householdId
+    ? await fetchHouseChartOverlay({
+        householdId,
+        days: chartWindowDays,
+        hasThermostatConnection: thermostatConnections.length > 0,
+        referenceSensorId: indoorReferenceSensorId,
+        filters: { from: chartFilters.from, to: chartFilters.to },
+      })
+    : { points: [], source: null as "thermostat" | "reference" | null };
 const houseChartLegend =
   houseChartOverlay.source === "thermostat"
     ? "House (thermostat)"
     : houseChartOverlay.source === "reference"
-      ? `House (${findReferenceSensorLabel(deviceConfig.devices, indoorReferenceSensorId) ?? "reference"})`
+      ? `House (${findReferenceSensorLabel(householdDevicesResult.devices, indoorReferenceSensorId) ?? "reference"})`
       : null;
 const probeToSpace = new Map<string, string>();
-for (const device of deviceConfig.devices) {
+for (const device of householdDevicesResult.devices) {
   if (!device.space) continue;
   for (const sensor of device.sensors) {
     if (sensor.kind === "temperature") {
@@ -331,6 +362,15 @@ for (const device of deviceConfig.devices) {
   }
 }
 const spaceCompare = compareSpaceAverages(chartData.points, probeToSpace);
+
+const insights = loadExportsSummary
+  ? (() => {
+      const rows = summarizeSeasonal(chartData.points, Math.min(30, historyDays));
+      const yoy = compareYearOverYear(chartData.points, priorYearBundle.points);
+      if (yoy) rows.push(yoy);
+      return rows;
+    })()
+  : [];
 
 const claimsFrom = fromDate || cutoffDate;
 const claimsTo = toDate || new Date().toISOString().slice(0, 10);
@@ -357,10 +397,6 @@ const claimsErrorMessage =
           : claimsErrorCode === "send_failed"
             ? "Couldn't send the claims pack email. Try again."
             : null;
-
-const historyTabRaw = Astro.url.searchParams.get("tab")?.trim() ?? "chart";
-const historyTab =
-  historyTabRaw === "table" || historyTabRaw === "exports" ? historyTabRaw : "chart";
 
 function historyTabHref(tab: string): string {
   const params = new URLSearchParams(Astro.url.searchParams);

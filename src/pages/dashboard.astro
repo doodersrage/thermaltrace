@@ -14,16 +14,14 @@ import GarageRiskStatusCard from "../components/dashboard/GarageRiskStatusCard.a
 import { computeGarageRiskStatus } from "../lib/garageRiskStatus";
 import { getAuthFromCookies } from "../lib/auth";
 import { getUserPreferences } from "../lib/userPreferences";
-import { fetchUserTempConfig } from "../lib/userTempConfig";
 import { getUserEntitlements } from "../lib/entitlements";
 import { latestFromShell } from "../lib/dashboardShell";
-import { getUserDevicesAsTempConfig, listHouseholdDevices } from "../lib/devices";
+import { listHouseholdDevices } from "../lib/devices";
 import { ensureAlertDeliveryEvidence, getAlertSettingsForUser } from "../lib/notify";
 import {
   getOrCreateHouseholdForUser,
   listHouseholdMembers,
   listUserHouseholds,
-  getUserHouseholdId,
   getUserHouseholdRole,
   canEditHousehold,
 } from "../lib/households";
@@ -34,8 +32,7 @@ import { nextUpgradeTier } from "../lib/planComparison";
 import {
   fetchWeekCompare,
 } from "../lib/dashboardInsights";
-import { fetchGarageTempChartData, householdHasTemperatureHistory } from "../lib/garageTempsHistory";
-import { checkFeedHealth } from "../lib/collectHistory";
+import { fetchGarageTempChartData } from "../lib/garageTempsHistory";
 import { fetchLatestSensorValues } from "../lib/sensorReadings";
 import { formatRelativeAge } from "../lib/relativeTime";
 import {
@@ -116,6 +113,7 @@ import {
   buildRssiOverview,
   computeCondensationHours,
   computeFeedUptimePct,
+  feedHealthFromDevices,
   computeIndoorOutdoorDelta,
   computeProbeSpreadF,
   doorOpenMinutesFromSessions,
@@ -149,46 +147,43 @@ const quietActive = isDashboardQuietActive(user);
 const pinnedMetrics = getPinnedOverviewMetrics(user);
 const pinnedMetricSet = new Set<PinnableOverviewMetric>(pinnedMetrics);
 
+const onboardingDismissed =
+  (user.user_metadata as Record<string, unknown> | undefined)?.onboarding_dismissed ===
+  true;
+
 const [
   preferences,
-  tempConfig,
   entitlements,
-  deviceConfig,
   alertSettingsLoaded,
   household,
-  feedHealth,
   userHouseholds,
-  activeHouseholdId,
   unackedAlertCount,
 ] = await Promise.all([
   getUserPreferences(user),
-  fetchUserTempConfig(user.id),
   shell ? Promise.resolve(shell.entitlements) : getUserEntitlements(user.id),
-  getUserDevicesAsTempConfig(user.id, user.email),
   getAlertSettingsForUser(user.id, user.user_metadata as Record<string, unknown>),
-  getOrCreateHouseholdForUser(user.id, user.email),
-  checkFeedHealth(user.id),
+  shell?.activeHouseholdId
+    ? Promise.resolve({ householdId: shell.activeHouseholdId, error: null as string | null })
+    : getOrCreateHouseholdForUser(user.id, user.email),
   shell
     ? Promise.resolve({ households: shell.households, error: null as string | null })
     : listUserHouseholds(user.id),
-  shell?.activeHouseholdId
-    ? Promise.resolve(shell.activeHouseholdId)
-    : getUserHouseholdId(user.id),
   shell ? Promise.resolve(shell.unackedAlerts) : countUnacknowledgedAlerts(user.id),
 ]);
 
+const activeHouseholdId = household.householdId;
 const weatherConfig = personalWeatherConfigFromPreferences(preferences);
 const chartWindowDays = Math.min(30, Math.max(7, entitlements.historyDays));
 
 const [{ settings: alertSettings }, members, householdDevicesResult, householdRole] =
   await Promise.all([
     ensureAlertDeliveryEvidence(user.id, alertSettingsLoaded),
-    household.householdId
+    household.householdId && !onboardingDismissed
       ? listHouseholdMembers(household.householdId)
       : Promise.resolve({ members: [] as Awaited<ReturnType<typeof listHouseholdMembers>>["members"] }),
     household.householdId
       ? listHouseholdDevices(household.householdId)
-      : Promise.resolve({ devices: deviceConfig.devices }),
+      : Promise.resolve({ devices: [] as Awaited<ReturnType<typeof listHouseholdDevices>>["devices"] }),
     activeHouseholdId
       ? getUserHouseholdRole(user.id, activeHouseholdId)
       : Promise.resolve(null),
@@ -204,11 +199,9 @@ const latest = shellLatest
 const devicesEarly = householdDevicesResult.devices;
 const canEditEarly = canEditHousehold(householdRole);
 const forceSimpleEarly = shouldForceSimpleOverview(householdRole);
-const onboardingDismissedEarly =
-  (user.user_metadata as Record<string, unknown> | undefined)?.onboarding_dismissed === true;
+const onboardingDismissedEarly = onboardingDismissed;
 const hasDevicesEarly =
-  tempConfig.hasCustomConfig ||
-  deviceConfig.devices.some((d) => d.source === "push");
+  devicesEarly.some((d) => d.source === "push" || d.source === "pull_url");
 const hasAlertsEnabledEarly = alertSettings.enabled;
 const hasEmailAlertsEarly =
   alertSettings.enabled && hasConfiguredAlertChannel(alertSettings, user.email);
@@ -237,7 +230,7 @@ const showInsightsEarly =
 const loadHeavyWeather = showInsightsEarly;
 const loadChart = showInsightsEarly;
 
-const [weatherSnapshot, nightsAtRisk, chartWeek, historyExists] = await Promise.all([
+const [weatherSnapshot, nightsAtRisk, chartWeek] = await Promise.all([
   loadHeavyWeather
     ? fetchWeatherSnapshotForConfig(weatherConfig)
     : Promise.resolve(null),
@@ -253,7 +246,6 @@ const [weatherSnapshot, nightsAtRisk, chartWeek, historyExists] = await Promise.
         points: [] as Awaited<ReturnType<typeof fetchGarageTempChartData>>["points"],
         error: null as string | null,
       }),
-  loadChart ? Promise.resolve(null) : householdHasTemperatureHistory(user.id),
 ]);
 
 const devices = householdDevicesResult.devices;
@@ -263,35 +255,22 @@ if (forceSimple) {
   overviewMode = "simple";
 }
 const canExportCsv = entitlements.canDownloadCsv;
-const hasHistory = loadChart ? chartWeek.points.length > 0 : Boolean(historyExists);
+const hasHistory = loadChart ? chartWeek.points.length > 0 : latest.length > 0;
 
 const chartMarkerTimes = chartWeek.points
   .map((p) => Date.parse(p.timestamp))
   .filter((ts) => Number.isFinite(ts));
-const chartAlertMarkers =
-  chartMarkerTimes.length > 0
-    ? toChartAlertMarkers(
-        await listAlertEventsInRange(
-          user.id,
-          new Date(Math.min(...chartMarkerTimes)).toISOString(),
-          new Date(Math.max(...chartMarkerTimes)).toISOString(),
-          200,
-        ),
-      )
-    : [];
+const loadChartAlertMarkers = chartMarkerTimes.length > 0;
 
 /** Device + freeze email + at least one alert (test counts). Insights wait until this. */
 const hasDevices =
-  tempConfig.hasCustomConfig ||
-  deviceConfig.devices.some((d) => d.source === "push");
+  devices.some((d) => d.source === "push" || d.source === "pull_url") ||
+  latest.length > 0;
 const hasAlertsEnabled = alertSettings.enabled;
 const hasEmailAlerts =
   alertSettings.enabled &&
   alertSettings.channelEmail &&
   Boolean(resolveAlertEmail(alertSettings, user.email));
-const onboardingDismissed =
-  (user.user_metadata as Record<string, unknown> | undefined)?.onboarding_dismissed ===
-  true;
 const lastAlertCandidatesEarly = [
   alertSettings.lastAlertSentAt,
   alertSettings.lastOutageAlertAt,
@@ -330,11 +309,14 @@ const [
   powerOffSessions,
   motionSessions,
   outdoorHourly,
+  chartAlertEvents,
 ] = await Promise.all([
-  entitlements.canUseThermostatIntegration && household.householdId
+  entitlements.canUseThermostatIntegration &&
+  household.householdId &&
+  !firstRunFocus
     ? listConnectionsForHousehold(household.householdId)
     : Promise.resolve([] as Awaited<ReturnType<typeof listConnectionsForHousehold>>),
-  household.householdId
+  showInsights && household.householdId
     ? getIndoorReferenceSensorId(household.householdId)
     : Promise.resolve(null),
   household.householdId
@@ -405,16 +387,26 @@ const [
   showInsights && weatherHasCoords && weatherSnapshot
     ? fetchOpenMeteoHourlyWindow(weatherSnapshot.lat!, weatherSnapshot.lon!).catch(() => [])
     : Promise.resolve([]),
+  loadChartAlertMarkers
+    ? listAlertEventsInRange(
+        user.id,
+        new Date(Math.min(...chartMarkerTimes)).toISOString(),
+        new Date(Math.max(...chartMarkerTimes)).toISOString(),
+        200,
+      )
+    : Promise.resolve([] as Awaited<ReturnType<typeof listAlertEventsInRange>>),
 ]);
 
+const chartAlertMarkers = toChartAlertMarkers(chartAlertEvents);
+
 const [thermostatOverview, houseChartOverlay] = await Promise.all([
-  showInsights && !firstRunFocus && thermostatConnections[0] && household.householdId
+  showInsights && thermostatConnections[0] && household.householdId
     ? fetchThermostatContextWithStatus(
         household.householdId,
         thermostatConnections[0].provider,
       )
     : Promise.resolve(null),
-  !firstRunFocus && !forceSimple && household.householdId
+  showInsights && household.householdId
     ? fetchHouseChartOverlay({
         householdId: household.householdId,
         days: chartWindowDays,
@@ -433,9 +425,7 @@ const houseContext = buildHouseContext({
 
 const hasSensors =
   preferences.tempProbes.length > 0 ||
-  deviceConfig.devices.some(
-    (d) => d.source === "push" && d.sensors.length > 0,
-  );
+  devices.some((d) => d.sensors.length > 0);
 const hasHouseholdMembers = members.members.length > 1;
 
 const passwordUpdated = Astro.url.searchParams.get("password") === "updated";
@@ -483,6 +473,7 @@ const showMultiPropertyNudge =
   (entitlements.tier === "pro" || entitlements.tier === "member") &&
   canEdit &&
   !firstRunFocus;
+const feedHealth = { statuses: feedHealthFromDevices(devices), error: null as string | null };
 const feedIssueCount = feedHealth.statuses.filter((s) => !s.ok).length;
 const sensorCount =
   latest.length > 0
@@ -627,7 +618,7 @@ const feedsValue =
 const showDemoPullNudge =
   canEdit &&
   latest.length === 0 &&
-  deviceConfig.devices.length === 0 &&
+  devices.length === 0 &&
   !onboardingDismissed;
 
 const upgradeTarget = nextUpgradeTier(entitlements.tier);

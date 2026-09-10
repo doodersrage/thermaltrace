@@ -20,6 +20,7 @@ import type { ChartPoint } from "./garageTempsHistory";
 import { dewPointF, estimateHeatingLossRate } from "./heatingInsights";
 import { readDeviceMetaNumber } from "./deviceHealth";
 import type { FeedHealthStatus } from "./collectHistory";
+import { formatRelativeAge } from "./relativeTime";
 import { SENSOR_KIND_LABELS, type SensorKind } from "./sensorKinds";
 
 export type BatteryOverviewRow = {
@@ -387,6 +388,28 @@ export function computeFeedUptimePct(statuses: FeedHealthStatus[]): {
     ok,
     total: statuses.length,
   };
+}
+
+/** Last-seen proxy for Overview so we do not HTTP-probe pull feeds on every render. */
+export function feedHealthFromDevices(devices: DeviceWithSensors[]): FeedHealthStatus[] {
+  const checkedAt = new Date().toISOString();
+  return devices
+    .filter(
+      (device) =>
+        device.enabled && device.source === "pull_url" && Boolean(device.pull_url),
+    )
+    .map((device) => {
+      const age = formatRelativeAge(device.last_seen_at);
+      return {
+        feedId: device.id,
+        feedName: device.name,
+        url: device.pull_url ?? "",
+        ok: !age.stale,
+        message: age.stale ? `Last seen ${age.label}` : `${device.sensors.length} sensor(s)`,
+        probeCount: device.sensors.length,
+        checkedAt,
+      };
+    });
 }
 
 export function buildAirQualityOverview(latest: LatestSensorRow[]): AirQualityOverview {
