@@ -413,26 +413,26 @@ export default function ProbeDemo() {
       </section>
 
       <section class="card probe-demo-convert" id="try-real">
-        <h2 class="card-title">Now try it with your own probe</h2>
+        <h2 class="card-title">Want this for your garage?</h2>
         <p class="card-subtitle mb-4">
-          Same JSON shapes, same Overview space-status logic, same freeze essentials — create a free
-          account, POST once, and set a threshold before the next cold night.
+          Same JSON shapes and freeze essentials — about $25 in ESP32 + waterproof probe parts,
+          then a free account, one POST, and a freeze threshold before the next cold night.
         </p>
         <div class="flex flex-wrap gap-3 mb-3">
-          <a class="btn-primary" href="/register?next=/dashboard/devices">
+          <a class="btn-primary" href="/about/esp32-freeze-kit">
+            ESP32 freeze kit (~$25)
+          </a>
+          <a class="btn-secondary" href="/register?next=/dashboard/devices">
             Create free account
           </a>
-          <a class="btn-secondary" href="/about/adding-devices">
-            Adding devices guide
-          </a>
-          <a class="btn-ghost" href="/demo">
-            Or watch the live demo feed
+          <a class="btn-ghost" href="/about/adding-devices">
+            All device options
           </a>
         </div>
         <p class="mb-0 text-sm text-[var(--color-text-muted)]">
           Already signed in?
           {" "}
-          <a class="text-link" href="/dashboard">Overview + demo feed</a>
+          <a class="text-link" href="/dashboard/devices">Add a push device</a>
           {" · "}
           <a class="text-link" href="/dashboard/alerts?tab=settings#alert-section-essentials">
             Freeze + email essentials

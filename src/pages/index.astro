@@ -67,8 +67,8 @@ const featuredStory = getStory("pipe-near-miss")!;
 								</>
 							) : (
 								<>
-									<a class="btn-primary home-hero-cta-primary" href="/about/probe-demo">Try probe simulator</a>
-									<a class="btn-secondary" href="/register?next=/dashboard/devices">Start free</a>
+									<a class="btn-primary home-hero-cta-primary" href="/about/probe-demo?preset=coldSnap">Try a cold snap</a>
+									<a class="btn-secondary" href="/about/esp32-freeze-kit">Build a ~$25 probe</a>
 								</>
 							)}
 						</div>
@@ -80,12 +80,13 @@ const featuredStory = getStory("pipe-near-miss")!;
 							</p>
 						) : (
 							<p class="home-hero-nohw">
-								No hardware yet? Cause a cold snap or door draft in the
-								<a class="text-link" href="/about/probe-demo?preset=coldSnap">interactive simulator</a>
-								<span aria-hidden="true"> · </span>
-								or
-								<a class="text-link" href="#home-live">watch live demo probes</a>
-								below.
+								No hardware yet? Cause a cold snap in the
+								<a class="text-link" href="/about/probe-demo?preset=coldSnap">simulator</a>,
+								then build the
+								<a class="text-link" href="/about/esp32-freeze-kit">ESP32 freeze kit</a>
+								for your garage —
+								<a class="text-link" href="/register?next=/dashboard/devices">start free</a>
+								(no credit card).
 							</p>
 						)}
 						<p class="home-hero-plans">
@@ -136,8 +137,9 @@ const featuredStory = getStory("pipe-near-miss")!;
 						</p>
 					</div>
 					<p class="home-live-cta mb-4">
-						<a class="btn-primary" href="/about/probe-demo?preset=doorDraft">Open door-draft simulator</a>
-						<a class="btn-secondary" href="/demo">Full live demo feed</a>
+						<a class="btn-primary" href="/about/probe-demo?preset=coldSnap">Try a cold snap</a>
+						<a class="btn-secondary" href="/about/esp32-freeze-kit">Want this for your garage?</a>
+						<a class="btn-ghost" href="/demo">Live demo feed</a>
 					</p>
 					<div class="home-live" aria-label="Live demo readings">
 						<DemoTempsPanel client:visible />
@@ -149,16 +151,16 @@ const featuredStory = getStory("pipe-near-miss")!;
 					<div class="home-steps-intro">
 						<h2 class="home-steps-title" id="home-steps-title">How it works</h2>
 						<p class="home-steps-lede">
-							No special hardware lock-in. No home server to keep online.
+							One recommended path: ESP32 + waterproof probe → ThermalTrace → phone alert. Other boards and feeds stay supported after you are live.
 						</p>
 					</div>
 					<ol class="home-steps-list">
 						<li class="home-step">
 							<span class="home-step-num" aria-hidden="true">1</span>
 							<div>
-								<h3 class="home-step-title">Build</h3>
+								<h3 class="home-step-title">Build one probe</h3>
 								<p class="home-step-copy">
-									Wire an ESP32 or Arduino with a temperature probe, or use almost any device that can send JSON.
+									ESP32 + waterproof DS18B20 is the default kit (~$20–30 parts). Wire it, flash Wi‑Fi, and you are ready to POST.
 								</p>
 							</div>
 						</li>
@@ -167,23 +169,57 @@ const featuredStory = getStory("pipe-near-miss")!;
 							<div>
 								<h3 class="home-step-title">Connect</h3>
 								<p class="home-step-copy">
-									Push readings to ThermalTrace (or pull from an HTTPS JSON feed). Sensors appear on first contact.
+									Create a free push device, paste the ingest key into the sketch, and POST once. Sensors auto-import on first contact.
 								</p>
 							</div>
 						</li>
 						<li class="home-step">
 							<span class="home-step-num" aria-hidden="true">3</span>
 							<div>
-								<h3 class="home-step-title">Get alerted</h3>
-							<p class="home-step-copy">
-									Set a cold threshold and enable wet flood/leak contacts. Email, chat, or SMS when freeze risk or wet contact turns into a plumbing problem.
+								<h3 class="home-step-title">Get freeze alerts</h3>
+								<p class="home-step-copy">
+									Set freeze °F + email, send a test, then watch Live and Overview. Add a flood/leak contact when you are ready.
 								</p>
 							</div>
 						</li>
 					</ol>
 					<div class="home-steps-actions">
-						<a class="btn-primary" href="/register?next=/dashboard/devices">Start free</a>
-						<a class="btn-secondary" href="/about/adding-devices">Adding devices guide</a>
+						<a class="btn-primary" href="/about/esp32-freeze-kit">ESP32 freeze kit BOM</a>
+						<a class="btn-secondary" href="/register?next=/dashboard/devices">Start free</a>
+						<a class="btn-ghost" href="/about/adding-devices">All device options</a>
+					</div>
+				</section>
+
+				<section class="home-need" id="what-you-need" aria-labelledby="home-need-title">
+					<div class="home-need-intro">
+						<h2 class="home-need-title" id="home-need-title">What you need</h2>
+						<p class="home-need-lede">
+							Monitor an unheated garage for under about $25 in parts. No subscription required to try freeze alerts.
+						</p>
+					</div>
+					<div class="home-need-grid">
+						<div class="home-need-col">
+							<h3 class="home-need-col-title">Parts</h3>
+							<ul class="home-need-list">
+								<li><strong>ThermalTrace account</strong> — free, no credit card</li>
+								<li><strong>ESP32 board</strong> — about $8–15</li>
+								<li><strong>Waterproof DS18B20</strong> — about $2–5</li>
+								<li><strong>Wi‑Fi</strong> — your existing home network</li>
+							</ul>
+						</div>
+						<div class="home-need-col">
+							<h3 class="home-need-col-title">What you get</h3>
+							<ul class="home-need-list">
+								<li>Live garage temperature on phone and web</li>
+								<li>History curves with a freeze line</li>
+								<li>Freeze alerts (email on Free; SMS/push on Pro)</li>
+								<li>No home server to babysit</li>
+							</ul>
+						</div>
+					</div>
+					<div class="home-need-actions">
+						<a class="btn-primary" href="/about/esp32-freeze-kit">Open the parts list</a>
+						<a class="btn-secondary" href="/about/probe-demo?preset=coldSnap">Try the simulator first</a>
 					</div>
 				</section>
 

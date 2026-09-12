@@ -15,16 +15,16 @@ const { canEdit, atDeviceLimit, redirectTo, nestEntitled } = Astro.props;
 <section class="card devices-first-run" id="devices-first-run" aria-labelledby="devices-first-run-title">
   <h2 class="card-title" id="devices-first-run-title">Get your first freeze or leak alert</h2>
   <p class="card-subtitle mb-4">
-    Three steps: create a push device, POST one reading, set freeze °F + email. A flood/leak contact on the same device auto-alerts when wet. Other paths are below.
+    Recommended path: ESP32 freeze kit → create a push device → POST once → set freeze °F + email. A flood/leak contact on the same device auto-alerts when wet.
   </p>
 
   <ol class="devices-guide" aria-label="Guided first-run">
     <li class="devices-guide-step">
       <span class="devices-guide-num" aria-hidden="true">1</span>
       <div>
-        <h3 class="devices-guide-title">Create an ESP / Pico / Arduino push device</h3>
+        <h3 class="devices-guide-title">Build the ESP32 freeze kit, then create a push device</h3>
         <p class="devices-guide-copy">
-          We pre-fill a sketch with your ingest URL. Flash Wi‑Fi, power the board, and POST once: sensors auto-import.
+          About $20–30 in parts (ESP32 + waterproof DS18B20). We pre-fill a sketch with your ingest URL — flash Wi‑Fi, power the board, and POST once: sensors auto-import.
         </p>
         {canEdit && !atDeviceLimit ? (
           <div class="flex flex-wrap gap-2 mt-2">
@@ -34,7 +34,8 @@ const { canEdit, atDeviceLimit, redirectTo, nestEntitled } = Astro.props;
               <input type="hidden" name="name" value="Workshop probe" />
               <button class="btn-primary" type="submit">Create push device</button>
             </form>
-            <a class="btn-ghost" href="/about/esp32-freeze-kit">Parts list</a>
+            <a class="btn-secondary" href="/about/esp32-freeze-kit">Parts list (~$25)</a>
+            <a class="btn-ghost" href="/about/esp32-web-flash">ESP32 flash guide</a>
           </div>
         ) : atDeviceLimit ? (
           <div class="flex flex-wrap gap-2 mt-2">
@@ -53,16 +54,18 @@ const { canEdit, atDeviceLimit, redirectTo, nestEntitled } = Astro.props;
         <p class="devices-guide-copy">
           After the first POST, rename imported sensors on the device card so Overview and alerts read clearly.
         </p>
-        <div class="flex flex-wrap gap-2 mt-2">
-          <a class="btn-ghost inline-flex" href="/about/esp32-web-flash">ESP32 flash guide</a>
-          <a class="btn-ghost inline-flex" href="/about/pico-w-ingest">Pico W guide</a>
-          <a class="btn-ghost inline-flex" href="/about/stm32-zephyr-ingest">STM32 Zephyr guide</a>
-          <a class="btn-ghost inline-flex" href="/about/ch32v-riscv-ingest">CH32V RISC-V guide</a>
-          <a class="btn-ghost inline-flex" href="/about/avr-asm-ingest">AVR assembly guide</a>
-          <a class="btn-ghost inline-flex" href="/about/teensy41-ingest">Teensy 4.1 guide</a>
-          <a class="btn-ghost inline-flex" href="/about/pic18-ethernet-ingest">PIC18 Ethernet guide</a>
-          <a class="btn-ghost inline-flex" href="/about/cellular-ingest">Cellular guide</a>
-        </div>
+        <details class="devices-other-boards mt-2">
+          <summary class="devices-other-summary">Other board guides</summary>
+          <div class="flex flex-wrap gap-2 mt-2">
+            <a class="btn-ghost inline-flex" href="/about/pico-w-ingest">Pico W</a>
+            <a class="btn-ghost inline-flex" href="/about/stm32-zephyr-ingest">STM32 Zephyr</a>
+            <a class="btn-ghost inline-flex" href="/about/ch32v-riscv-ingest">CH32V RISC-V</a>
+            <a class="btn-ghost inline-flex" href="/about/avr-asm-ingest">AVR assembly</a>
+            <a class="btn-ghost inline-flex" href="/about/teensy41-ingest">Teensy 4.1</a>
+            <a class="btn-ghost inline-flex" href="/about/pic18-ethernet-ingest">PIC18 Ethernet</a>
+            <a class="btn-ghost inline-flex" href="/about/cellular-ingest">Cellular</a>
+          </div>
+        </details>
       </div>
     </li>
     <li class="devices-guide-step">
@@ -197,6 +200,12 @@ const { canEdit, atDeviceLimit, redirectTo, nestEntitled } = Astro.props;
     cursor: pointer;
     font-weight: 600;
     color: var(--color-text);
+  }
+
+  .devices-other-boards .devices-other-summary {
+    font-size: 0.875rem;
+    font-weight: 550;
+    color: var(--color-text-muted);
   }
 
   .devices-intent-grid {
