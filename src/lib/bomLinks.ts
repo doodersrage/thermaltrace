@@ -38,12 +38,12 @@ export const BOM = {
   pjrcTeensy41: affiliateHref("https://www.pjrc.com/store/teensy41.html"),
   pjrcEthKit: affiliateHref("https://www.pjrc.com/store/ethernet_kit.html"),
 
-  // Amazon product pages (verified HTTP 200; re-check if a listing vanishes)
-  amazonDs18b20: amazonDp("B00N1E343C"),
+  // Amazon product pages (verified live; re-check if a listing vanishes)
+  amazonDs18b20: amazonDp("B07V2KS43L"), // uxcell waterproof DS18B20 1m
   amazonEsp32DevKit: amazonDp("B08D5ZD528"),
   amazonPicoW: amazonDp("B0B6FGBYRT"),
   amazonRp2040Zero: amazonDp("B09MJN9XJN"),
-  amazonResistor4k7: amazonDp("B072FGSSDS"),
+  amazonResistor4k7: amazonDp("B08QRZRRGB"), // Chanzon 4.7kΩ 1/4W pack
   amazonTeensy41: amazonDp("B08F5X1J3M"),
   amazonUno: amazonDp("B008GRTSV6"),
   amazonEthShield: amazonDp("B00E5WJDXC"),

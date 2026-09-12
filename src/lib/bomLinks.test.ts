@@ -17,8 +17,8 @@ describe("bomLinks", () => {
   });
 
   it("builds tagged Amazon product and search URLs", () => {
-    expect(amazonDp("B00N1E343C")).toContain("/dp/B00N1E343C");
-    expect(amazonDp("B00N1E343C")).toContain("tag=thermaltraced-20");
+    expect(amazonDp("B07V2KS43L")).toContain("/dp/B07V2KS43L");
+    expect(amazonDp("B07V2KS43L")).toContain("tag=thermaltraced-20");
     expect(amazonSearch("waterproof DS18B20")).toContain("/s?k=waterproof+DS18B20");
     expect(amazonSearch("waterproof DS18B20")).toContain("tag=thermaltraced-20");
   });
@@ -28,8 +28,8 @@ describe("bomLinks", () => {
   });
 
   it("exposes shared DS18B20 and resistor product links", () => {
-    expect(BOM.amazonDs18b20).toContain("/dp/B00N1E343C");
-    expect(BOM.amazonResistor4k7).toContain("/dp/B072FGSSDS");
+    expect(BOM.amazonDs18b20).toContain("/dp/B07V2KS43L");
+    expect(BOM.amazonResistor4k7).toContain("/dp/B08QRZRRGB");
     expect(BOM.amazonEsp32DevKit).toContain("/dp/B08D5ZD528");
   });
 });
