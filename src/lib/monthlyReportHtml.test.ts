@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildMonthlyReportHtmlDocument,
+  buildMonthlyReportHtmlEmail,
   buildMonthlyReportPlainText,
   summarizeProbesForReport,
 } from "./monthlyReportHtml";
@@ -74,6 +75,20 @@ describe("monthly report html", () => {
     expect(html).toContain("Garage");
     expect(html).toContain("At risk");
     expect(html).toContain("Print this page");
+  });
+
+  it("builds a sectioned email instead of a stats bullet list", () => {
+    const html = buildMonthlyReportHtmlEmail(sampleData);
+    expect(html).toContain("Freeze exposure");
+    expect(html).toContain("12.5 h at or below 34°F");
+    expect(html).toContain("Coldest");
+    expect(html).toContain("28.5°F");
+    expect(html).toContain("By probe");
+    expect(html).toContain("Garage");
+    expect(html).toContain("Forecast nights");
+    expect(html).toContain("At risk");
+    expect(html).not.toContain("<ul");
+    expect(html).toContain("full HTML report is attached");
   });
 
   it("escapes probe labels in html", () => {

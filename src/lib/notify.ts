@@ -31,14 +31,19 @@ export type NotifyPayload = {
   meta?: AlertEventMeta;
 };
 
-async function sendEmail(to: string, subject: string, body: string): Promise<void> {
+async function sendEmail(
+  to: string,
+  subject: string,
+  body: string,
+  kind?: NotifyKind,
+): Promise<void> {
   try {
     const { sendEmail: send } = await import("./mailer");
     const { brandedEmailParts } = await import("./emailLayout");
     const { resolveSiteUrl } = await import("./schemaMarkup");
     const siteUrl = resolveSiteUrl(null);
     const parts = brandedEmailParts({
-      eyebrow: "Alert",
+      eyebrow: alertEmailEyebrow(kind),
       preheader: body.slice(0, 120),
       title: subject,
       intro: body,
@@ -46,11 +51,37 @@ async function sendEmail(to: string, subject: string, body: string): Promise<voi
       secondaryCta: { label: "Alert settings", url: `${siteUrl}/dashboard/alerts` },
       tone: "alert",
       footerNote:
-        "You’re receiving this because freeze or threshold alerts are enabled for your account.",
+        "You’re receiving this because alerts are enabled for your account.",
     });
     await send(to, subject, parts.text, { html: parts.html });
   } catch (error) {
     console.error("Failed to send alert email:", error);
+  }
+}
+
+function alertEmailEyebrow(kind?: NotifyKind): string {
+  switch (kind) {
+    case "flood":
+      return "Leak alert";
+    case "outage":
+      return "Outage";
+    case "forecast":
+    case "nws":
+      return "Forecast";
+    case "battery":
+      return "Battery";
+    case "runway":
+      return "Runway";
+    case "rate":
+      return "Rate of change";
+    case "rssi":
+      return "Signal";
+    case "rule":
+      return "Rule";
+    case "threshold":
+      return "Freeze / threshold";
+    default:
+      return "Alert";
   }
 }
 
@@ -595,7 +626,7 @@ export async function notifyUser(
 
   if (settings.channelEmail && allowChannel("email")) {
     if (email) {
-      await sendEmail(email, payloadResolved.title, bodyWithSnooze);
+      await sendEmail(email, payloadResolved.title, bodyWithSnooze, kind);
       sent.push("email");
     } else {
       skipped.push("email");

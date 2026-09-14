@@ -30,12 +30,21 @@ export function buildFreezeDrillEmailParts(input: {
   checks: Array<{ ok: boolean; label: string }>;
   siteUrl: string;
 }) {
+  const readinessTone =
+    input.score >= 80 ? "success" : input.score >= 50 ? "brand" : "alert";
   return brandedEmailParts({
     eyebrow: "Pre-season freeze drill",
     preheader: `Readiness score ${input.score}%`,
     title: "Time for your freeze-season check",
     intro: "Before the first hard freeze, confirm alerts and probes are ready.",
-    paragraphs: [`Readiness: ${input.score}%`],
+    sections: [
+      {
+        type: "callout",
+        tone: readinessTone,
+        title: "Readiness",
+        body: `${input.score}%`,
+      },
+    ],
     bullets: input.checks.map((c) => `${c.ok ? "✓" : "○"} ${c.label}`),
     cta: { label: "Open dashboard", url: `${input.siteUrl}/dashboard` },
     secondaryCta: {

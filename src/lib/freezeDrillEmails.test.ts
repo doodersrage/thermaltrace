@@ -12,7 +12,8 @@ describe("buildFreezeDrillEmailParts", () => {
       ],
     });
 
-    expect(parts.html).toContain("Readiness: 40%");
+    expect(parts.html).toContain("Readiness");
+    expect(parts.html).toContain("40%");
     expect(parts.html).toContain("<ul");
     expect(parts.html).toMatch(/<li[^>]*>○ Alerts enabled \(freeze \+ auto flood\)<\/li>/);
     expect(parts.html).toMatch(/<li[^>]*>✓ All probes reporting \(not stale\)<\/li>/);

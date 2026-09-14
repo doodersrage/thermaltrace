@@ -31,6 +31,25 @@ vi.mock("../../../lib/trialEmails", () => ({
   buildTrialReminderEmail: (...a: unknown[]) => mockBuildTrialReminderEmail(...a),
 }));
 
+const mockBuildWeeklyDigestParts = vi.fn();
+vi.mock("../../../lib/digestEmails", () => ({
+  buildWeeklyDigestParts: (...a: unknown[]) => mockBuildWeeklyDigestParts(...a),
+}));
+
+const mockBuildMonthlyReportHtmlEmail = vi.fn();
+const mockBuildMonthlyReportPlainText = vi.fn();
+const mockFormatPeriodReportSubject = vi.fn();
+vi.mock("../../../lib/monthlyReportHtml", () => ({
+  buildMonthlyReportHtmlEmail: (...a: unknown[]) => mockBuildMonthlyReportHtmlEmail(...a),
+  buildMonthlyReportPlainText: (...a: unknown[]) => mockBuildMonthlyReportPlainText(...a),
+  formatPeriodReportSubject: (...a: unknown[]) => mockFormatPeriodReportSubject(...a),
+}));
+
+const mockBuildFreezeDrillEmailParts = vi.fn();
+vi.mock("../../../lib/freezeDrillEmails", () => ({
+  buildFreezeDrillEmailParts: (...a: unknown[]) => mockBuildFreezeDrillEmailParts(...a),
+}));
+
 const mockSendEmail = vi.fn();
 vi.mock("../../../lib/mailer", () => ({
   sendEmail: (...a: unknown[]) => mockSendEmail(...a),
@@ -65,6 +84,18 @@ beforeEach(() => {
   mockResolveSiteUrl.mockReset().mockReturnValue("https://thermaltrace.dev");
   mockBuildDripEmail.mockReset().mockReturnValue({ subject: "Drip", text: "text", html: "<p>html</p>" });
   mockBuildTrialReminderEmail.mockReset().mockReturnValue({ subject: "Trial", text: "text", html: "<p>html</p>" });
+  mockBuildWeeklyDigestParts.mockReset().mockReturnValue({
+    subject: "Weekly",
+    text: "wtext",
+    html: "<p>weekly</p>",
+  });
+  mockBuildMonthlyReportHtmlEmail.mockReset().mockReturnValue("<p>monthly</p>");
+  mockBuildMonthlyReportPlainText.mockReset().mockReturnValue("mtext");
+  mockFormatPeriodReportSubject.mockReset().mockReturnValue("Monthly");
+  mockBuildFreezeDrillEmailParts.mockReset().mockReturnValue({
+    text: "ftext",
+    html: "<p>freeze</p>",
+  });
   mockSendEmail.mockReset().mockResolvedValue(undefined);
   env.SMTP_MAIL_FROM = "noreply@thermaltrace.dev";
 });
@@ -143,6 +174,49 @@ describe("POST /api/admin/email-test", () => {
       "[Test] Trial",
       "text",
       { html: "<p>html</p>" },
+    );
+  });
+
+  it("builds the weekly digest sample", async () => {
+    const { POST } = await import("./email-test");
+
+    await POST(makeContext({ kind: "weekly_digest" }));
+
+    expect(mockBuildWeeklyDigestParts).toHaveBeenCalled();
+    expect(mockSendEmail).toHaveBeenCalledWith(
+      "user@example.com",
+      "[Test] Weekly",
+      "wtext",
+      { html: "<p>weekly</p>" },
+    );
+  });
+
+  it("builds the monthly report sample", async () => {
+    const { POST } = await import("./email-test");
+
+    await POST(makeContext({ kind: "monthly_report" }));
+
+    expect(mockFormatPeriodReportSubject).toHaveBeenCalled();
+    expect(mockBuildMonthlyReportHtmlEmail).toHaveBeenCalled();
+    expect(mockSendEmail).toHaveBeenCalledWith(
+      "user@example.com",
+      "[Test] Monthly",
+      "mtext",
+      { html: "<p>monthly</p>" },
+    );
+  });
+
+  it("builds the freeze drill sample", async () => {
+    const { POST } = await import("./email-test");
+
+    await POST(makeContext({ kind: "freeze_drill" }));
+
+    expect(mockBuildFreezeDrillEmailParts).toHaveBeenCalled();
+    expect(mockSendEmail).toHaveBeenCalledWith(
+      "user@example.com",
+      "[Test] Freeze readiness 60%: pre-season drill",
+      "ftext",
+      { html: "<p>freeze</p>" },
     );
   });
 

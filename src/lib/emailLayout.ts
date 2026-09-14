@@ -39,6 +39,9 @@ export type BrandedEmailContent = {
   tone?: "brand" | "alert" | "success";
 };
 
+const FONT =
+  "-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif";
+
 const COLORS = {
   bg: "#090b0f",
   card: "#151b24",
@@ -279,12 +282,12 @@ export function buildBrandedEmailHtml(content: BrandedEmailContent): string {
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>${escapeEmailHtml(content.title)}</title>
 </head>
-<body style="margin:0;padding:0;background:${COLORS.bg};color:${COLORS.text}">
+<body style="margin:0;padding:0;background:${COLORS.bg};color:${COLORS.text};font-family:${FONT}">
   <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent">${escapeEmailHtml(preheader)}</div>
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${COLORS.bg};padding:28px 16px">
     <tr>
       <td align="center">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:${COLORS.card};border:1px solid ${COLORS.border};border-radius:16px;overflow:hidden">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:${COLORS.card};border:1px solid ${COLORS.border};border-radius:16px;overflow:hidden;font-family:${FONT}">
           <tr>
             <td style="height:4px;background:linear-gradient(90deg, ${COLORS.brandSoft}, ${COLORS.brand});font-size:0;line-height:0">&nbsp;</td>
           </tr>

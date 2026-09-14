@@ -196,7 +196,6 @@ export async function sendInviteEmail(
       paragraphs: [
         "Accept the invite with this email address (sign in or register). The link expires in 7 days.",
       ],
-      bullets: [`Household: ${householdName}`],
       cta: { label: "Accept invite", url: acceptUrl },
       tone: "brand",
       footerNote: "If you weren’t expecting this, you can ignore the message.",

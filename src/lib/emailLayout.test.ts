@@ -19,6 +19,7 @@ describe("emailLayout", () => {
     expect(html).toContain("&quot;north&quot;");
     expect(html).toContain("Thermal");
     expect(html).toContain("Trace");
+    expect(html).toContain("font-family");
     expect(html).toContain("https://thermaltrace.dev/dashboard");
   });
 

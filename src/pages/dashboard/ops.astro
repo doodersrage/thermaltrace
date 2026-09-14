@@ -239,7 +239,7 @@ const opsDiscordConfigured = Boolean(
 
     <section class="card">
       <h2 class="card-title">Email smoke tests</h2>
-      <p class="card-subtitle mb-4">Send sample drip/trial templates to your admin email ({user.email}).</p>
+      <p class="card-subtitle mb-4">Send sample templates to your admin email ({user.email}).</p>
       <div class="flex flex-wrap gap-2">
         <form action="/api/admin/email-test" method="post">
           <input type="hidden" name="kind" value="drip_day1" />
@@ -252,6 +252,18 @@ const opsDiscordConfigured = Boolean(
         <form action="/api/admin/email-test" method="post">
           <input type="hidden" name="kind" value="trial_3d" />
           <button class="btn-secondary" type="submit">Test trial reminder</button>
+        </form>
+        <form action="/api/admin/email-test" method="post">
+          <input type="hidden" name="kind" value="weekly_digest" />
+          <button class="btn-secondary" type="submit">Test weekly digest</button>
+        </form>
+        <form action="/api/admin/email-test" method="post">
+          <input type="hidden" name="kind" value="monthly_report" />
+          <button class="btn-secondary" type="submit">Test monthly report</button>
+        </form>
+        <form action="/api/admin/email-test" method="post">
+          <input type="hidden" name="kind" value="freeze_drill" />
+          <button class="btn-secondary" type="submit">Test freeze drill</button>
         </form>
       </div>
     </section>

@@ -1,7 +1,10 @@
 import type { ChartPoint } from "./garageTempsHistory";
 import type { NightRisk } from "./FetchWeather";
 import type { FreezeHoursSummary } from "./freezeHours";
-import { buildBrandedEmailHtml } from "./emailLayout";
+import {
+  buildBrandedEmailHtml,
+  type EmailSection,
+} from "./emailLayout";
 
 export type MonthlyProbeSummary = {
   label: string;
@@ -216,21 +219,78 @@ export function buildMonthlyReportHtmlDocument(data: MonthlyReportData): string 
 </html>`;
 }
 
-/** Shorter HTML for the email body (stats only). */
+function freezeCalloutBody(data: MonthlyReportData): string {
+  if (data.freezeHours.readingsBelow34 === 0) {
+    return `None at or below ${data.freezeThresholdF}°F`;
+  }
+  const coldest =
+    data.freezeHours.coldestF != null
+      ? ` · coldest ${data.freezeHours.coldestF.toFixed(1)}°F`
+      : "";
+  return `${data.freezeHours.hoursBelow34.toFixed(1)} h at or below ${data.freezeThresholdF}°F (${data.freezeHours.readingsBelow34} readings${coldest})`;
+}
+
+/** Shorter HTML for the email body (stats, freeze callout, compact tables). */
 export function buildMonthlyReportHtmlEmail(data: MonthlyReportData): string {
   const kindLabel = data.reportKind === "quarterly" ? "Quarterly report" : "Monthly report";
+  const sections: EmailSection[] = [
+    {
+      type: "callout",
+      tone: data.freezeHours.readingsBelow34 === 0 ? "success" : "alert",
+      title: "Freeze exposure",
+      body: freezeCalloutBody(data),
+    },
+    {
+      type: "stats",
+      items: [
+        { label: "Readings", value: String(data.readingCount) },
+        { label: "Coldest", value: formatTemp(data.minTempF) },
+        { label: "Warmest", value: formatTemp(data.maxTempF) },
+        { label: "Average", value: formatTemp(data.avgTempF) },
+      ],
+    },
+  ];
+
+  if (data.probes.length > 0) {
+    sections.push(
+      { type: "heading", text: "By probe" },
+      {
+        type: "table",
+        headers: ["Probe", "Range", "Humidity"],
+        rows: data.probes.map((probe) => [
+          probe.label,
+          `${probe.minF.toFixed(1)}–${probe.maxF.toFixed(1)}°F`,
+          `${probe.avgHumidity.toFixed(0)}% · ${probe.readingCount} readings`,
+        ]),
+      },
+    );
+  }
+
+  if (data.nights.length > 0) {
+    sections.push(
+      { type: "heading", text: "Forecast nights" },
+      {
+        type: "table",
+        headers: ["Night", "Low", "Status"],
+        rows: data.nights.map((night) => [
+          night.dateLabel,
+          `${night.minTempF.toFixed(0)}°F`,
+          night.atRisk ? "At risk" : "OK",
+        ]),
+      },
+    );
+  }
+
+  sections.push({
+    type: "note",
+    text: "A full HTML report is attached — open it in a browser or print to PDF.",
+  });
+
   return buildBrandedEmailHtml({
     eyebrow: kindLabel,
     title: `Probe report — ${data.monthLabel}`,
-    intro: `${periodPhrase(data)} summary from your saved readings. A full HTML report is attached — open it in a browser or print to PDF.`,
-    bullets: [
-      `Readings: ${data.readingCount}`,
-      `Coldest: ${formatTemp(data.minTempF)}`,
-      `Warmest: ${formatTemp(data.maxTempF)}`,
-      `Average: ${formatTemp(data.avgTempF)}`,
-      `Freeze hours (≤ ${data.freezeThresholdF}°F): ${data.freezeHours.hoursBelow34.toFixed(1)}`,
-      `Forecast nights at risk: ${data.nightsAtRisk}`,
-    ],
+    intro: `${periodPhrase(data)} snapshot from your saved readings and forecast outlook.`,
+    sections,
     cta: { label: "View history", url: data.historyUrl },
     secondaryCta: { label: "Manage alerts", url: data.alertsUrl },
     tone: "brand",
