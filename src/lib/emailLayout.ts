@@ -5,6 +5,21 @@ export type EmailCta = {
   url: string;
 };
 
+export type EmailCalloutTone = "success" | "alert" | "brand" | "muted";
+
+export type EmailStat = {
+  label: string;
+  value: string;
+  detail?: string;
+};
+
+export type EmailSection =
+  | { type: "callout"; tone?: EmailCalloutTone; title: string; body: string }
+  | { type: "heading"; text: string }
+  | { type: "stats"; items: EmailStat[] }
+  | { type: "table"; headers: string[]; rows: string[][] }
+  | { type: "note"; text: string };
+
 export type BrandedEmailContent = {
   /** Inbox preview text (hidden in body). */
   preheader?: string;
@@ -14,6 +29,8 @@ export type BrandedEmailContent = {
   /** Lead paragraph under the title. */
   intro?: string;
   paragraphs?: string[];
+  /** Structured blocks (callouts, stats, tables) rendered before bullets. */
+  sections?: EmailSection[];
   bullets?: string[];
   cta?: EmailCta;
   secondaryCta?: EmailCta;
@@ -49,6 +66,121 @@ function accentForTone(tone: BrandedEmailContent["tone"]): string {
   return COLORS.brand;
 }
 
+function calloutColors(tone: EmailCalloutTone): {
+  bg: string;
+  border: string;
+  title: string;
+} {
+  if (tone === "success") {
+    return { bg: "#10241a", border: "#166534", title: COLORS.success };
+  }
+  if (tone === "alert") {
+    return { bg: "#2a1416", border: "#7f1d1d", title: COLORS.alert };
+  }
+  if (tone === "muted") {
+    return { bg: "#10151d", border: COLORS.border, title: COLORS.muted };
+  }
+  return { bg: "#24180f", border: "#9a3412", title: COLORS.brandSoft };
+}
+
+function emailSectionToText(section: EmailSection): string[] {
+  if (section.type === "callout") {
+    return [section.title, section.body];
+  }
+  if (section.type === "heading") {
+    return [section.text];
+  }
+  if (section.type === "stats") {
+    return section.items.map((item) =>
+      item.detail ? `${item.label}: ${item.value} (${item.detail})` : `${item.label}: ${item.value}`,
+    );
+  }
+  if (section.type === "table") {
+    return section.rows.map((row) =>
+      section.headers.map((header, index) => `${header}: ${row[index] ?? ""}`).join(" · "),
+    );
+  }
+  return [section.text];
+}
+
+function renderStatCell(item: EmailStat): string {
+  const detail = item.detail
+    ? `<p style="margin:4px 0 0;color:${COLORS.muted};font-size:12px;line-height:1.4">${escapeEmailHtml(item.detail)}</p>`
+    : "";
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#10151d;border:1px solid ${COLORS.border};border-radius:12px">
+    <tr>
+      <td style="padding:12px 14px">
+        <p style="margin:0;color:${COLORS.muted};font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase">${escapeEmailHtml(item.label)}</p>
+        <p style="margin:6px 0 0;color:${COLORS.text};font-size:20px;font-weight:700;letter-spacing:-0.02em;line-height:1.2">${escapeEmailHtml(item.value)}</p>
+        ${detail}
+      </td>
+    </tr>
+  </table>`;
+}
+
+function renderEmailSection(section: EmailSection): string {
+  if (section.type === "callout") {
+    const colors = calloutColors(section.tone ?? "brand");
+    return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 18px">
+      <tr>
+        <td style="background:${colors.bg};border:1px solid ${colors.border};border-radius:12px;padding:14px 16px">
+          <p style="margin:0;color:${colors.title};font-size:11px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase">${escapeEmailHtml(section.title)}</p>
+          <p style="margin:6px 0 0;color:${COLORS.text};font-size:16px;line-height:1.5;font-weight:600">${escapeEmailHtml(section.body)}</p>
+        </td>
+      </tr>
+    </table>`;
+  }
+
+  if (section.type === "heading") {
+    return `<p style="margin:22px 0 10px;color:${COLORS.text};font-size:12px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase">${escapeEmailHtml(section.text)}</p>`;
+  }
+
+  if (section.type === "stats") {
+    const rows: string[] = [];
+    for (let i = 0; i < section.items.length; i += 2) {
+      const left = section.items[i];
+      const right = section.items[i + 1];
+      rows.push(`<tr>
+        <td width="50%" valign="top" style="padding:0 6px 12px 0">${renderStatCell(left)}</td>
+        <td width="50%" valign="top" style="padding:0 0 12px 6px">${right ? renderStatCell(right) : ""}</td>
+      </tr>`);
+    }
+    return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 6px">${rows.join("")}</table>`;
+  }
+
+  if (section.type === "table") {
+    const head = section.headers
+      .map(
+        (header) =>
+          `<th align="left" style="padding:8px 10px;color:${COLORS.muted};font-size:11px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;border-bottom:1px solid ${COLORS.border}">${escapeEmailHtml(header)}</th>`,
+      )
+      .join("");
+    const body = section.rows
+      .map(
+        (row, rowIndex) =>
+          `<tr>${section.headers
+            .map((_, index) => {
+              const value = row[index] ?? "";
+              const border = rowIndex === 0 ? "" : `border-top:1px solid ${COLORS.border};`;
+              return `<td style="padding:9px 10px;color:${COLORS.steel};font-size:13px;line-height:1.4;${border}">${escapeEmailHtml(value)}</td>`;
+            })
+            .join("")}</tr>`,
+      )
+      .join("");
+    return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 8px;background:#10151d;border:1px solid ${COLORS.border};border-radius:12px;overflow:hidden">
+      <tr style="background:#121821">${head}</tr>
+      ${body}
+    </table>`;
+  }
+
+  return `<p style="margin:16px 0 20px;color:${COLORS.muted};font-size:14px;line-height:1.55">${linkifyPlainUrls(section.text)}</p>`;
+}
+
+function renderEmailSections(sections: EmailSection[] | undefined): string {
+  if (!sections?.length) return "";
+  return sections.map(renderEmailSection).join("");
+}
+
 function linkifyPlainUrls(text: string): string {
   return escapeEmailHtml(text).replace(
     /(https?:\/\/[^\s<]+)/g,
@@ -66,6 +198,10 @@ export function buildBrandedEmailText(content: BrandedEmailContent): string {
   }
   for (const paragraph of content.paragraphs ?? []) {
     lines.push(paragraph);
+    lines.push("");
+  }
+  for (const section of content.sections ?? []) {
+    lines.push(...emailSectionToText(section));
     lines.push("");
   }
   for (const bullet of content.bullets ?? []) {
@@ -165,6 +301,7 @@ export function buildBrandedEmailHtml(content: BrandedEmailContent): string {
               <h1 style="margin:0 0 14px;color:${COLORS.text};font-size:24px;line-height:1.25;font-weight:700">${escapeEmailHtml(content.title)}</h1>
               ${intro}
               ${paragraphs}
+              ${renderEmailSections(content.sections)}
               ${bullets}
               ${ctaHtml}
               ${secondaryHtml}

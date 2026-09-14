@@ -34,6 +34,61 @@ describe("emailLayout", () => {
     expect(parts.text).toContain("Go: https://example.com/x");
   });
 
+  it("renders callouts, stats, and tables instead of a single bullet list", () => {
+    const html = buildBrandedEmailHtml({
+      title: "Digest",
+      sections: [
+        {
+          type: "callout",
+          tone: "success",
+          title: "Freeze exposure",
+          body: "None at or below 34°F",
+        },
+        { type: "heading", text: "By probe" },
+        {
+          type: "table",
+          headers: ["Probe", "Range"],
+          rows: [["Garage", "40.0–50.0°F"]],
+        },
+        {
+          type: "stats",
+          items: [
+            { label: "Coldest", value: "40.0°F", detail: "Jan 5 · Garage" },
+            { label: "Warmest", value: "50.0°F" },
+          ],
+        },
+      ],
+    });
+    expect(html).toContain("Freeze exposure");
+    expect(html).toContain("None at or below 34°F");
+    expect(html).toContain("By probe");
+    expect(html).toContain("<th");
+    expect(html).toContain("Garage");
+    expect(html).toContain("Coldest");
+    expect(html).not.toContain("<ul");
+    expect(html).not.toContain("&lt;script");
+  });
+
+  it("escapes HTML inside structured sections", () => {
+    const html = buildBrandedEmailHtml({
+      title: "Digest",
+      sections: [
+        { type: "callout", title: "<alert>", body: `north & "south"` },
+        {
+          type: "table",
+          headers: ["<Probe>"],
+          rows: [["<script>x</script>"]],
+        },
+      ],
+    });
+    expect(html).toContain("&lt;alert&gt;");
+    expect(html).toContain("north &amp; &quot;south&quot;");
+    expect(html).toContain("&lt;Probe&gt;");
+    expect(html).toContain("&lt;script&gt;x&lt;/script&gt;");
+    expect(html).not.toContain("<alert>");
+    expect(html).not.toContain("<script>x</script>");
+  });
+
   it("keeps intro line breaks and checklist bullets on their own rows", () => {
     const html = buildBrandedEmailHtml({
       title: "Drill",

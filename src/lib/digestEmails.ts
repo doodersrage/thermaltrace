@@ -2,8 +2,7 @@ import { createAdminClient } from "./supabase";
 import type { ChartPoint } from "./garageTempsHistory";
 import { getAlertSettingsForUser, notifyUser } from "./notify";
 import { listAllHouseholdOwnerUserIds } from "./households";
-import { summarizeSeasonal } from "./seasonalInsights";
-import { brandedEmailParts } from "./emailLayout";
+import { brandedEmailParts, type EmailSection } from "./emailLayout";
 import { resolveSiteUrl } from "./schemaMarkup";
 import { sendEmail } from "./mailer";
 import { computeFreezeHours } from "./freezeHours";
@@ -22,7 +21,23 @@ async function sendDigestEmail(
   }
 }
 
-function summarizePoints(points: ChartPoint[]): string[] {
+type DigestProbeSummary = {
+  label: string;
+  minF: number;
+  maxF: number;
+  avgHumidity: number;
+  readingCount: number;
+};
+
+type DigestDaySummary = {
+  dayLabel: string;
+  minF: number;
+  maxF: number;
+  avgF: number;
+  coldestProbe: string | null;
+};
+
+function summarizeProbes(points: ChartPoint[]): DigestProbeSummary[] {
   const byProbe = new Map<string, ChartPoint[]>();
 
   for (const point of points) {
@@ -31,26 +46,28 @@ function summarizePoints(points: ChartPoint[]): string[] {
     byProbe.set(point.probeLabel, group);
   }
 
-  const lines: string[] = [];
-
-  for (const [label, probePoints] of byProbe) {
+  return [...byProbe.entries()].map(([label, probePoints]) => {
     const temps = probePoints.map((point) => point.tempf);
     const humidities = probePoints.map((point) => point.humidity);
-    const min = Math.min(...temps);
-    const max = Math.max(...temps);
-    const avgHumidity =
-      humidities.reduce((sum, value) => sum + value, 0) / humidities.length;
-
-    lines.push(
-      `${label}: ${min.toFixed(1)}–${max.toFixed(1)} °F, avg humidity ${avgHumidity.toFixed(0)}% (${probePoints.length} readings)`,
-    );
-  }
-
-  return lines;
+    return {
+      label,
+      minF: Math.min(...temps),
+      maxF: Math.max(...temps),
+      avgHumidity:
+        humidities.reduce((sum, value) => sum + value, 0) / humidities.length,
+      readingCount: probePoints.length,
+    };
+  });
 }
 
-/** One line per calendar day (UTC): min–max, avg, and coldest probe when mixed. */
-export function summarizePointsByDay(points: ChartPoint[]): string[] {
+function summarizePoints(points: ChartPoint[]): string[] {
+  return summarizeProbes(points).map(
+    (probe) =>
+      `${probe.label}: ${probe.minF.toFixed(1)}–${probe.maxF.toFixed(1)} °F, avg humidity ${probe.avgHumidity.toFixed(0)}% (${probe.readingCount} readings)`,
+  );
+}
+
+function summarizeDays(points: ChartPoint[]): DigestDaySummary[] {
   if (points.length === 0) return [];
 
   const byDay = new Map<string, ChartPoint[]>();
@@ -84,9 +101,155 @@ export function summarizePointsByDay(points: ChartPoint[]): string[] {
       const mixedProbes = dayPoints.some(
         (point) => point.probeLabel !== coldest.probeLabel,
       );
-      const coldestNote = mixedProbes ? ` · coldest ${coldest.probeLabel}` : "";
-      return `${dayLabel}: ${min.toFixed(1)}–${max.toFixed(1)} °F (avg ${avg.toFixed(1)}°${coldestNote})`;
+      return {
+        dayLabel,
+        minF: min,
+        maxF: max,
+        avgF: avg,
+        coldestProbe: mixedProbes ? coldest.probeLabel : null,
+      };
     });
+}
+
+/** One line per calendar day (UTC): min–max, avg, and coldest probe when mixed. */
+export function summarizePointsByDay(points: ChartPoint[]): string[] {
+  return summarizeDays(points).map((day) => {
+    const coldestNote = day.coldestProbe ? ` · coldest ${day.coldestProbe}` : "";
+    return `${day.dayLabel}: ${day.minF.toFixed(1)}–${day.maxF.toFixed(1)} °F (avg ${day.avgF.toFixed(1)}°${coldestNote})`;
+  });
+}
+
+function formatDigestWhen(iso: string): string {
+  return new Date(iso).toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "UTC",
+  });
+}
+
+function digestHighlightStats(points: ChartPoint[]) {
+  const coldest = points.reduce((a, b) => (a.tempf <= b.tempf ? a : b));
+  const hottest = points.reduce((a, b) => (a.tempf >= b.tempf ? a : b));
+  const wettest = points.reduce((a, b) => (a.humidity >= b.humidity ? a : b));
+  const avgTemp = points.reduce((sum, p) => sum + p.tempf, 0) / points.length;
+
+  return [
+    {
+      label: "Coldest",
+      value: `${coldest.tempf.toFixed(1)}°F`,
+      detail: `${formatDigestWhen(coldest.timestamp)} · ${coldest.probeLabel}`,
+    },
+    {
+      label: "Warmest",
+      value: `${hottest.tempf.toFixed(1)}°F`,
+      detail: `${formatDigestWhen(hottest.timestamp)} · ${hottest.probeLabel}`,
+    },
+    {
+      label: "7-day average",
+      value: `${avgTemp.toFixed(1)}°F`,
+      detail: `${points.length} readings`,
+    },
+    {
+      label: "Highest humidity",
+      value: `${wettest.humidity.toFixed(0)}%`,
+      detail: `${formatDigestWhen(wettest.timestamp)} · ${wettest.probeLabel}`,
+    },
+  ];
+}
+
+export function buildWeeklyDigestParts(input: {
+  points: ChartPoint[];
+  freezeThresholdF: number;
+  siteUrl: string;
+}): { subject: string; text: string; html: string; notifyBody: string } {
+  const { points, freezeThresholdF, siteUrl } = input;
+  const freeze = computeFreezeHours(points, freezeThresholdF);
+  const freezeLine = formatDigestFreezeLine(points, freezeThresholdF);
+  const freezeBody = freezeLine.replace(/^Freeze exposure:\s*/i, "");
+  const probes = summarizeProbes(points);
+  const days = summarizeDays(points);
+  const mixedDays = days.some((day) => day.coldestProbe);
+  const summary = summarizePoints(points);
+  const byDay = summarizePointsByDay(points);
+
+  const sections: EmailSection[] = [
+    {
+      type: "callout",
+      tone: freeze.readingsBelow34 === 0 ? "success" : "alert",
+      title: "Freeze exposure",
+      body: freezeBody.charAt(0).toUpperCase() + freezeBody.slice(1),
+    },
+    { type: "heading", text: "Highlights" },
+    { type: "stats", items: digestHighlightStats(points) },
+  ];
+
+  if (probes.length > 0) {
+    sections.push(
+      { type: "heading", text: "By probe" },
+      {
+        type: "table",
+        headers: ["Probe", "Range", "Humidity"],
+        rows: probes.map((probe) => [
+          probe.label,
+          `${probe.minF.toFixed(1)}–${probe.maxF.toFixed(1)}°F`,
+          `${probe.avgHumidity.toFixed(0)}% · ${probe.readingCount} readings`,
+        ]),
+      },
+    );
+  }
+
+  if (days.length > 0) {
+    sections.push(
+      { type: "heading", text: "Day by day" },
+      {
+        type: "table",
+        headers: mixedDays ? ["Day", "Range", "Avg", "Coldest"] : ["Day", "Range", "Avg"],
+        rows: days.map((day) => {
+          const row = [
+            day.dayLabel,
+            `${day.minF.toFixed(1)}–${day.maxF.toFixed(1)}°F`,
+            `${day.avgF.toFixed(1)}°`,
+          ];
+          if (mixedDays) row.push(day.coldestProbe ?? "—");
+          return row;
+        }),
+      },
+    );
+  }
+
+  sections.push({
+    type: "note",
+    text: "Tip: outage and leak alerts fire separately when sensors go quiet or wet.",
+  });
+
+  const parts = brandedEmailParts({
+    eyebrow: "Weekly digest",
+    preheader: freezeLine,
+    title: "This week at your probes",
+    intro:
+      "Here’s a quick look at the last 7 days — coldest night, freeze crossings, and anything else to watch.",
+    sections,
+    cta: {
+      label: "Open this week on History",
+      url: buildHistoryChartUrl(siteUrl, trailingHistoryWindowDays(7)),
+    },
+    secondaryCta: {
+      label: "Manage digest settings",
+      url: `${siteUrl}/dashboard/alerts?tab=settings#alert-section-essentials`,
+    },
+    tone: "brand",
+    footerNote:
+      "Weekly digests can be turned off under Dashboard → Alerts → Essentials.",
+  });
+
+  return {
+    subject: formatWeeklyDigestSubject(points),
+    text: parts.text,
+    html: parts.html,
+    notifyBody: [freezeLine, ...summary, ...byDay].join("\n"),
+  };
 }
 
 /** Coldest reading in the window — used for subject lines and freeze callouts. */
@@ -165,46 +328,22 @@ export async function sendWeeklyDigestsForAllUsers(): Promise<{
         continue;
       }
 
-      const summary = summarizePoints(points);
-      const byDay = summarizePointsByDay(points);
-      const freezeLine = formatDigestFreezeLine(points, settings.freezeThresholdF);
-      const seasonal = summarizeSeasonal(points, 7);
-      const subject = formatWeeklyDigestSubject(points);
-      const parts = brandedEmailParts({
-        eyebrow: "Weekly digest",
-        preheader: freezeLine,
-        title: "This week at your probes",
-        intro: "Here’s a quick look at the last 7 days — coldest night, freeze crossings, and anything else to watch.",
-        bullets: [
-          freezeLine,
-          ...summary,
-          ...(byDay.length ? ["Day by day:", ...byDay] : []),
-          ...seasonal.map((item) => `${item.title}: ${item.detail}`),
-          "Tip: outage and leak alerts fire separately when sensors go quiet or wet.",
-        ],
-        cta: {
-          label: "Open this week on History",
-          url: buildHistoryChartUrl(siteUrl, trailingHistoryWindowDays(7)),
-        },
-        secondaryCta: {
-          label: "Manage digest settings",
-          url: `${siteUrl}/dashboard/alerts?tab=settings#alert-section-essentials`,
-        },
-        tone: "brand",
-        footerNote:
-          "Weekly digests can be turned off under Dashboard → Alerts → Essentials.",
+      const digest = buildWeeklyDigestParts({
+        points,
+        freezeThresholdF: settings.freezeThresholdF,
+        siteUrl,
       });
 
       await sendDigestEmail(
         digestEmail,
-        subject,
-        parts.text,
-        parts.html,
+        digest.subject,
+        digest.text,
+        digest.html,
       );
 
       await notifyUser(userId, digestEmail, { ...settings, channelEmail: false }, {
-        title: subject,
-        body: [freezeLine, ...summary, ...byDay].join("\n"),
+        title: digest.subject,
+        body: digest.notifyBody,
         kind: "digest",
       });
 
@@ -236,7 +375,7 @@ export async function sendWeeklyDigestsForAllUsers(): Promise<{
             const { data: memberData } = await admin.auth.admin.getUserById(memberId);
             const memberEmail = memberData.user?.email;
             if (!memberEmail) continue;
-            await sendDigestEmail(memberEmail, subject, parts.text, parts.html);
+            await sendDigestEmail(memberEmail, digest.subject, digest.text, digest.html);
             sent += 1;
           }
         }
