@@ -32,4 +32,13 @@ describe("bomLinks", () => {
     expect(BOM.amazonResistor4k7).toContain("/dp/B08QRZRRGB");
     expect(BOM.amazonEsp32DevKit).toContain("/dp/B08D5ZD528");
   });
+
+  it("does not expose Amazon search URLs or retired ASINs on the public BOM", () => {
+    for (const [key, url] of Object.entries(BOM)) {
+      expect(url, key).not.toMatch(/amazon\.[^/]+\/s\?/i);
+    }
+    const blob = Object.values(BOM).join("\n");
+    expect(blob).not.toContain("B0B6FGBYRT");
+    expect(blob).not.toContain("B08F5X1J3M");
+  });
 });

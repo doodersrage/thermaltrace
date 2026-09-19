@@ -5,8 +5,6 @@ import { BOM } from "../lib/bomLinks";
 import { BRAND_NAME } from "../lib/brand";
 
 const NFC = BOM.adafruitNfc;
-const LABELS = BOM.amazonQrLabelsSearch;
-const NFC_AMAZON = BOM.amazonNtagSearch;
 ---
 <AccessoryProduct
   accessoryId="kit-labels"
@@ -49,17 +47,13 @@ const NFC_AMAZON = BOM.amazonNtagSearch;
           <tr>
             <th scope="row">Waterproof label stock</th>
             <td>Garage / utility room stickers for device name + QR.</td>
-            <td>
-              <a class="text-link" href={LABELS} target="_blank" rel={commerceLinkRel(LABELS)}>Amazon label search</a>
-            </td>
+            <td>Outdoor-rated sticker stock; print from the Devices QR SVG.</td>
           </tr>
           <tr>
             <th scope="row">NFC NTAG stickers</th>
             <td>Optional tap-to-open ingest URL on Android / iPhone.</td>
             <td>
               <a class="text-link" href={NFC} target="_blank" rel={commerceLinkRel(NFC)}>Adafruit NFC</a>
-              ·
-              <a class="text-link" href={NFC_AMAZON} target="_blank" rel={commerceLinkRel(NFC_AMAZON)}>Amazon NTAG</a>
             </td>
           </tr>
         </tbody>

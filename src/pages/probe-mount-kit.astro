@@ -5,10 +5,10 @@ import { BOM } from "../lib/bomLinks";
 import { BRAND_NAME } from "../lib/brand";
 
 const DS18B20 = BOM.adafruitDs18b20;
-const CLIPS = BOM.amazonPipeMountSearch;
-const ZIP = BOM.amazonZipTiesSearch;
+const CLIPS = BOM.mcmasterCableTieMounts;
+const ZIP = BOM.mcmasterUvZipTies;
 const RESISTOR = BOM.amazonResistor4k7;
-const PADS = BOM.amazonVhbSearch;
+const PADS = BOM.adafruitFoamTape;
 ---
 <AccessoryProduct
   accessoryId="probe-mount-kit"
@@ -69,21 +69,21 @@ const PADS = BOM.amazonVhbSearch;
             <th scope="row">UV zip-ties</th>
             <td>Secure probe to pipe or strut without crushing the tip.</td>
             <td>
-              <a class="text-link" href={ZIP} target="_blank" rel={commerceLinkRel(ZIP)}>Amazon zip-ties</a>
+              <a class="text-link" href={ZIP} target="_blank" rel={commerceLinkRel(ZIP)}>McMaster UV zip-ties</a>
             </td>
           </tr>
           <tr>
             <th scope="row">Pipe clip / cable mount</th>
             <td>Optional rigid hold on copper / PEX.</td>
             <td>
-              <a class="text-link" href={CLIPS} target="_blank" rel={commerceLinkRel(CLIPS)}>Amazon pipe mounts</a>
+              <a class="text-link" href={CLIPS} target="_blank" rel={commerceLinkRel(CLIPS)}>McMaster cable-tie mounts</a>
             </td>
           </tr>
           <tr>
             <th scope="row">Adhesive pads</th>
             <td>Mount the ESP32 enclosure on painted drywall or joists.</td>
             <td>
-              <a class="text-link" href={PADS} target="_blank" rel={commerceLinkRel(PADS)}>Amazon VHB search</a>
+              <a class="text-link" href={PADS} target="_blank" rel={commerceLinkRel(PADS)}>Adafruit foam tape</a>
             </td>
           </tr>
         </tbody>

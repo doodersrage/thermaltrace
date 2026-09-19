@@ -5,7 +5,6 @@ import { BOM } from "../lib/bomLinks";
 import { BRAND_NAME } from "../lib/brand";
 
 const ESP32 = BOM.adafruitEsp32;
-const OPTOS = BOM.amazonPowerDetectorSearch;
 ---
 <AccessoryProduct
   accessoryId="power-nudge"
@@ -63,10 +62,8 @@ const OPTOS = BOM.amazonPowerDetectorSearch;
           </tr>
           <tr>
             <th scope="row">USB / mains sense input</th>
-            <td>Opto or relay module: GPIO4 low = power present (active-low in sample).</td>
-            <td>
-              <a class="text-link" href={OPTOS} target="_blank" rel={commerceLinkRel(OPTOS)}>Amazon search</a>
-            </td>
+            <td>Optocoupler or relay module: GPIO4 low = power present (active-low in sample).</td>
+            <td>Electronics supplier; isolated USB or mains-sense module.</td>
           </tr>
         </tbody>
       </table>

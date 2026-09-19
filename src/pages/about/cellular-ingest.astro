@@ -9,7 +9,6 @@ const page = getAboutPage("cellular-ingest")!;
 const hero = getAboutHeroPhoto(page.slug);
 
 const PARTICLE_BORON = affiliateHref("https://www.particle.io/wifi/#boron");
-const AMAZON_BORON = BOM.amazonBoronSearch;
 const ADAFRUIT_DS18B20 = BOM.adafruitDs18b20;
 const AMAZON_DS18B20 = BOM.amazonDs18b20;
 const AMAZON_RESISTOR = BOM.amazonResistor4k7;
@@ -54,8 +53,6 @@ const BLUES_NOTECARD = affiliateHref("https://blues.io/products/notecard/");
           <td>LTE-M / NB-IoT (region SKU). Nano-SIM or Particle SIM plan required.</td>
           <td>
             <a class="text-link" href={PARTICLE_BORON} target="_blank" rel={commerceLinkRel(PARTICLE_BORON)}>Particle Boron</a>
-            ·
-            <a class="text-link" href={AMAZON_BORON} target="_blank" rel={commerceLinkRel(AMAZON_BORON)}>Amazon search</a>
           </td>
         </tr>
         <tr>

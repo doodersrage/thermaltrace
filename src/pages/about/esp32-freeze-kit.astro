@@ -23,7 +23,6 @@ const ADAFRUIT_HUZZAH32 = BOM.adafruitHuzzah32;
 const AMAZON_ESP32 = BOM.amazonEsp32DevKit;
 const AMAZON_DS18B20 = BOM.amazonDs18b20;
 const AMAZON_RESISTOR = BOM.amazonResistor4k7;
-const AMAZON_BUNDLE = BOM.amazonEsp32BundleSearch;
 
 const freezeKitHowTo = getHowToSchema({
   name: "Build an ESP32 freeze probe for ThermalTrace",
@@ -134,10 +133,9 @@ const freezeKitHowTo = getHowToSchema({
   </div>
 
   <p class="text-sm text-[var(--color-text-muted)]">
-    Optional one-box search (verify it includes a waterproof DS18B20, not only DHT11):
-    <a class="text-link" href={AMAZON_BUNDLE} target="_blank" rel={commerceLinkRel(AMAZON_BUNDLE)}>ESP32 + DS18B20 kit search</a>.
-    Product listings rotate: treat Adafruit as the reference BOM; Amazon `/dp/` links in
-    <code>bomLinks</code> are Associates-friendly defaults with search fallbacks when a listing vanishes.
+    Product listings rotate: treat Adafruit as the reference BOM. Amazon <code>/dp/</code> links in
+    <code>bomLinks</code> are Associates-friendly alternatives when a listing is still live. Generic
+    “ESP32 + DS18B20 kit” bundles often ship DHT11 instead of a waterproof probe — skip those.
   </p>
 
   <h2>Wire it</h2>

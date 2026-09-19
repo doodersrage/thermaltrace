@@ -6,7 +6,6 @@ import { BRAND_NAME } from "../lib/brand";
 
 const LEAK = BOM.adafruitLeak;
 const ESP32 = BOM.adafruitEsp32;
-const AMAZON_LEAK = BOM.amazonLeakSearch;
 ---
 <AccessoryProduct
   accessoryId="leak-puck"
@@ -64,9 +63,7 @@ const AMAZON_LEAK = BOM.amazonLeakSearch;
             <th scope="row">Leak / moisture probes</th>
             <td>Two conductors on the floor; GPIO4 with pull-up, wet pulls low.</td>
             <td>
-              <a class="text-link" href={LEAK} target="_blank" rel={commerceLinkRel(LEAK)}>Adafruit</a>
-              ·
-              <a class="text-link" href={AMAZON_LEAK} target="_blank" rel={commerceLinkRel(AMAZON_LEAK)}>Amazon search</a>
+              <a class="text-link" href={LEAK} target="_blank" rel={commerceLinkRel(LEAK)}>Adafruit leak sensor</a>
             </td>
           </tr>
         </tbody>
