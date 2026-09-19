@@ -70,7 +70,7 @@ export const compareGuides: CompareGuide[] = [
     title: "ThermalTrace vs Govee",
     headline: "ThermalTrace vs Govee sensors",
     description:
-      "Govee (and similar SmartThings-style consumer hubs) vs ThermalTrace for freeze and leak monitoring in unheated spaces: alerts, ESP ingest, multi-probe zones, and export.",
+      "Govee vs ThermalTrace for freeze and leak monitoring in unheated spaces: alerts, ESP ingest, multi-probe zones, and exportable history.",
     competitor: "Govee",
     summary:
       "Govee, and consumer hubs like SmartThings: are great for cheap room sensors and a polished phone app. ThermalTrace is built for freeze and leak workflows in garages, workshops, attics, and shops: your own ESP probes, household alerts, and history you can export.",
@@ -166,7 +166,7 @@ export const compareGuides: CompareGuide[] = [
     title: "ThermalTrace vs Nest Thermostat",
     headline: "ThermalTrace vs a Nest Thermostat for freeze protection in unheated spaces",
     description:
-      "A Nest thermostat runs your home's conditioned living space -- it has no signal from an unheated garage. Compare that to a dedicated ThermalTrace probe, which can now show your Nest's reading alongside every freeze alert.",
+      "A Nest thermostat has no signal from an unheated garage. ThermalTrace probes that space and can show your Nest reading with freeze alerts.",
     competitor: "Nest Thermostat",
     summary:
       "Nest is excellent at running your HVAC and reporting the temperature where it (or a Nest Temperature Sensor) is installed -- almost never the garage, crawlspace, or shop where pipes actually freeze. ThermalTrace watches that space directly, and if you connect your Nest account, pulls its reading and heating status into every freeze alert for context.",
@@ -215,7 +215,7 @@ export const compareGuides: CompareGuide[] = [
     title: "ThermalTrace vs Ecobee Thermostat",
     headline: "ThermalTrace vs an Ecobee Thermostat for freeze protection in unheated spaces",
     description:
-      "An Ecobee thermostat runs your home's conditioned living space -- it has no signal from an unheated garage. Compare that to a dedicated ThermalTrace probe, which can now show your Ecobee's reading alongside every freeze alert.",
+      "An Ecobee thermostat has no signal from an unheated garage. ThermalTrace probes that space and can show your Ecobee reading with freeze alerts.",
     competitor: "Ecobee Thermostat",
     summary:
       "Ecobee is excellent at running your HVAC and reporting the temperature where it (or an Ecobee SmartSensor) is installed -- almost never the garage, crawlspace, or shop where pipes actually freeze. ThermalTrace watches that space directly, and if you connect your Ecobee account, pulls its reading and heating status into every freeze alert for context.",

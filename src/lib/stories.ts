@@ -207,7 +207,7 @@ export const stories: Story[] = [
     headline: "Detached garage winter case study",
     title: "Detached garage, attached anxiety",
     description:
-      "A Colorado detached-garage household used ThermalTrace email and forecast alerts to catch a failed shop heater before stored goods and a utility sink line froze.",
+      "A Colorado detached garage used ThermalTrace email and forecast alerts to catch a failed shop heater before a utility sink line froze.",
     quote: "Detached does not mean disposable",
     location: "Fort Collins, CO",
     datePublished: "2026-03-01",

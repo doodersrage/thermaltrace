@@ -5,7 +5,6 @@ import ProbeDemo from "../../components/ProbeDemo";
 import FaqSection from "../../components/FaqSection.astro";
 import AboutCcFigure from "../../components/AboutCcFigure.astro";
 import { getAboutFaqs } from "../../lib/aboutFaqs";
-import { BRAND_SPACES } from "../../lib/brand";
 import {
   DEFAULT_ARTICLE_MODIFIED,
   DEFAULT_ARTICLE_PUBLISHED,
@@ -19,7 +18,7 @@ import "../../styles/about.css";
 
 const title = "Interactive probe demo";
 const description =
-  `Simulate multi-zone temperatures in ${BRAND_SPACES}. Adjust outdoor air, sun load, door state, and freeze threshold, see the same space-status logic and push/pull JSON shapes ThermalTrace uses in production.`;
+  "Simulate multi-zone garage temperatures. Adjust outdoor air, sun, door state, and freeze threshold using the same logic as production.";
 
 const siteUrl = resolveSiteUrl(Astro.site);
 const pageUrl = resolvePageUrl(siteUrl, "/about/probe-demo");

@@ -522,9 +522,9 @@ export const expandedAboutPageMeta: ExpandedAboutPageMeta[] = [
     parentSlug: "adding-devices",
     title: "ESP32 freeze kit parts list",
     description:
-      "Buy an ESP32 and waterproof DS18B20 that match ThermalTrace’s push-ingest sketches. Adafruit links and Amazon search lists, not a branded drop-ship kit.",
+      "Buy an ESP32 and waterproof DS18B20 that match ThermalTrace’s push-ingest sketches. Adafruit and Amazon product pages, not a branded drop-ship kit.",
     summary:
-      "Verified ESP32 + waterproof DS18B20 BOM with stable Adafruit product links and Amazon search shortcuts.",
+      "Verified ESP32 + waterproof DS18B20 BOM with stable Adafruit product links and Amazon /dp/ alternatives.",
   },
   {
     slug: "esp32-ota-firmware",
@@ -558,7 +558,7 @@ export const expandedAboutPageMeta: ExpandedAboutPageMeta[] = [
     parentSlug: "adding-devices",
     title: "STM32 Zephyr ingest",
     description:
-      "Push DS18B20 readings from an ST Nucleo-F767ZI using Zephyr C and onboard Ethernet. No Arduino IDE, no Python: west, ST-LINK, and the same LAN HTTPS relay as the Uno shield.",
+      "Push DS18B20 readings from a Nucleo-F767ZI using Zephyr C and onboard Ethernet. west, ST-LINK, and the same LAN HTTPS relay as the Uno.",
     summary:
       "Cortex-M7 Ethernet probe: Zephyr C on Nucleo-F767ZI, DS18B20 on Arduino D4, HTTP to a LAN TLS relay.",
   },
@@ -567,7 +567,7 @@ export const expandedAboutPageMeta: ExpandedAboutPageMeta[] = [
     parentSlug: "adding-devices",
     title: "CH32V RISC-V ingest",
     description:
-      "Push DS18B20 readings from a WCH CH32V307V-EVT using WCHNET C and onboard Ethernet. QingKe RISC-V, MounRiver Studio, and the same LAN HTTPS relay as the Uno shield.",
+      "Push DS18B20 readings from a WCH CH32V307 using WCHNET C and onboard Ethernet. MounRiver Studio and the same LAN HTTPS relay as the Uno.",
     summary:
       "RISC-V Ethernet probe: WCHNET C on CH32V307, DS18B20 on PB12, HTTP to a LAN TLS relay.",
   },
@@ -576,7 +576,7 @@ export const expandedAboutPageMeta: ExpandedAboutPageMeta[] = [
     parentSlug: "adding-devices",
     title: "AVR assembly ingest",
     description:
-      "Push DS18B20 readings from an ATmega328P in GNU AVR assembly with a W5100 Ethernet shield. No Arduino C: avr-gcc, avrdude, and the same LAN HTTPS relay as the Uno Ethernet sketch.",
+      "Push DS18B20 readings from an ATmega328P in GNU AVR assembly with a W5100 shield. avr-gcc, avrdude, and the same LAN HTTPS relay as the Uno.",
     summary:
       "Uno + W5100 in GNU AVR assembly: DS18B20 on D7, HTTP to a LAN TLS relay, not Arduino C.",
   },
@@ -585,7 +585,7 @@ export const expandedAboutPageMeta: ExpandedAboutPageMeta[] = [
     parentSlug: "adding-devices",
     title: "Cellular ingest (Particle Boron)",
     description:
-      "Push DS18B20 readings from a Particle Boron over LTE via a Console webhook. For remote sites without garage Wi‑Fi; stale-probe detection covers cellular dropouts.",
+      "Push DS18B20 readings from a Particle Boron over LTE via a Console webhook. For remote sites without garage Wi-Fi.",
     summary:
       "LTE freeze probe: Particle Boron + DS18B20 on D2, Particle webhook to HTTPS ingest.",
   },
@@ -594,7 +594,7 @@ export const expandedAboutPageMeta: ExpandedAboutPageMeta[] = [
     parentSlug: "adding-devices",
     title: "PIC18F67J60 Ethernet ingest",
     description:
-      "Push DS18B20 readings from a Microchip PIC18F67J60 using the classic TCP/IP Stack in MPLAB X. Onboard Ethernet MAC/PHY and the same LAN HTTPS relay as the Uno shield.",
+      "Push DS18B20 readings from a PIC18F67J60 using Microchip’s TCP/IP Stack in MPLAB X and the same LAN HTTPS relay as the Uno.",
     summary:
       "Microchip Ethernet probe: MLA C on PIC18F67J60, DS18B20 on RD0, HTTP to a LAN TLS relay.",
   },
@@ -603,7 +603,7 @@ export const expandedAboutPageMeta: ExpandedAboutPageMeta[] = [
     parentSlug: "adding-devices",
     title: "Teensy 4.1 Ethernet ingest",
     description:
-      "Push DS18B20 readings from a PJRC Teensy 4.1 with QNEthernet and the Ethernet kit. Fast i.MX RT1062 garage probe using the same LAN HTTPS relay as the Uno shield.",
+      "Push DS18B20 readings from a Teensy 4.1 with QNEthernet. Fast i.MX RT1062 garage probe using the same LAN HTTPS relay as the Uno.",
     summary:
       "Teensy 4.1 + QNEthernet: DS18B20 on pin 4, HTTP to a LAN TLS relay.",
   },
@@ -684,7 +684,7 @@ export const expandedAboutPageMeta: ExpandedAboutPageMeta[] = [
     parentSlug: "accounts-and-dashboard",
     title: "Personal weather stations (Ambient & WeatherFlow)",
     description:
-      "Use your backyard Ambient Weather or WeatherFlow Tempest station for outdoor context, NWS alerts, and forecast freeze risk instead of a distant OpenWeather city.",
+      "Use a backyard Ambient Weather or WeatherFlow Tempest station for outdoor context, NWS alerts, and forecast freeze risk.",
     summary:
       "Point ThermalTrace at the station on your property: better yard-level freeze context.",
   },
@@ -693,7 +693,7 @@ export const expandedAboutPageMeta: ExpandedAboutPageMeta[] = [
     parentSlug: "accounts-and-dashboard",
     title: "Freeze → thaw flood playbook",
     description:
-      "Place wet contacts for pipe thaw and ice-melt floods: how auto flood alerts work vs Rules, why vacation mode still fires flood, and what to do when a pad goes wet.",
+      "Place wet contacts for pipe-thaw floods: how auto flood alerts work, why vacation mode still fires, and what to do when a pad goes wet.",
     summary:
       "Companion to cold-snap: catch melt and drip floods under water heaters, laundry, and sumps while freeze season ends.",
   },

@@ -9,6 +9,8 @@ export const BRAND_SPACES =
 /** Clarifies the product category (not thermal imaging) next to the brand name. */
 export const BRAND_POSITIONING = "Garage & workshop sensor monitoring";
 export const BRAND_TAGLINE = `Track, log, and analyze sensors in ${BRAND_SPACES}.`;
+/** Ahrefs/Google SERP cutoff; keep `<meta name="description">` at or below this. */
+export const META_DESCRIPTION_MAX_LENGTH = 160;
 /** Definition-first for SEO/AEO meta defaults. */
 export const BRAND_DESCRIPTION =
-  `ThermalTrace is open-source garage and workshop monitoring for ${BRAND_SPACES}: freeze and flood/leak alerts, ESP/Arduino or JSON ingest, live curves, and exportable history before pipes, pads, and storage take damage.`;
+  "ThermalTrace is open-source freeze and flood monitoring for garages, workshops, attics, crawlspaces, and shops: ESP/Arduino ingest, live curves, and alerts.";
