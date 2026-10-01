@@ -542,7 +542,7 @@ export const expandedAboutPageMeta: ExpandedAboutPageMeta[] = [
     description:
       "Flash ThermalTrace ESP32 probes with Arduino IDE, PlatformIO, MicroPython, or Espressif’s web esptool, after downloading a pre-filled sketch from Devices.",
     summary:
-      "No hosted one-click binary flasher: download a personalized sketch, then flash with IDE, PlatformIO, or esptool-js.",
+      "Flash from the browser with prebuilt firmware (beta), or download a personalized sketch and flash with an IDE, PlatformIO, or esptool-js.",
   },
   {
     slug: "pico-w-ingest",

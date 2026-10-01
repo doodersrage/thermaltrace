@@ -243,7 +243,7 @@ export const aboutFaqsBySlug: Record<string, AboutFaqItem[]> = {
     {
       question: "Is there a browser flasher built into ThermalTrace?",
       answer:
-        "No hosted one-click .bin flasher: your ingest URL is per device. Download a pre-filled .ino/.py from Devices, then flash with Arduino IDE, PlatformIO, Thonny, or Espressif’s esptool-js if you already built a binary. Guide: thermaltrace.dev/about/esp32-web-flash.",
+        "Yes, in beta: thermaltrace.dev/flash installs prebuilt firmware on an ESP32, ESP32-S3, or ESP32-C3 from Chrome or Edge, then sends the board your Wi‑Fi and device key over USB. To edit the code instead, download a pre-filled .ino/.py from Devices and flash with Arduino IDE, PlatformIO, or Thonny. Guide: thermaltrace.dev/about/esp32-web-flash.",
     },
   ],
   "pico-w-ingest": [

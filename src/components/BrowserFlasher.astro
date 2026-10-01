@@ -1,0 +1,207 @@
+---
+/**
+ * Flash the generic probe firmware from the browser (ESP Web Tools), then send
+ * Wi-Fi and the device key to the board over the same USB cable. Needs Web
+ * Serial, so Chrome or Edge on a desktop; other browsers see the fallback note.
+ */
+interface Props {
+  /** Pre-fill the device key (dashboard, right after a device is created). */
+  deviceKey?: string;
+  /** Heading level for the two step titles. */
+  headingLevel?: "h2" | "h3";
+}
+
+const { deviceKey = "", headingLevel: Heading = "h2" } = Astro.props;
+---
+<div class="browser-flasher" data-browser-flasher>
+  <section class="card">
+    <Heading class="card-title">1. Install the firmware</Heading>
+    <p class="mb-4">
+      Plug the ESP32 into this computer with a USB data cable, click Install, and pick the board's serial port.
+      It takes about a minute. Works with ESP32, ESP32-S3, and ESP32-C3 boards.
+    </p>
+    <esp-web-install-button manifest="/firmware/manifest.json">
+      <button slot="activate" class="btn-primary" type="button">Install firmware</button>
+      <p slot="unsupported" class="alert-warning mb-0">
+        This browser cannot talk to USB serial devices. Open this page in Chrome or Edge on a desktop or laptop, or use the
+        <a class="text-link" href="/about/esp32-web-flash">other flashing options</a>.
+      </p>
+      <p slot="not-allowed" class="alert-warning mb-0">The installer needs a secure (https) page.</p>
+    </esp-web-install-button>
+    <p class="mt-4 mb-0 text-sm text-[var(--color-text-muted)]">
+      No port in the list? Try another cable (many are charge-only) and install the CP210x or CH340 driver for your board.
+    </p>
+  </section>
+
+  <section class="card">
+    <Heading class="card-title">2. Connect it to Wi‑Fi and your account</Heading>
+    <p class="mb-4">
+      Close the installer, then send these settings over the same cable. They go straight to the board and are not
+      stored on this page.
+    </p>
+    <form class="grid gap-4 sm:grid-cols-2 mb-4" data-flasher-form>
+      <label class="block">
+        <span class="form-label">Wi‑Fi network name</span>
+        <input class="form-input" name="ssid" required autocomplete="off" maxlength="32" />
+        <span class="text-sm text-[var(--color-text-muted)]">2.4 GHz network; ESP32 boards cannot join 5 GHz.</span>
+      </label>
+      <label class="block">
+        <span class="form-label">Wi‑Fi password</span>
+        <input class="form-input" name="password" type="password" autocomplete="off" maxlength="64" />
+      </label>
+      <label class="block sm:col-span-2">
+        <span class="form-label">Device key</span>
+        <input class="form-input" name="key" required autocomplete="off" maxlength="300" value={deviceKey} />
+        <span class="text-sm text-[var(--color-text-muted)]">
+          {deviceKey
+            ? "Filled in for the device you just created."
+            : "From Dashboard → Devices after you add a push device. Pasting the whole ingest URL works too."}
+        </span>
+      </label>
+      <div class="sm:col-span-2">
+        <button class="btn-primary" type="submit" data-flasher-send>Send settings over USB</button>
+      </div>
+    </form>
+    <p class="mb-2 font-semibold" role="status" aria-live="polite" data-flasher-status></p>
+    <pre class="ingest-key-curl text-xs overflow-x-auto mb-4" data-flasher-log hidden></pre>
+    <p class="mb-0 text-sm text-[var(--color-text-muted)]">
+      No USB serial in your browser, or the board is already mounted somewhere else? Power it up and join the
+      <strong>ThermalTrace-Setup</strong> Wi‑Fi network from a phone to enter the same settings. Holding the BOOT button
+      for five seconds erases them.
+    </p>
+  </section>
+</div>
+
+<script>
+  // The pre-bundled build: the package source imports @material/web internals that newer releases no longer export.
+  import "esp-web-tools/dist/web/install-button.js";
+
+  type SerialPortLike = {
+    open(options: { baudRate: number }): Promise<void>;
+    close(): Promise<void>;
+    setSignals?(signals: { dataTerminalReady?: boolean; requestToSend?: boolean }): Promise<void>;
+    readable: ReadableStream<Uint8Array> | null;
+    writable: WritableStream<Uint8Array> | null;
+  };
+  type SerialLike = { requestPort(): Promise<SerialPortLike> };
+
+  const RESEND_EVERY_MS = 5000;
+  const GIVE_UP_AFTER_MS = 90_000;
+
+  const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  /** Tabs separate the fields on the wire, so they cannot appear inside one. */
+  const clean = (value: FormDataEntryValue | null) => String(value ?? "").replace(/[\t\r\n]/g, "").trim();
+
+  for (const root of document.querySelectorAll<HTMLElement>("[data-browser-flasher]")) {
+    const form = root.querySelector<HTMLFormElement>("[data-flasher-form]");
+    const status = root.querySelector<HTMLElement>("[data-flasher-status]");
+    const log = root.querySelector<HTMLElement>("[data-flasher-log]");
+    const button = root.querySelector<HTMLButtonElement>("[data-flasher-send]");
+    if (!form || !status || !log || !button) continue;
+
+    const serial = (navigator as Navigator & { serial?: SerialLike }).serial;
+    if (!serial) {
+      button.disabled = true;
+      status.textContent = "This browser has no USB serial support. Use Chrome or Edge on a computer, or the phone setup below.";
+      continue;
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const data = new FormData(form);
+      const ssid = clean(data.get("ssid"));
+      // Passwords may contain spaces at either end; only strip the separators.
+      const password = String(data.get("password") ?? "").replace(/[\t\r\n]/g, "");
+      const key = clean(data.get("key"));
+      if (!ssid || !key) return;
+
+      button.disabled = true;
+      log.hidden = false;
+      log.textContent = "";
+      status.textContent = "Pick the board's serial port…";
+
+      let port: SerialPortLike | null = null;
+      let reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
+      try {
+        port = await serial.requestPort();
+        await port.open({ baudRate: 115200 });
+        // Opening the port resets many dev boards; release the lines and let it boot.
+        await port.setSignals?.({ dataTerminalReady: false, requestToSend: false });
+        status.textContent = "Waiting for the board to start…";
+        await sleep(2500);
+
+        const writer = port.writable!.getWriter();
+        const send = () => writer.write(new TextEncoder().encode(`TTCFG\t${ssid}\t${password}\t${key}\n`));
+        reader = port.readable!.getReader();
+
+        const decoder = new TextDecoder();
+        const startedAt = Date.now();
+        let lastSent = 0;
+        let acknowledged = false;
+        let buffer = "";
+        let outcome: "ok" | "failed" | "timeout" = "timeout";
+
+        while (Date.now() - startedAt < GIVE_UP_AFTER_MS) {
+          if (!acknowledged && Date.now() - lastSent > RESEND_EVERY_MS) {
+            await send();
+            lastSent = Date.now();
+            status.textContent = "Sending settings…";
+          }
+          const chunk = await Promise.race([reader.read(), sleep(1000).then(() => null)]);
+          if (!chunk) continue;
+          if (chunk.done) break;
+          buffer += decoder.decode(chunk.value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
+          for (const raw of lines) {
+            const line = raw.trim();
+            if (!line.startsWith("TT ")) continue;
+            log.textContent += `${line.slice(3)}\n`;
+            if (line === "TT key saved") {
+              acknowledged = true;
+              status.textContent = "Settings received. Joining Wi‑Fi…";
+            } else if (line === "TT wifi ok") {
+              status.textContent = "On Wi‑Fi. Sending the first reading…";
+            } else if (/^TT post 2\d\d /.test(line)) {
+              outcome = "ok";
+            } else if (
+              line.startsWith("TT wifi failed") ||
+              line.startsWith("TT key rejected") ||
+              line.startsWith("TT config error") ||
+              line.startsWith("TT no probe")
+            ) {
+              outcome = "failed";
+              status.textContent = line.slice(3);
+            }
+          }
+          if (outcome !== "timeout") break;
+        }
+
+        writer.releaseLock();
+        if (outcome === "ok") {
+          status.textContent = "First reading delivered. The probe is live: you can unplug it and mount it.";
+          root.dispatchEvent(new CustomEvent("thermaltrace:probe-live", { bubbles: true }));
+        } else if (outcome === "timeout") {
+          status.textContent = acknowledged
+            ? "The board has the settings but no reading arrived yet. Check the probe wiring, then try again."
+            : "No answer from the board. Make sure the firmware install finished, then try again.";
+        }
+      } catch (error) {
+        status.textContent =
+          error instanceof DOMException && error.name === "NotFoundError"
+            ? "No port selected."
+            : `Could not talk to the board: ${error instanceof Error ? error.message : String(error)}`;
+      } finally {
+        try {
+          await reader?.cancel();
+          reader?.releaseLock();
+          await port?.close();
+        } catch {
+          // The port is already gone (cable pulled); nothing left to release.
+        }
+        button.disabled = false;
+      }
+    });
+  }
+</script>
