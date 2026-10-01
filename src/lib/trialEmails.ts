@@ -34,14 +34,14 @@ export function buildTrialReminderEmail(options: {
   const when = remaining === 1 ? "tomorrow" : `in ${remaining} days`;
   const parts = brandedEmailParts({
     eyebrow: "Trial reminder",
-    preheader: `Your ${plan} trial ends ${when}. Keep SMS, push, and share links without interruption.`,
+    preheader: `Your ${plan} trial ends ${when}. Keep SMS, webhooks, and share links without interruption.`,
     title: remaining === 1 ? "Trial ends tomorrow" : `Trial ends in ${remaining} days`,
-    intro: `Your ${plan} trial wraps up ${when}. Stay on Pro to keep SMS, browser push, share links, and webhooks active.`,
+    intro: `Your ${plan} trial wraps up ${when}. Stay on Pro to keep SMS, share links, and webhooks active.`,
     paragraphs: [
       "Billing is managed in the Stripe customer portal from your dashboard — no surprise lockout if you renew before the trial ends.",
     ],
     bullets: [
-      "SMS and push freeze and leak alerts",
+      "SMS freeze and leak alerts",
       "Public share links and embeds",
       "Outbound webhooks and higher device limits",
     ],

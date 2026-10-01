@@ -141,7 +141,7 @@ export const coreAboutPages: AboutPage[] = [
     slug: "install-pwa",
     title: "Install as an app (PWA)",
     description:
-      "Install ThermalTrace as a PWA on desktop, Android, or iOS for faster dashboard access and optional Pro browser push freeze and leak alerts.",
+      "Install ThermalTrace as a PWA on desktop, Android, or iOS for faster dashboard access and optional browser push freeze and leak alerts.",
     summary:
       "Desktop, Android, and iOS install steps, plus Web Push limits on Apple devices.",
   },

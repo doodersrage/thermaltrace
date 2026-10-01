@@ -170,7 +170,7 @@ test.describe("public smoke", () => {
 
   test("Home Assistant integration page loads", async ({ page }) => {
     await page.goto("/integrations/home-assistant");
-    await expect(page.getByRole("heading", { name: /ThermalTrace in Home Assistant/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /still works when Home Assistant is down/i })).toBeVisible();
     await expect(page.getByRole("heading", { name: /Install via HACS/i })).toBeVisible();
     await expect(page.getByRole("link", { name: /HACS repo on GitHub/i })).toBeVisible();
     const jsonLd = await page.locator('script[type="application/ld+json"]').allTextContents();

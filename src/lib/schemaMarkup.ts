@@ -89,7 +89,7 @@ export function getSoftwareApplicationSchema(siteUrl: string) {
       "Household sharing",
       "History charts and CSV export",
       "Pro claims evidence pack and guest share links",
-      "SMS, push, and webhook channels on Pro",
+      "Push notifications on every plan; SMS and webhook channels on Pro",
     ],
     screenshot: `${siteUrl}/og-dashboard.jpg`,
     author: {

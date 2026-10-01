@@ -500,7 +500,7 @@ const rulesJson = JSON.stringify(settings.alertRules ?? []);
     collapsible
   >
     <p class="form-hint mb-3">
-      Email is under Essentials. Here: Discord, Telegram, Slack, Teams, ntfy, Pushover. Pro: SMS, WhatsApp, browser push, outbound webhooks.
+      Email is under Essentials. Here: push, Discord, Telegram, Slack, Teams, ntfy, Pushover. Pro: SMS, WhatsApp, outbound webhooks.
     </p>
     <div class="alert-channel-grid mb-4">
       <label class="checkbox-row mb-0">
@@ -553,7 +553,7 @@ const rulesJson = JSON.stringify(settings.alertRules ?? []);
 
     {needsPro && (
       <p class="mb-4 text-sm text-[var(--color-text-muted)]">
-        Unlock SMS, push, and webhooks with <a class="text-link" href="/dashboard/plans">Pro</a>.
+        Unlock SMS and webhooks with <a class="text-link" href="/dashboard/plans">Pro</a>.
       </p>
     )}
 

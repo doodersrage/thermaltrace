@@ -53,7 +53,7 @@ export const stories: Story[] = [
       {
         question: "Which alert channels wake you up overnight?",
         answer:
-          "SMS and push (Pro) are the ones that reliably wake people up. Email and chat channels like Telegram are on every plan and work well as a second route.",
+          "SMS (Pro) and push (every plan) are the ones that reliably wake people up. Email and chat channels like Telegram are also on every plan and work well as a second route.",
       },
       {
         question: "What hardware does this take?",
@@ -76,7 +76,7 @@ export const stories: Story[] = [
     photoId: "snow-cabins",
     setup: [
       "Wi-Fi ESP8266 near the mechanical room, two probes (living space + crawlspace)",
-      "Email plus browser push (Pro); freeze threshold 36°F",
+      "Email plus browser push; freeze threshold 36°F",
       "A local friend invited to the household as a backup responder",
     ],
     timeline: [

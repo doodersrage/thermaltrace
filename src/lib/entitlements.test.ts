@@ -53,6 +53,8 @@ describe("getUserEntitlements tier resolution", () => {
     expect(entitlements.tier).toBe("member");
     expect(entitlements.canDownloadCsv).toBe(true);
     expect(entitlements.canUseForecastAlerts).toBe(true);
+    // Push is on every plan.
+    expect(entitlements.canUsePush).toBe(true);
     // Pro-only gates must stay locked for member.
     expect(entitlements.canUseSms).toBe(false);
     expect(entitlements.canUsePortfolio).toBe(false);

@@ -254,7 +254,7 @@ export const answers: Answer[] = [
           "Temp Stick: a finished battery Wi-Fi sensor. The most expensive per sensor, but no setup and no fees, and it includes text alerts.",
           "Govee: cheap Wi-Fi gateway plus sensors with app notifications. Fine for a room; check that alerts reach you reliably away from home.",
           "Home Assistant: free and flexible if you already run it, but it depends on your home internet and power staying up (see the Home Assistant freeze alert answer).",
-          "ThermalTrace: about $25 of DIY parts per probe, free email and chat alerts, leak contacts, and history. SMS, push, and longer history are on paid plans.",
+          "ThermalTrace: about $25 of DIY parts per probe, free email, chat, and push alerts, leak contacts, and history. SMS and longer history are on paid plans.",
         ],
       },
       {

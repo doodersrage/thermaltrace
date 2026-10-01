@@ -107,7 +107,7 @@ const description = playStoreLive
         <li>
           <strong>Does:</strong> sign in to your ThermalTrace account, show live curves, history,
           and the same forecast-backed time-to-freeze clock as Overview,
-          manage alerts/devices/household settings, and (on Pro) receive freeze/flood push via Firebase Cloud Messaging.
+          manage alerts/devices/household settings, and receive freeze/flood push via Firebase Cloud Messaging.
         </li>
         <li>
           <strong>Does not:</strong> read temperature from the handset. Your ESP/Arduino (or JSON feeds)
@@ -126,7 +126,7 @@ const description = playStoreLive
         <h2 class="card-title">Google Play</h2>
         <p class="card-subtitle mb-4">
           Install from the Play Store with the same ThermalTrace account you use on the web.
-          Pro push alerts use Firebase Cloud Messaging on Android.
+          Push alerts use Firebase Cloud Messaging on Android and are on every plan.
         </p>
         <a class="btn-primary" href={playStoreUrl} target="_blank" rel="noreferrer">
           Open in Google Play
@@ -154,7 +154,7 @@ const description = playStoreLive
             Install the PWA (or build/sideload the native app) and sign in with the same credentials.
           </li>
           <li>
-            Enable Pro push alerts in
+            Enable push alerts in
             <a class="text-link" href="/dashboard/alerts">Alert settings</a>
             for Firebase freeze notifications when the native app is installed.
           </li>
@@ -176,7 +176,7 @@ const description = playStoreLive
         <li>
           Set freeze thresholds under
           <a class="text-link" href="/dashboard/alerts">Alert settings</a>
-          (email/chat today; SMS and push on Pro).
+          (email, push, and chat on every plan; SMS on Pro).
         </li>
         <li>
           On Android Chrome,

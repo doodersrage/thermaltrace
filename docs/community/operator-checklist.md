@@ -17,6 +17,8 @@ Tasks only **you** can complete — everything else in the HACS/integration pass
 - [ ] Ask for listings on awesome-home-assistant and ESPHome community device lists once the HACS default PR merges
 - [ ] After the first deploy that includes `/developers/`, open `https://thermaltrace.dev/developers/` and one deep page, then update external links you control (HACS repo README, forum post) from `doodersrage.github.io/thermaltrace` to `thermaltrace.dev/developers`
 
+- [ ] Email the signups who never added a device, by hand, using the [draft](./stalled-signup-email.md); tally the replies
+
 ## Google Play
 
 - [ ] When review clears, set `PUBLIC_PLAY_STORE_URL` in `.env` / Worker secrets and redeploy — `/android` flips to Play CTA automatically

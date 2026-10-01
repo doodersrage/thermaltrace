@@ -41,10 +41,10 @@ export const GET: APIRoute = ({ site }) => {
 - What it does: live readings, history charts, and alerts when a space nears freezing, a leak sensor gets wet, a space gets too hot, humidity spikes, or a sensor stops reporting. It also warns ahead of forecast freezing nights.
 - Who it is for: homeowners, landlords, and makers who want to know before pipes freeze in a garage, crawlspace, or empty house, and who are comfortable with a DIY sensor or already run Home Assistant.
 - Hardware: none sold. Works with an ESP32 or Arduino plus a DS18B20 or DHT22 probe (about $25 in parts), ESPHome, Home Assistant, MQTT (via an HTTPS bridge), or any device that can POST JSON. Pre-filled firmware sketches are generated per device.
-- Alerts: email, Discord, Telegram, Slack, Microsoft Teams, ntfy, and Pushover on every plan; SMS, WhatsApp, browser push, and outbound webhooks on Pro. Leak alerts fire automatically when a flood sensor is wet.
-- Free plan: ${FREE_MAX_DEVICES} push devices, ${FREE_HISTORY_DAYS} days of history, freeze and leak alerts, one family live-share link.
+- Alerts: email, browser and Android push, Discord, Telegram, Slack, Microsoft Teams, ntfy, and Pushover on every plan; SMS, WhatsApp, and outbound webhooks on Pro. Leak alerts fire automatically when a flood sensor is wet.
+- Free plan: ${FREE_MAX_DEVICES} push devices, ${FREE_HISTORY_DAYS} days of history, freeze and leak alerts by email and push, one family live-share link.
 - Member (${price(member)}): ${MEMBER_MAX_DEVICES} devices, ${MEMBER_HISTORY_DAYS} days of history, CSV export, forecast freeze warnings.
-- Pro (${price(pro)}): ${PRO_MAX_DEVICES} devices per property, ${PRO_HISTORY_DAYS} days of history, SMS and push alerts, National Weather Service freeze warnings, webhooks, API keys, Nest/Ecobee context, insurance claims evidence packs. 14-day free trial.
+- Pro (${price(pro)}): ${PRO_MAX_DEVICES} devices per property, ${PRO_HISTORY_DAYS} days of history, SMS alerts, National Weather Service freeze warnings, webhooks, API keys, Nest/Ecobee context, insurance claims evidence packs. 14-day free trial.
 - Portfolio (${price(portfolio)}): Pro for landlords and property managers with many properties.
 - Compared with sealed Wi-Fi thermometers (TempStick, Govee): ${BRAND_NAME} uses your own sensors, so hardware is cheaper and you can put probes right on the pipes, but it needs a little setup.
 - Source code: https://github.com/doodersrage/thermaltrace

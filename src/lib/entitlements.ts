@@ -58,7 +58,8 @@ function entitlementsFor(tier: PlanTier): Entitlements {
     tier,
     canDownloadCsv: memberOrAbove,
     canUseSms: proOrAbove,
-    canUsePush: proOrAbove,
+    // Push costs nothing to send, and an alert that wakes you up is the product.
+    canUsePush: true,
     canUseOutboundWebhook: proOrAbove,
     canCreateShareLinks: proOrAbove,
     canCreateFamilyShareLink: true,

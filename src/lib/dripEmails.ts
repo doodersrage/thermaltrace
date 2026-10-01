@@ -59,7 +59,7 @@ export const DRIP_STAGES: DripStage[] = [
         "Most unconditioned spaces start freeze alerts around 34°F — and wet flood contacts notify automatically once alerts are on.",
       title: "Don’t wait for the cold snap or a wet pad",
       intro:
-        "ThermalTrace can reach you when temperatures drop toward freezing or a leak contact goes wet — email now, plus SMS and push on Pro.",
+        "ThermalTrace can reach you when temperatures drop toward freezing or a leak contact goes wet — email and push now, plus SMS on Pro.",
       paragraphs: [
         "Set a freeze threshold on your coldest zone, enable the channels you actually check, and send a test while you’re awake. Add a wet/dry flood contact on a heater pan, laundry, or sump when you have one.",
       ],
@@ -76,11 +76,11 @@ export const DRIP_STAGES: DripStage[] = [
   {
     id: "day7",
     day: 7,
-    subject: "Try Pro free — SMS, push, and more share scopes",
+    subject: "Try Pro free — SMS, webhooks, and more share scopes",
     content: (site) => ({
       eyebrow: "Pro trial",
       preheader:
-        "SMS, browser push, Pro share scopes, and webhooks — 14-day free trial.",
+        "SMS, WhatsApp, Pro share scopes, and webhooks — 14-day free trial.",
       title: "Level up with a free Pro trial",
       intro:
         "You’ve had a week to explore ThermalTrace. Pro adds the channels and sharing tools that matter at 2 a.m. (Free already includes one family live link.)",

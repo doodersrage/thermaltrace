@@ -145,7 +145,7 @@ export const aboutFaqsBySlug: Record<string, AboutFaqItem[]> = {
     {
       question: "Which channels work on the free plan?",
       answer:
-        "Email plus chat-style destinations (Discord, Telegram, Slack, Teams, ntfy, Pushover). SMS, WhatsApp, browser push, and outbound webhooks need Pro.",
+        "Email, browser and Android push, and chat-style destinations (Discord, Telegram, Slack, Teams, ntfy, Pushover). SMS, WhatsApp, and outbound webhooks need Pro.",
     },
     {
       question: "Why did a channel get skipped?",
@@ -369,7 +369,7 @@ export const aboutFaqsBySlug: Record<string, AboutFaqItem[]> = {
     {
       question: "Does the PWA support freeze push alerts?",
       answer:
-        "Push is a Pro channel for the browser (PWA) and the ThermalTrace Android app. Install the PWA or Android app, enable Push under Alerts, and allow notifications where the OS requires it (iOS Safari has extra limits for web push).",
+        "Yes, on every plan. Push works in the browser (PWA) and the ThermalTrace Android app. Install the PWA or Android app, enable Push under Alerts, and allow notifications where the OS requires it (iOS Safari has extra limits for web push).",
     },
   ],
   "data-flow": [

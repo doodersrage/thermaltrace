@@ -21,12 +21,12 @@ export const marketingFaqs = {
     {
       question: "Does ThermalTrace send freeze alerts?",
       answer:
-        "Yes. Set a freeze threshold and enable channels such as email, Discord, Telegram, Slack, or (on Pro) SMS, WhatsApp, and browser push. Remaining-hours time-to-freeze alerts fire before the probe crosses freeze, using this space's lag vs the outdoor forecast (details: thermaltrace.dev/about/time-to-freeze). Predictive outdoor forecast freeze alerts are on Member; official NWS freeze and cold alerts are on Pro. Leak / flood sensors also notify automatically when wet; door, motion, power, and air quality use custom rules. With a Telegram bot webhook, you can reply /status, /snooze, or /vacation from chat.",
+        "Yes. Set a freeze threshold and enable channels such as email, browser or Android push, Discord, Telegram, Slack, or (on Pro) SMS and WhatsApp. Remaining-hours time-to-freeze alerts fire before the probe crosses freeze, using this space's lag vs the outdoor forecast (details: thermaltrace.dev/about/time-to-freeze). Predictive outdoor forecast freeze alerts are on Member; official NWS freeze and cold alerts are on Pro. Leak / flood sensors also notify automatically when wet; door, motion, power, and air quality use custom rules. With a Telegram bot webhook, you can reply /status, /snooze, or /vacation from chat.",
     },
     {
       question: "Is ThermalTrace free?",
       answer:
-        "Yes, there is a free plan with live curves, 7-day history, threshold freeze and leak alerts, and one family live share link (7-day expiry). Member adds 90-day history, CSV export, more devices, and forecast freeze warnings; Pro adds 1-year+ history, official NWS freeze and cold alerts, SMS, push, unlimited share scopes (history, metrics, never-expire), a printable claims evidence pack, webhooks, and a trial. Annual Member and Pro billing is discounted versus monthly.",
+        "Yes, there is a free plan with live curves, 7-day history, threshold freeze and leak alerts by email and push, and one family live share link (7-day expiry). Member adds 90-day history, CSV export, more devices, and forecast freeze warnings; Pro adds 1-year+ history, official NWS freeze and cold alerts, SMS, unlimited share scopes (history, metrics, never-expire), a printable claims evidence pack, webhooks, and a trial. Annual Member and Pro billing is discounted versus monthly.",
     },
     {
       question: "Why do I need an account?",
@@ -552,7 +552,7 @@ export const marketingFaqs = {
     {
       question: "Will my web account work in the Android app?",
       answer:
-        "Yes. The same ThermalTrace login, households, devices, and alert settings apply. Pro push on Android uses Firebase Cloud Messaging in addition to browser Web Push.",
+        "Yes. The same ThermalTrace login, households, devices, and alert settings apply. Push on Android uses Firebase Cloud Messaging in addition to browser Web Push.",
     },
     {
       question: "How do I get notified when the app launches?",

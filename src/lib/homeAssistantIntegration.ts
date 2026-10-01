@@ -6,7 +6,7 @@ export const HACS_REPO_URL =
 export const HA_INTEGRATION_PAGE = "/integrations/home-assistant";
 
 export const HA_DESCRIPTION =
-  "Official ThermalTrace HACS integration: sensors from share links, snooze freeze and leak alerts, push readings, and dual-run with MQTT.";
+  "Off-site freeze and leak alerts for Home Assistant: get warned when it is cold and when Home Assistant itself goes quiet. Official HACS integration.";
 
 export const INTEGRATIONS_HUB_PAGE = "/integrations";
 

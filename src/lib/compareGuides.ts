@@ -60,7 +60,7 @@ export const compareGuides: CompareGuide[] = [
       {
         question: "Do I need to run Twilio myself?",
         answer:
-          "No on ThermalTrace Pro: SMS, push, and chat channels are hosted. DIY MQTT usually means wiring Twilio or email yourself and keeping that stack online.",
+          "No. Push and chat channels are hosted on every plan, and SMS on Pro. DIY MQTT usually means wiring Twilio or email yourself and keeping that stack online.",
       },
       {
         question: "Where is the MQTT bridge recipe?",
@@ -115,7 +115,7 @@ export const compareGuides: CompareGuide[] = [
       {
         question: "Which has better freeze alert channels?",
         answer:
-          "ThermalTrace: email and chat apps on every plan, SMS, push, and webhooks on Pro, plus a time-to-freeze clock. Govee alerts are app notifications, and you need the Wi-Fi gateway version to get them away from home.",
+          "ThermalTrace: email, push, and chat apps on every plan, SMS and webhooks on Pro, plus a time-to-freeze clock. Govee alerts are app notifications, and you need the Wi-Fi gateway version to get them away from home.",
       },
     ],
     sources: {
@@ -307,7 +307,7 @@ export const compareGuides: CompareGuide[] = [
       { capability: "Ongoing cost", thermaltrace: "Free plan; Member $4/mo; Pro $10/mo for SMS", other: "None" },
       { capability: "Pipe-mounted probe", thermaltrace: "Yes (waterproof DS18B20 on the pipe)", other: "Yes on PRO (pipe clamp)" },
       { capability: "Leak / flood contacts", thermaltrace: "Yes, alert automatically when wet", other: "Not listed on the pipe-clamp model" },
-      { capability: "Alert channels", thermaltrace: "Email + chat apps free; SMS, push, webhooks on Pro", other: "SMS, email, app, all free" },
+      { capability: "Alert channels", thermaltrace: "Email, push, chat apps free; SMS, webhooks on Pro", other: "SMS, email, app, all free" },
       { capability: "Sharing and data", thermaltrace: "Household invites, CSV (Member+), API (Pro)", other: "Up to 10 alert contacts, CSV export, public API" },
       { capability: "Home Assistant", thermaltrace: "Official HACS integration + push from HA", other: "Via their API" },
       { capability: "Forecast warnings", thermaltrace: "Forecast freeze (Member+), NWS alerts (Pro)", other: "Not listed; threshold alerts" },
@@ -375,7 +375,7 @@ export const compareGuides: CompareGuide[] = [
       { capability: "Rated for freezing spaces", thermaltrace: "Yes (DS18B20 probe: −67°F to 257°F)", other: "Yes (−22°F to 140°F)" },
       { capability: "Power", thermaltrace: "USB power at the board", other: "Two batteries, 2+ years expected" },
       { capability: "Pipe-mounted probe", thermaltrace: "Yes (waterproof DS18B20 on the pipe)", other: "Separate outdoor sensor with probe (YS8005)" },
-      { capability: "Alert channels", thermaltrace: "Email + chat apps free; SMS, push, webhooks on Pro", other: "Push, email, SMS" },
+      { capability: "Alert channels", thermaltrace: "Email, push, chat apps free; SMS, webhooks on Pro", other: "Push, email, SMS" },
       { capability: "Data export", thermaltrace: "CSV (Member+), API (Pro)", other: "CSV export" },
       { capability: "Home Assistant", thermaltrace: "Official HACS integration + push from HA", other: "Listed as compatible" },
     ],
@@ -440,7 +440,7 @@ export const compareGuides: CompareGuide[] = [
       { capability: "Alerts away from home", thermaltrace: "Yes, sensors report over Wi‑Fi", other: "Needs the G1 Wi‑Fi Gateway ($99.95)" },
       { capability: "Ongoing cost", thermaltrace: "Free plan; Member $4/mo; Pro $10/mo for SMS", other: "None; gateway cloud has no monthly fee" },
       { capability: "Rated for freezing spaces", thermaltrace: "Yes (DS18B20 probe: −67°F to 257°F)", other: "Yes (−40°F to 140°F)" },
-      { capability: "Alert channels", thermaltrace: "Email + chat apps free; SMS, push, webhooks on Pro", other: "In-app and email; SMS not listed" },
+      { capability: "Alert channels", thermaltrace: "Email, push, chat apps free; SMS, webhooks on Pro", other: "In-app and email; SMS not listed" },
       { capability: "Power", thermaltrace: "USB power at the board", other: "Battery: over 1 year (HT1), over 2 years (HT.w)" },
       { capability: "API", thermaltrace: "HTTP ingest on every plan; API keys on Pro", other: "API for the gateway cloud" },
     ],

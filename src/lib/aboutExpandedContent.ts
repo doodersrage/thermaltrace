@@ -750,7 +750,7 @@ export const expandedAboutContent: Record<string, AboutContentBlock[]> = {
   "cold-snap-playbook": [
       { type: "p", html: "A freeze alert only helps if someone knows what to do next. This playbook covers the night before a cold snap, the moment an alert fires, and the morning after, so ThermalTrace becomes a response loop, not just a chart." },
       { type: "h2", text: "Before the cold snap" },
-      { type: "ol", items: ["Confirm the <a class=\"text-link\" href=\"/about/freeze-protection-thresholds\">freeze threshold</a> matches your coldest zone (often a few degrees above hard freeze).","Enable email under <a class=\"text-link\" href=\"/dashboard/alerts?tab=settings#alert-section-essentials\">Alerts → Essentials</a> (and Pro SMS/push if you have them), see the <a class=\"text-link\" href=\"/about/alert-channel-cookbook\">channel cookbook</a>.","Turn on forecast / NWS freeze inputs so you get warning before indoor air drops.","Send a <strong>test alert</strong> from Essentials or Devices while you are awake."] },
+      { type: "ol", items: ["Confirm the <a class=\"text-link\" href=\"/about/freeze-protection-thresholds\">freeze threshold</a> matches your coldest zone (often a few degrees above hard freeze).","Enable email under <a class=\"text-link\" href=\"/dashboard/alerts?tab=settings#alert-section-essentials\">Alerts → Essentials</a> (plus push, and SMS on Pro), see the <a class=\"text-link\" href=\"/about/alert-channel-cookbook\">channel cookbook</a>.","Turn on forecast / NWS freeze inputs so you get warning before indoor air drops.","Send a <strong>test alert</strong> from Essentials or Devices while you are awake."] },
       { type: "h2", text: "When an alert fires" },
       { type: "ul", items: ["**Acknowledge** it (“I’m on it”) so escalations pause if you use playbooks.","Check the coldest probe and whether a door has been open.","If you cannot respond, escalate to SMS/household members.","Keep quiet-hours bypass on for freeze/forecast so overnight alerts still arrive."] },
       { type: "h2", text: "After the snap" },
@@ -762,13 +762,13 @@ export const expandedAboutContent: Record<string, AboutContentBlock[]> = {
   "alert-channel-cookbook": [
       { type: "p", html: "ThermalTrace can reach you on email, chat apps, SMS, browser push, and webhooks. The right mix depends on how loud a freeze needs to be at 2 a.m., not on enabling every checkbox." },
       { type: "h2", text: "Free vs Pro channels" },
-      { type: "ul", items: ["**Free:** email, Discord, Telegram, Slack, Teams, ntfy, Pushover.","**Pro:** SMS, WhatsApp, browser push, outbound webhooks, timed playbooks."] },
+      { type: "ul", items: ["**Free:** email, browser and Android push, Discord, Telegram, Slack, Teams, ntfy, Pushover.","**Pro:** SMS, WhatsApp, outbound webhooks, timed playbooks."] },
       { type: "h2", text: "Setup pattern" },
       { type: "ol", items: ["Start with <strong>Alerts → Essentials</strong>: freeze °F + email, then open advanced channels if you need chat apps.","Fill each destination (email, phone, webhook URL, chat id).","Save alert settings.","Click <strong>Send test now</strong> and confirm delivery.","Add a second channel for escalation if the first is ignored."] },
       { type: "h2", text: "Skipped channels" },
       { type: "p", html: "A checked channel with an empty destination is skipped when alerts fire. The save flow warns when destinations are incomplete: fix them before trusting overnight coverage. For automation into Zapier or Make, see <a class=\"text-link\" href=\"/about/zapier-make-recipes\">Zapier and Make recipes</a>." },
       { type: "h2", text: "Suggested starter stack" },
-      { type: "ul", items: ["**Email** for an audit trail.","**Discord or Slack** for household visibility.","**SMS (Pro)** for wake-up urgency.","**Push (Pro)** after installing the <a class=\"text-link\" href=\"/about/install-pwa\">PWA</a>."] }
+      { type: "ul", items: ["**Email** for an audit trail.","**Discord or Slack** for household visibility.","**SMS (Pro)** for wake-up urgency.","**Push** after installing the <a class=\"text-link\" href=\"/about/install-pwa\">PWA</a>."] }
   ],
 
   "household-sharing-walkthrough": [
@@ -813,7 +813,7 @@ export const expandedAboutContent: Record<string, AboutContentBlock[]> = {
       { type: "h2", text: "When the alert fires" },
       { type: "ol", items: ["Acknowledge the alert so escalations pause if you use playbooks.","Close the door: readings often recover within minutes.","If temperature keeps falling, follow the <a class=\"text-link\" href=\"/about/cold-snap-playbook\">cold-snap playbook</a> (space heaters, faucet drip, household SMS)."] },
       { type: "h2", text: "Tuning tips" },
-      { type: "ul", items: ["Use **door open duration** (15–30 min) if short openings should not notify.","Add **rate drop** or forecast triggers for regional cold snaps without relying on the door alone.","Enable SMS or push (Pro) when email is not loud enough at night: see <a class=\"text-link\" href=\"/about/alert-channel-cookbook\">alert channel cookbook</a>."] }
+      { type: "ul", items: ["Use **door open duration** (15–30 min) if short openings should not notify.","Add **rate drop** or forecast triggers for regional cold snaps without relying on the door alone.","Enable push, or SMS on Pro, when email is not loud enough at night: see <a class=\"text-link\" href=\"/about/alert-channel-cookbook\">alert channel cookbook</a>."] }
   ],
 
   "freeze-thaw-flood-playbook": [
@@ -856,7 +856,7 @@ export const expandedAboutContent: Record<string, AboutContentBlock[]> = {
       { type: "h2", text: "Option C: inbound snooze from HA" },
       { type: "p", html: "When you are working in a cold bay, call the ThermalTrace inbound webhook (<code>action=snooze</code> or <code>vacation</code>) from an HA script so threshold alerts pause while you work (snooze) or routine alerts pause while you travel (vacation), without opening the dashboard. Guide: <a class=\"text-link\" href=\"/about/ingest-and-webhooks\">ingest and webhooks</a>." },
       { type: "h2", text: "Keep an out-of-band channel" },
-      { type: "p", html: "Local notify fails when the LAN or HA host is down. Keep ThermalTrace email (and Pro SMS/push) enabled so freeze risk still reaches a phone that is not on the same Wi‑Fi." }
+      { type: "p", html: "Local notify fails when the LAN or HA host is down. Keep ThermalTrace email and push (and SMS on Pro) enabled so freeze risk still reaches a phone that is not on the same Wi‑Fi." }
   ],
 
   "personal-weather-stations": [

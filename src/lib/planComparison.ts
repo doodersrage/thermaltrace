@@ -121,9 +121,9 @@ export const PLAN_FEATURE_ROWS: PlanFeatureRow[] = [
   {
     id: "push_alerts",
     category: "Alerts",
-    label: "Browser push notifications",
-    free: "—",
-    member: "—",
+    label: "Push notifications (browser + Android)",
+    free: PRO_LIKE,
+    member: PRO_LIKE,
     pro: PRO_LIKE,
     portfolio: PRO_LIKE,
     anchor: "push-alerts",
@@ -335,7 +335,7 @@ const NUDGE_CONFIG: Record<
   push_alerts: {
     targetTier: "pro",
     title: "Browser push on this device",
-    body: "Pro enables browser push so alerts reach you even when the dashboard isn't open.",
+    body: "Browser push is on every plan, so alerts reach you even when the dashboard isn't open.",
     anchor: "push-alerts",
   },
   webhooks: {

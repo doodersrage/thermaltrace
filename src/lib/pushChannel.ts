@@ -16,7 +16,7 @@ export type CombinedPushResult = {
 };
 
 /**
- * Fan out Pro push alerts to browser Web Push subscriptions and native FCM tokens.
+ * Fan out push alerts to browser Web Push subscriptions and native FCM tokens.
  */
 export async function sendPushChannelToUser(
   userId: string,

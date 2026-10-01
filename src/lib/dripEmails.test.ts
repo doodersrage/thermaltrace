@@ -72,7 +72,7 @@ describe("buildDripEmail", () => {
 
     const mail = buildDripEmail("day7", "https://site.example");
 
-    expect(mail.subject).toBe("Try Pro free — SMS, push, and more share scopes");
+    expect(mail.subject).toBe("Try Pro free — SMS, webhooks, and more share scopes");
   });
 
   it("builds the setup-help variants for people with no reading", async () => {
