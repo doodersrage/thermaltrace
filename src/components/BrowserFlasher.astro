@@ -141,6 +141,9 @@ const { deviceKey = "", headingLevel: Heading = "h2" } = Astro.props;
         let acknowledged = false;
         let buffer = "";
         let outcome: "ok" | "failed" | "timeout" = "timeout";
+        // One read stays pending across loop passes: starting a new read each
+        // time the one-second tick wins would hand the next bytes to an abandoned promise.
+        let pendingRead: ReturnType<typeof reader.read> | null = null;
 
         while (Date.now() - startedAt < GIVE_UP_AFTER_MS) {
           if (!acknowledged && Date.now() - lastSent > RESEND_EVERY_MS) {
@@ -148,8 +151,10 @@ const { deviceKey = "", headingLevel: Heading = "h2" } = Astro.props;
             lastSent = Date.now();
             status.textContent = "Sending settings…";
           }
-          const chunk = await Promise.race([reader.read(), sleep(1000).then(() => null)]);
+          pendingRead ??= reader.read();
+          const chunk = await Promise.race([pendingRead, sleep(1000).then(() => null)]);
           if (!chunk) continue;
+          pendingRead = null;
           if (chunk.done) break;
           buffer += decoder.decode(chunk.value, { stream: true });
           const lines = buffer.split("\n");
@@ -172,7 +177,7 @@ const { deviceKey = "", headingLevel: Heading = "h2" } = Astro.props;
               line.startsWith("TT no probe")
             ) {
               outcome = "failed";
-              status.textContent = line.slice(3);
+              status.textContent = line.charAt(3).toUpperCase() + line.slice(4);
             }
           }
           if (outcome !== "timeout") break;
