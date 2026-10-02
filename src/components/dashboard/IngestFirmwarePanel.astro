@@ -26,6 +26,7 @@ import {
   buildParticleCellularSnippet,
   firmwareDownloadHref,
 } from "../../lib/firmwareSketches";
+import BrowserFlasher from "../BrowserFlasher.astro";
 
 interface Props {
   ingestUrl: string;
@@ -84,6 +85,17 @@ const esphomeHref = firmwareDownloadHref(esphomeYaml);
     Download a sketch with your ingest URL already filled in. Set Wi‑Fi, flash, then watch Serial for
     <code>POST 200</code>. Default hardware: DS18B20 on <strong>GPIO4</strong> → key <code>temp1</code>.
   </p>
+
+  <details class="mb-4" open={presetsOpen}>
+    <summary class="font-semibold cursor-pointer">Flash from this browser, no IDE (beta)</summary>
+    <p class="text-sm text-[var(--color-text-muted)] mt-2 mb-3">
+      Installs prebuilt firmware over USB and sends it your Wi‑Fi and this device's key. Chrome or Edge on a computer.
+      Prefer to edit the code? Use the downloads below.
+    </p>
+    <div class="page-stack">
+      <BrowserFlasher deviceKey={ingestKey} headingLevel="h3" />
+    </div>
+  </details>
 
   <ol class="waiting-ingest-checklist ingest-firmware-checklist">
     <li>
